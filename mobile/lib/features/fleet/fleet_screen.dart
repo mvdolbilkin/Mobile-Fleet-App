@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
 import 'package:mobile/shared/providers/logger_provider.dart';
 import '../../shared/api/dio_provider.dart';
 
@@ -13,15 +12,15 @@ final postProvider = FutureProvider.autoDispose<String>((ref) async {
   return response.data['status'] as String;
 });
 
-class HomeScreen extends ConsumerWidget {
-  const HomeScreen({super.key});
+class FleetScreen extends ConsumerWidget {
+  const FleetScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final postAsync = ref.watch(postProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Базовый проект')),
+      appBar: AppBar(title: const Text('Автопарк')),
       body: Center(
         child: postAsync.when(
           data: (title) => Text(
