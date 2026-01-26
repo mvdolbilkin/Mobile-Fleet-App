@@ -45,11 +45,7 @@ class CustomFilterChip extends StatelessWidget {
             ],
             Text(
               label,
-              style: TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 15,
-                fontWeight: FontWeight.w400,
-              ),
+              style: AppTheme.filterChip,
             ),
             if (isSelected) ...[
               SizedBox(width: 6),

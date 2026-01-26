@@ -60,17 +60,23 @@ class VehicleListItem extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppTheme.backgroundColor,
                 borderRadius: BorderRadius.circular(12),
+                image: vehicle.imageUrl != null
+                    ? DecorationImage(
+                        image: AssetImage(vehicle.imageUrl!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
-              child: Center(
-                child: Text(
-                  vehicle.plateNumber.substring(0, 2),
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-              ),
+              child: vehicle.imageUrl == null
+                  ? Center(
+                      child: Text(
+                        vehicle.model.length >= 2
+                            ? vehicle.model.substring(0, 2).toUpperCase()
+                            : vehicle.model.toUpperCase(),
+                        style: AppTheme.avatarText,
+                      ),
+                    )
+                  : null,
             ),
             SizedBox(width: 12),
             // Информация о машине
@@ -86,19 +92,11 @@ class VehicleListItem extends StatelessWidget {
                             children: [
                               TextSpan(
                                 text: '${vehicle.plateNumber} ',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppTheme.textPrimary,
-                                ),
+                                style: AppTheme.listTitle,
                               ),
                               TextSpan(
                                 text: vehicle.model,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppTheme.textSecondary,
-                                ),
+                                style: AppTheme.listSubtitle,
                               ),
                             ],
                           ),
@@ -118,20 +116,14 @@ class VehicleListItem extends StatelessWidget {
                       SizedBox(width: 8),
                       Text(
                         '${vehicle.mileage}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppTheme.textSecondary,
-                        ),
+                        style: AppTheme.caption,
                       ),
                       if (vehicle.driverName != null) ...[
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             vehicle.driverName!,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppTheme.textSecondary,
-                            ),
+                            style: AppTheme.captionSecondary,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
