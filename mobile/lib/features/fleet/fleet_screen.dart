@@ -156,7 +156,7 @@ class AnimatedMenuRow extends StatelessWidget {
                   Text(
                     title,
                     style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                       fontFamily: 'Yandex Sans Text',
                     ),
                   ),

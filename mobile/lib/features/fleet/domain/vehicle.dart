@@ -50,6 +50,7 @@ final List<Vehicle> mockVehicles = [
     status: VehicleStatus.service,
     mileage: 234214,
     driverName: '111111111111112',
+    imageUrl: 'assets/images/default.jfif',
   ),
   Vehicle(
     id: '3',

@@ -22,16 +22,82 @@ class AppTheme {
     fontWeight: FontWeight.w500,
     color: textPrimary,
     fontFamily: 'Yandex Sans Text',
-    height: 0.83, // 20px line height / 24px font size
+    height: 0.83,
     letterSpacing: -0.5,
   );
 
-  static const TextStyle YandexSansMedium = TextStyle(
+  static const TextStyle appBarTitle = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w500,
+    color: textPrimary,
+    fontFamily: 'Yandex Sans Text',
+  );
+
+  static const TextStyle bodyText = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w400,
     color: textPrimary,
     fontFamily: 'Yandex Sans Text',
   );
+
+  static const TextStyle searchHint = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
+    color: textSecondary,
+    fontFamily: 'Yandex Sans Text',
+  );
+
+  static const TextStyle filterChip = TextStyle(
+    fontSize: 15,
+    fontWeight: FontWeight.w400,
+    color: textPrimary,
+    fontFamily: 'Yandex Sans Text',
+  );
+
+  static const TextStyle listTitle = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w500,
+    color: textPrimary,
+    fontFamily: 'Yandex Sans Text',
+  );
+
+  static const TextStyle listSubtitle = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w500,
+    color: textSecondary,
+    fontFamily: 'Yandex Sans Text',
+  );
+
+  static const TextStyle avatarText = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w600,
+    color: textSecondary,
+    fontFamily: 'Yandex Sans Text',
+  );
+
+  static const TextStyle badgeText = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    color: Colors.white,
+    fontFamily: 'Yandex Sans Text',
+  );
+
+  static const TextStyle caption = TextStyle(
+    fontSize: 14,
+    color: textPrimary,
+    fontFamily: 'Yandex Sans Text',
+  );
+  
+  static const TextStyle captionSecondary = TextStyle(
+    fontSize: 14,
+    color: textSecondary,
+    fontFamily: 'Yandex Sans Text',
+  );
+
+  // Deprecated or Aliases for backward compatibility if needed, 
+  // but better to stick to the new naming convention.
+  // Keeping YandexSansMedium as bodyText alias for now or removing if not used elsewhere.
+  static const TextStyle YandexSansMedium = bodyText;
 
   static const TextStyle labelMedium = TextStyle(
     fontSize: 18,
@@ -50,20 +116,17 @@ class AppTheme {
       ),
       textTheme: const TextTheme(
         headlineLarge: headlineLarge,
-        bodyMedium: YandexSansMedium,
+        bodyMedium: bodyText,
         labelMedium: labelMedium,
+        titleMedium: listTitle,
+        titleSmall: listSubtitle,
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: backgroundColor,
         elevation: 0,
         scrolledUnderElevation: 0, // Отключает изменение цвета при скролле
         centerTitle: true,
-        titleTextStyle: TextStyle(
-          color: textPrimary,
-          fontSize: 18,
-          fontWeight: FontWeight.w500,
-          fontFamily: 'Yandex Sans Text',
-        ),
+        titleTextStyle: appBarTitle,
         iconTheme: IconThemeData(color: textPrimary),
       ),
       cardTheme: CardThemeData(

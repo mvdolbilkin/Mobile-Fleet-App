@@ -15,14 +15,30 @@ class MainWrapper extends StatelessWidget {
     );
   }
 
-  Widget _buildIcon(BuildContext context, String path, Color color) {
-    final double size = 28.0;
-    return SvgPicture.asset(
-      path,
-      fit: BoxFit.contain,
-      width: size,
-      height: size,
-      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+  Widget _buildTabItem(String path, String label, Color color) {
+    final double iconSize = 28.0;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        SvgPicture.asset(
+          path,
+          fit: BoxFit.contain,
+          width: iconSize,
+          height: iconSize,
+          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
+            fontFamily: 'Yandex Sans Text',
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 
@@ -30,38 +46,42 @@ class MainWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: NavigationBar(
-          selectedIndex: navigationShell.currentIndex,
-          onDestinationSelected: _goBranch,
-          destinations: [
-            NavigationDestination(
-              icon: _buildIcon(context, 'assets/images/autopark.svg', AppTheme.textSecondary),
-              selectedIcon: _buildIcon(context, 'assets/images/autopark.svg', Colors.black),
-              label: 'Автопарк',
-            ),
-            NavigationDestination(
-              icon: _buildIcon(context, 'assets/images/personal.svg', AppTheme.textSecondary),
-              selectedIcon: _buildIcon(context, 'assets/images/personal.svg', Colors.black),
-              label: 'Персонал',
-            ),
-            NavigationDestination(
-              icon: _buildIcon(context, 'assets/images/map.svg', AppTheme.textSecondary),
-              selectedIcon: _buildIcon(context, 'assets/images/map.svg', Colors.black),
-              label: 'Карта',
-            ),
-            NavigationDestination(
-              icon: _buildIcon(context, 'assets/images/analytics.svg', AppTheme.textSecondary),
-              selectedIcon: _buildIcon(context, 'assets/images/analytics.svg', Colors.black),
-              label: 'Аналитика',
-            ),
-            NavigationDestination(
-              icon: _buildIcon(context, 'assets/images/menu.svg', AppTheme.textSecondary),
-              selectedIcon: _buildIcon(context, 'assets/images/menu.svg', Colors.black),
-              label: 'Меню',
-            ),
-          ],
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: NavigationBar(
+            height: 60,
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+            selectedIndex: navigationShell.currentIndex,
+            onDestinationSelected: _goBranch,
+            destinations: [
+              NavigationDestination(
+                icon: _buildTabItem('assets/images/autopark.svg', 'Автопарк', AppTheme.textSecondary),
+                selectedIcon: _buildTabItem('assets/images/autopark.svg', 'Автопарк', Colors.black),
+                label: 'Автопарк',
+              ),
+              NavigationDestination(
+                icon: _buildTabItem('assets/images/personal.svg', 'Персонал', AppTheme.textSecondary),
+                selectedIcon: _buildTabItem('assets/images/personal.svg', 'Персонал', Colors.black),
+                label: 'Персонал',
+              ),
+              NavigationDestination(
+                icon: _buildTabItem('assets/images/map.svg', 'Карта', AppTheme.textSecondary),
+                selectedIcon: _buildTabItem('assets/images/map.svg', 'Карта', Colors.black),
+                label: 'Карта',
+              ),
+              NavigationDestination(
+                icon: _buildTabItem('assets/images/analytics.svg', 'Аналитика', AppTheme.textSecondary),
+                selectedIcon: _buildTabItem('assets/images/analytics.svg', 'Аналитика', Colors.black),
+                label: 'Аналитика',
+              ),
+              NavigationDestination(
+                icon: _buildTabItem('assets/images/menu.svg', 'Меню', AppTheme.textSecondary),
+                selectedIcon: _buildTabItem('assets/images/menu.svg', 'Меню', Colors.black),
+                label: 'Меню',
+              ),
+            ],
+          ),
         ),
       ),
     );

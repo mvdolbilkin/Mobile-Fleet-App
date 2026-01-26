@@ -24,12 +24,10 @@ class SearchField extends StatelessWidget {
       child: TextField(
         controller: controller,
         onChanged: onChanged,
+        style: AppTheme.bodyText,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(
-            color: AppTheme.textSecondary,
-            fontSize: 16,
-          ),
+          hintStyle: AppTheme.searchHint,
           prefixIcon: Icon(
             Icons.search,
             color: AppTheme.textSecondary,

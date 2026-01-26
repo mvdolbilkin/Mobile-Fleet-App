@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/features/fleet/domain/vehicle.dart';
+import 'package:mobile/shared/widgets/fading_button.dart';
 import 'package:mobile/shared/widgets/filter_chip.dart';
 import 'package:mobile/shared/widgets/search_field.dart';
 import 'package:mobile/shared/widgets/animated_icon_button.dart';
 import '../../../../app/theme.dart';
-import '../../data/mock_vehicles.dart';
 import 'widgets/vehicle_list_item.dart';
 
 class VehiclesScreen extends StatefulWidget {
@@ -25,7 +25,7 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: const Text('Автомобили'),
+        title: const Text('Автомобили', style: AppTheme.appBarTitle),
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: AnimatedIconButton(
@@ -164,24 +164,17 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: () {
+              child: FadingButton(
+                onTap: () {
                   setState(() {
                     _isCheckboxSelected = false;
                     _isOwnerFilterSelected = false;
                     _isTypeFilterSelected = false;
                   });
                 },
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(0, 0),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
                 child: Text(
                   'Сбросить все фильтры',
-                  style: TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 14,
+                  style: AppTheme.captionSecondary.copyWith(
                     decoration: TextDecoration.underline,
                     decorationColor: AppTheme.textSecondary,
                   ),
