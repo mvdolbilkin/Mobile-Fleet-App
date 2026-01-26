@@ -9,10 +9,10 @@ class FleetScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Автопарк'),
+        title: Text('Автопарк', style: AppTheme.headlineLarge,),
       ),
       body: Padding(
-        padding: EdgeInsets.all(16),
+        padding: EdgeInsets.symmetric(horizontal: 16),
         child: GridView.count(
           crossAxisCount: 2,
           mainAxisSpacing: 16,

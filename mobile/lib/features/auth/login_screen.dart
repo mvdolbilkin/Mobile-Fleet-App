@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mobile/app/theme.dart';
 
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
@@ -51,14 +52,7 @@ class LoginScreen extends ConsumerWidget {
               const Text(
                 'Войдите в аккаунт Яндекс ID',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black,
-                  fontFamily: 'Yandex Sans Text',
-                  height: 0.83, // 20px line height / 24px font size
-                  letterSpacing: -0.5,
-                ),
+                style: AppTheme.headlineLarge,
               ),
               const Spacer(flex: 4),
               // Login Button
