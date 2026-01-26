@@ -52,7 +52,7 @@ class MenuScreen extends StatelessWidget {
                                   const Text(
                                     '31',
                                     style: TextStyle(
-                                      fontSize: 64,
+                                      fontSize: 40,
                                       fontWeight: FontWeight.w400,
                                       height: 1,
                                       fontFamily: 'Yandex Sans Text',
@@ -71,11 +71,11 @@ class MenuScreen extends StatelessWidget {
                                 ],
                               ),
                               const SizedBox(height: 16),
-                              _buildStatusRow(AppTheme.statusGreen, '0 свободно'),
-                              const SizedBox(height: 0),
-                              _buildStatusRow(AppTheme.statusOrange, '0 на заказе'),
-                              const SizedBox(height: 0),
-                              _buildStatusRow(AppTheme.statusRed, '31 заняты'),
+                              _buildDynamicStatusList([
+                                (color: AppTheme.statusGreen, text: '0 свободно'),
+                                (color: AppTheme.statusOrange, text: '0 на заказе'),
+                                (color: AppTheme.statusRed, text: '31 заняты'),
+                              ]),
                             ],
                           ),
                         ),
@@ -119,7 +119,7 @@ class MenuScreen extends StatelessWidget {
                     // Secondary Stats Grid
                     Row(
                       children: [
-                        Expanded(child: _buildInfoBlock('Рейтинг парка ниже среднего', '4,71', icon: Icons.error, iconColor: AppTheme.statusRed)),
+                        Expanded(child: _buildInfoBlock('Рейтинг парка ниже среднего', '4,71', iconAsset: 'assets/images/menu_stuff_rating.svg', iconColor: AppTheme.statusRed)),
                         const SizedBox(width: 12),
                         Expanded(child: _buildInfoBlock('Ср. время на линии', '2 ч 28 мин')),
                       ],
@@ -135,6 +135,112 @@ class MenuScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(height: 16),
+              InfoCard(
+                title: 'Автомобили',
+                icon: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  // padding: const EdgeInsets.all(6),
+                  child: SvgPicture.asset(
+                    'assets/images/menu_auto.svg',
+                    width: 32,
+                    height: 32,
+                    // colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        const Text(
+                          '2 467',
+                          style: TextStyle(
+                            fontSize: 40,
+                            fontWeight: FontWeight.w400,
+                            height: 1,
+                            fontFamily: 'Yandex Sans Text',
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'парковых автомобилей',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xCC000000), // ~80% opacity
+                              fontFamily: 'Yandex Sans Text',
+                              height: 1.1,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildDynamicStatusList([
+                      (color: AppTheme.statusGreen, text: '2 382 работает'),
+                      (color: AppTheme.statusOrange, text: '67 нет водителя'),
+                      (color: AppTheme.statusRed, text: '1 сервис'),
+                      (color: AppTheme.statusBlue, text: '1 подготовка'),
+                      (color: Colors.grey, text: '16 другое'),
+                    ]),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      height: 180,
+                      child: Stack(
+                        children: [
+                          // Grid lines and Labels
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _buildChartLine('2 тыс.'),
+                              _buildChartLine('1 тыс.'),
+                              _buildChartLine('0'),
+                            ],
+                          ),
+                          // Bars
+                          Positioned(
+                            bottom: 25, // Start from the '0' line (approx text height + padding)
+                            left: 0,
+                            right: 50, // Leave space for right-side labels? Ah, labels are on right in mockup
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                const SizedBox(width: 40), // Left padding
+                                Container(
+                                  width: 60,
+                                  height: 140, // Visual approximation for > 2000
+                                  decoration: const BoxDecoration(
+                                    color: AppTheme.statusGreen,
+                                    borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  width: 60,
+                                  height: 6, // Visual approximation for ~67
+                                  decoration: const BoxDecoration(
+                                    color: AppTheme.statusOrange,
+                                    borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -142,8 +248,31 @@ class MenuScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildDynamicStatusList(List<({Color color, String text})> items) {
+    if (items.length > 3) {
+      return Wrap(
+        spacing: 12,
+        runSpacing: 8,
+        children: items
+            .map((item) => _buildStatusRow(item.color, item.text))
+            .toList(),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: items
+          .map((item) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: _buildStatusRow(item.color, item.text),
+              ))
+          .toList(),
+    );
+  }
+
   Widget _buildStatusRow(Color color, String text) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           width: 12,
@@ -157,7 +286,7 @@ class MenuScreen extends StatelessWidget {
         Text(
           text,
           style: const TextStyle(
-            fontSize: 16,
+            fontSize: 13,
             fontWeight: FontWeight.w500,
             fontFamily: 'Yandex Sans Text',
           ),
@@ -166,7 +295,12 @@ class MenuScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoBlock(String title, String value, {IconData? icon, Color? iconColor, String? subtitle, Color? subtitleColor}) {
+  Widget _buildInfoBlock(String title, String value,
+      {IconData? icon,
+      String? iconAsset,
+      Color? iconColor,
+      String? subtitle,
+      Color? subtitleColor}) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -189,6 +323,7 @@ class MenuScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
                 value,
@@ -196,11 +331,22 @@ class MenuScreen extends StatelessWidget {
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                   fontFamily: 'Yandex Sans Text',
+                  height: 1.2,
                 ),
               ),
               if (icon != null) ...[
                 const SizedBox(width: 6),
                 Icon(icon, color: iconColor, size: 20),
+              ] else if (iconAsset != null) ...[
+                const SizedBox(width: 3),
+                SvgPicture.asset(
+                  iconAsset,
+                  width: 16,
+                  height: 16,
+                  colorFilter: iconColor != null
+                      ? ColorFilter.mode(iconColor, BlendMode.srcIn)
+                      : null,
+                ),
               ],
               if (subtitle != null) ...[
                 const SizedBox(width: 6),
@@ -218,6 +364,27 @@ class MenuScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildChartLine(String label) {
+    return Row(
+      children: [
+        Expanded(child: Container(height: 1, color: AppTheme.borderColor)),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 40, // Fixed width for labels
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF9E9E9E), // Colors.grey
+              fontSize: 12,
+              fontFamily: 'Yandex Sans Text',
+            ),
+            textAlign: TextAlign.right,
+          ),
+        ),
+      ],
     );
   }
 }
