@@ -52,10 +52,12 @@ class LoginScreen extends ConsumerWidget {
                 'Войдите в аккаунт Яндекс ID',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w500,
                   color: Colors.black,
-                  fontFamily: 'Yandex Sans Text', // Placeholder if custom font is added
+                  fontFamily: 'Yandex Sans Text',
+                  height: 0.83, // 20px line height / 24px font size
+                  letterSpacing: -0.5,
                 ),
               ),
               const Spacer(flex: 4),
@@ -66,7 +68,7 @@ class LoginScreen extends ConsumerWidget {
                      context.go('/fleet');
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFCC00),
+                    backgroundColor: const Color.fromARGB(255, 252, 224, 0),
                     foregroundColor: Colors.black,
                     elevation: 0,
                     fixedSize: const Size(177.5, 56),
@@ -75,8 +77,10 @@ class LoginScreen extends ConsumerWidget {
                     ),
                     textStyle: const TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                       fontFamily: 'Yandex Sans Text',
+                      height: 1.19, // 19px line height / 16px font size
+                      letterSpacing: -0.08, // -0.5% of 16px
                     ),
                   ),
                   child: const Text('Войти'),
