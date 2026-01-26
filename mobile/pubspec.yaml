@@ -74,6 +74,7 @@ flutter:
     - family: Yandex Sans Text
       fonts:
         - asset: assets/fonts/YandexSansText-Regular.ttf
+          weight: 400
         - asset: assets/fonts/YandexSansText-Medium.ttf
           weight: 500
         - asset: assets/fonts/YandexSansText-Bold.ttf
