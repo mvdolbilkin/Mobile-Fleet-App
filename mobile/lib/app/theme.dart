@@ -56,6 +56,7 @@ class AppTheme {
       appBarTheme: const AppBarTheme(
         backgroundColor: backgroundColor,
         elevation: 0,
+        scrolledUnderElevation: 0, // Отключает изменение цвета при скролле
         centerTitle: true,
         titleTextStyle: TextStyle(
           color: textPrimary,

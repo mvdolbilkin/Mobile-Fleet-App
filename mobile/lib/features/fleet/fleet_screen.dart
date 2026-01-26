@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/features/fleet/presentation/vehicles/vehicles_screen.dart';
+import 'package:mobile/shared/widgets/animated_icon_button.dart';
 import '../../app/theme.dart';
 
 class FleetScreen extends StatelessWidget {
@@ -9,7 +10,8 @@ class FleetScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Автопарк', style: AppTheme.headlineLarge,),
+        title: const Text('Автопарк'),
+        
       ),
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16),
