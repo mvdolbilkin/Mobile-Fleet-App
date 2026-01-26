@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class MainWrapper extends StatelessWidget {
-  const MainWrapper({
-    required this.navigationShell,
-    super.key,
-  });
+  const MainWrapper({required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
 
@@ -20,36 +18,89 @@ class MainWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: _goBranch,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.directions_car_outlined),
-            selectedIcon: Icon(Icons.directions_car),
-            label: 'Автопарк',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.people_outline),
-            selectedIcon: Icon(Icons.people),
-            label: 'Персонал',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.map_outlined),
-            selectedIcon: Icon(Icons.map),
-            label: 'Карта',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.analytics_outlined),
-            selectedIcon: Icon(Icons.analytics),
-            label: 'Аналитика',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.menu_outlined),
-            selectedIcon: Icon(Icons.menu),
-            label: 'Меню',
-          ),
-        ],
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: NavigationBar(
+          selectedIndex: navigationShell.currentIndex,
+          onDestinationSelected: _goBranch,
+          destinations: [
+            NavigationDestination(
+              icon: SvgPicture.asset(
+                'assets/images/autopark.svg', 
+                width: 24, 
+                height: 24,
+                fit: BoxFit.none,
+              ),
+              selectedIcon: SvgPicture.asset(
+                'assets/images/autopark_selected.svg', 
+                width: 24, 
+                height: 24,
+                fit: BoxFit.none,
+              ),
+              label: 'Автопарк',
+            ),
+            NavigationDestination(
+              icon: SvgPicture.asset(
+                'assets/images/personal.svg', 
+                width: 24, 
+                height: 24,
+                fit: BoxFit.none,
+              ),
+              selectedIcon: SvgPicture.asset(
+                'assets/images/personal_selected.svg', 
+                width: 24, 
+                height: 24,
+                fit: BoxFit.none,
+              ),
+              label: 'Персонал',
+            ),
+            NavigationDestination(
+              icon: SvgPicture.asset(
+                'assets/images/map.svg', 
+                width: 24, 
+                height: 24,
+                fit: BoxFit.none,
+              ),
+              selectedIcon: SvgPicture.asset(
+                'assets/images/map_selected.svg', 
+                width: 24, 
+                height: 24,
+                fit: BoxFit.none,
+              ),
+              label: 'Карта',
+            ),
+            NavigationDestination(
+              icon: SvgPicture.asset(
+                'assets/images/analytics.svg', 
+                width: 24, 
+                height: 24,
+                fit: BoxFit.none,
+              ),
+              selectedIcon: SvgPicture.asset(
+                'assets/images/analytics_selected.svg', 
+                width: 24, 
+                height: 24,
+                fit: BoxFit.none,
+              ),
+              label: 'Аналитика',
+            ),
+            NavigationDestination(
+              icon: SvgPicture.asset(
+                'assets/images/menu.svg', 
+                width: 24, 
+                height: 24,
+                fit: BoxFit.none,
+              ),
+              selectedIcon: SvgPicture.asset(
+                'assets/images/menu_selected.svg', 
+                width: 24, 
+                height: 24,
+                fit: BoxFit.none,
+              ),
+              label: 'Меню',
+            ),
+          ],
+        ),
       ),
     );
   }
