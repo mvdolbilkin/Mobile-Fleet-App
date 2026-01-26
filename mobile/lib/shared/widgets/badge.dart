@@ -43,7 +43,8 @@ class CustomBadge extends StatelessWidget {
         style: TextStyle(
           color: Colors.white,
           fontSize: 12,
-          fontWeight: FontWeight.w600,
+          fontFamily: 'Yandex Sans Text',
+          fontWeight: FontWeight.w400,
         ),
       ),
     );
