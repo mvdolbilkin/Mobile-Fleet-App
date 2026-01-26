@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class MainWrapper extends StatelessWidget {
   const MainWrapper({
@@ -23,30 +24,30 @@ class MainWrapper extends StatelessWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: _goBranch,
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.directions_car_outlined),
-            selectedIcon: Icon(Icons.directions_car),
+            icon: SvgPicture.asset('assets/images/autopark.svg', width: 24, height: 24),
+            selectedIcon: SvgPicture.asset('assets/images/autopark_selected.svg', width: 24, height: 24),
             label: 'Автопарк',
           ),
           NavigationDestination(
-            icon: Icon(Icons.people_outline),
-            selectedIcon: Icon(Icons.people),
+            icon: SvgPicture.asset('assets/images/personal.svg', width: 24, height: 24),
+            selectedIcon: SvgPicture.asset('assets/images/personal_selected.svg', width: 24, height: 24),
             label: 'Персонал',
           ),
           NavigationDestination(
-            icon: Icon(Icons.map_outlined),
-            selectedIcon: Icon(Icons.map),
+            icon: SvgPicture.asset('assets/images/map.svg', width: 24, height: 24),
+            selectedIcon: SvgPicture.asset('assets/images/map_selected.svg', width: 24, height: 24),
             label: 'Карта',
           ),
           NavigationDestination(
-            icon: Icon(Icons.analytics_outlined),
-            selectedIcon: Icon(Icons.analytics),
+            icon: SvgPicture.asset('assets/images/analytics.svg', width: 24, height: 24),
+            selectedIcon: SvgPicture.asset('assets/images/analytics_selected.svg', width: 24, height: 24),
             label: 'Аналитика',
           ),
           NavigationDestination(
-            icon: Icon(Icons.menu_outlined),
-            selectedIcon: Icon(Icons.menu),
+            icon: SvgPicture.asset('assets/images/menu.svg', width: 20, height: 20),
+            selectedIcon: SvgPicture.asset('assets/images/menu_selected.svg', width: 24, height: 24),
             label: 'Меню',
           ),
         ],
