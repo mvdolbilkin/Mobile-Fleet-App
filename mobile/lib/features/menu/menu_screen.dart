@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:mobile/app/theme.dart';
 import 'package:mobile/features/menu/widgets/cars_card.dart';
 import 'package:mobile/features/menu/widgets/executors_card.dart';
+import 'package:mobile/features/menu/widgets/loyalty_program_card.dart';
+import 'package:mobile/features/menu/widgets/problems_card.dart';
 
 class MenuScreen extends StatelessWidget {
   const MenuScreen({super.key});
@@ -18,6 +20,10 @@ class MenuScreen extends StatelessWidget {
               ExecutorsCard(),
               SizedBox(height: 16),
               CarsCard(),
+              SizedBox(height: 16),
+              LoyaltyProgramCard(),
+              SizedBox(height: 16),
+              ProblemsCard(),
             ],
           ),
         ),
