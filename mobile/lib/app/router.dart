@@ -7,14 +7,19 @@ import 'package:mobile/features/staff/staff_screen.dart';
 import 'package:mobile/features/map/map_screen.dart';
 import 'package:mobile/features/analytics/analytics_screen.dart';
 import 'package:mobile/features/menu/menu_screen.dart';
+import 'package:mobile/features/auth/login_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
   
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: '/fleet',
+    initialLocation: '/login',
     routes: [
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return MainWrapper(navigationShell: navigationShell);
