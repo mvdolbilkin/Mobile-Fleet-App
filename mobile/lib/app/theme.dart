@@ -9,6 +9,7 @@ class AppTheme {
   static const Color textPrimary = Colors.black;
   static const Color textSecondary = Color(0xFF8E8E93);
   static const Color borderColor = Color(0xFFE5E5EA);
+  static const Color buttonColor = Color(0xFFFCE000);
   
   // Статусные цвета для бейджей
   static const Color statusGreen = Color(0xFF34C759);

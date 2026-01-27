@@ -8,6 +8,7 @@ import 'package:mobile/features/map/map_screen.dart';
 import 'package:mobile/features/analytics/analytics_screen.dart';
 import 'package:mobile/features/menu/menu_screen.dart';
 import 'package:mobile/features/auth/login_screen.dart';
+import 'package:mobile/features/auth/api_setup_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -19,6 +20,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/api-setup',
+        builder: (context, state) => const ApiSetupScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {

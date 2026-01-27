@@ -59,7 +59,7 @@ class LoginScreen extends ConsumerWidget {
               Center(
                 child: ElevatedButton(
                   onPressed: () {
-                     context.go('/fleet');
+                     context.push('/api-setup');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color.fromARGB(255, 252, 224, 0),

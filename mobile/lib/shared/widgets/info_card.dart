@@ -3,6 +3,7 @@ import 'package:mobile/app/theme.dart';
 
 class InfoCard extends StatelessWidget {
   final String title;
+  final String? subtitle;
   final Widget icon;
   final Widget child;
   final VoidCallback? onTap;
@@ -10,6 +11,7 @@ class InfoCard extends StatelessWidget {
   const InfoCard({
     super.key,
     required this.title,
+    this.subtitle,
     required this.icon,
     required this.child,
     this.onTap,
@@ -23,7 +25,7 @@ class InfoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
       ),
       child: Material(
-        color: Colors.transparent,
+        color: const Color.fromARGB(0, 255, 255, 255),
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(24),
@@ -38,14 +40,31 @@ class InfoCard extends StatelessWidget {
                   children: [
                     icon,
                     const SizedBox(width: 12),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w500,
-                        fontFamily: 'Yandex Sans Text', 
-                        color: AppTheme.textPrimary,
-                        letterSpacing: -0.5,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w500,
+                              fontFamily: 'Yandex Sans Text', 
+                              color: AppTheme.textPrimary,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          if (subtitle != null)
+                             Text(
+                              subtitle!,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w400,
+                                fontFamily: 'Yandex Sans Text',
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ],
