@@ -39,7 +39,7 @@ class LoyaltyProgramCard extends StatelessWidget {
             isLocked: true,
           ),
           Padding(
-            padding: const EdgeInsets.only(left: 32.0, top: 4),
+            padding: const EdgeInsets.only(left: 0.0, top: 4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -57,19 +57,28 @@ class LoyaltyProgramCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                const _RequirementRow(
-                  text: '2000 поездок в месяц',
-                  state: _RequirementState.failed,
+                const Padding(
+                  padding: EdgeInsets.only(left: 8.0),
+                  child: _RequirementRow(
+                    text: '2000 поездок в месяц',
+                    state: _RequirementState.failed,
+                  ),
                 ),
                 const SizedBox(height: 8),
-                const _RequirementRow(
-                  text: 'Заполнен профиль партнёра',
-                  state: _RequirementState.completed,
+                const Padding(
+                  padding: EdgeInsets.only(left: 8.0),
+                  child: _RequirementRow(
+                    text: 'Заполнен профиль партнёра',
+                    state: _RequirementState.completed,
+                  ),
                 ),
                 const SizedBox(height: 8),
-                const _RequirementRow(
-                  text: 'Исполнители подтвердили занятость',
-                  state: _RequirementState.completed,
+                const Padding(
+                  padding: EdgeInsets.only(left: 8.0),
+                  child: _RequirementRow(
+                    text: 'Исполнители подтвердили занятость',
+                    state: _RequirementState.completed,
+                  ),
                 ),
               ],
             ),
@@ -88,7 +97,7 @@ class LoyaltyProgramCard extends StatelessWidget {
             isLocked: true,
           ),
             Padding(
-            padding: const EdgeInsets.only(left: 32.0, top: 12),
+            padding: const EdgeInsets.only(left: 0.0, top: 12),
             child: Align(
               alignment: Alignment.centerLeft,
               child: const _BenefitBadge(
