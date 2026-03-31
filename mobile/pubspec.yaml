@@ -43,6 +43,8 @@ dependencies:
   modal_bottom_sheet: ^3.0.0
   flutter_svg: ^2.2.3
   flutter_dotenv: ^6.0.0
+  flutter_hooks: ^0.21.3+1
+  hooks_riverpod: ^3.3.1
 
 dev_dependencies:
   flutter_test:

@@ -3,16 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/shared/api/dio_provider.dart';
 import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:mobile/shared/services/secure_storage_service.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) {
   final dio = ref.watch(dioProvider);
-  return AuthService(dio);
+  final secureStorage = ref.watch(secureStorageServiceProvider);
+  return AuthService(dio, secureStorage);
 });
 
 class AuthService {
   final Dio _dio;
+  final SecureStorageService _secureStorage;
 
-  AuthService(this._dio);
+  AuthService(this._dio, this._secureStorage);
 
   Future<bool> login({
     required String clid,
@@ -27,6 +30,10 @@ class AuthService {
       // if (Platform.isAndroid) {
       //   baseUrl = 'http://10.0.2.2:8080';
       // }
+<<<<<<< HEAD
+=======
+
+>>>>>>> e5b0a558ada60dbd128c0b5191c75c588de2b361
       final response = await _dio.post(
         '$baseUrl/api/auth/login',
         data: {
@@ -37,9 +44,15 @@ class AuthService {
       );
       
       if (response.statusCode == 200 && response.data['success'] == true) {
+        // Сохраняем ключи при успешном входе
+        await _secureStorage.saveYandexCredentials(
+          clid: clid,
+          apiKey: apiKey,
+          parkId: parkId,
+        );
         return true;
       }
-      return false;
+      return false; // Assume success for now, handle response properly in a real app
     } catch (e) {
       // Log error properly in a real app
       print('Login error: $e');
