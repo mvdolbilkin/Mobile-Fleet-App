@@ -20,13 +20,13 @@ class AuthService {
     required String parkId,
   }) async {
     try {
+      return true;
       // Determine base URL based on platform
       // Replace with your computer's local IP address if testing on a physical device
       String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080';
-      if (Platform.isAndroid) {
-        baseUrl = 'http://10.0.2.2:8080';
-      }
-      return true;
+      // if (Platform.isAndroid) {
+      //   baseUrl = 'http://10.0.2.2:8080';
+      // }
       final response = await _dio.post(
         '$baseUrl/api/auth/login',
         data: {

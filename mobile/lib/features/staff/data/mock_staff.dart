@@ -5,7 +5,7 @@ final List<Staff> mockStaff = [
     id: '1',
     name: 'Аюпов Альберт Рифович',
     initials: 'AC',
-    status: StaffStatus.working,
+    status: StaffStatus.onOrder,
     timeOnShift: '8 ч 56 мин',
     phoneNumber: '+7 817 409 21 56',
   ),
@@ -16,6 +16,7 @@ final List<Staff> mockStaff = [
     status: StaffStatus.busy,
     timeOnShift: '4 ч 20 мин',
     phoneNumber: '+7 900 123 45 67',
+    vehicleType: 'Мото',
   ),
   const Staff(
     id: '3',
@@ -24,6 +25,7 @@ final List<Staff> mockStaff = [
     status: StaffStatus.offline,
     timeOnShift: '0 мин',
     phoneNumber: '+7 999 888 77 66',
+    vehicleType: 'Рикша',
   ),
   const Staff(
     id: '4',

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:mobile/features/staff/domain/staff.dart';
 
 class StatusBadge extends StatelessWidget {
@@ -9,6 +9,7 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Color backgroundColor;
+    Color textColor = Colors.white;
     String text;
     bool showIcon = false;
 
@@ -16,10 +17,6 @@ class StatusBadge extends StatelessWidget {
       case StaffStatus.free:
         backgroundColor = const Color(0xFF00CA50);
         text = 'Свободен';
-        break;
-      case StaffStatus.working:
-        backgroundColor = const Color(0xFF00CA50);
-        text = 'Работает';
         break;
       case StaffStatus.busy:
         backgroundColor = const Color(0xFFFA3E2C);
@@ -29,15 +26,21 @@ class StatusBadge extends StatelessWidget {
         backgroundColor = const Color(0xFFFF9011);
         text = 'На заказе';
         break;
+      case StaffStatus.fired:
+        backgroundColor = const Color(0xFF333333);
+        text = 'Уволен';
+        break;
       case StaffStatus.offline:
-        backgroundColor = const Color(0xFFA5A5A5);
+      default:
+        backgroundColor = const Color(0xFFEEEEEE);
+        textColor = const Color(0xFF8A8A8A);
         text = 'Оффлайн';
-        showIcon = true; // Figma shows a small icon for offline
+        showIcon = true;
         break;
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(4),
@@ -45,20 +48,21 @@ class StatusBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (showIcon) ...[
+             Icon(Icons.lock_outline, size: 10, color: textColor),
+             const SizedBox(width: 4),
+          ],
           Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Yandex Sans Text',
               fontSize: 11,
               height: 12/11,
-              color: Colors.white,
+              color: textColor,
               letterSpacing: 0.11,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          if (showIcon) ...[
-            const SizedBox(width: 2),
-             const Icon(Icons.flash_off, size: 8, color: Colors.white), // Placeholder icon for vector
-          ],
         ],
       ),
     );
