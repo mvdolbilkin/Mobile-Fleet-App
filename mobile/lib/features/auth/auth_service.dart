@@ -35,7 +35,7 @@ class AuthService {
           'park_id': parkId,
         },
       );
-
+      
       if (response.statusCode == 200 && response.data['success'] == true) {
         return true;
       }
