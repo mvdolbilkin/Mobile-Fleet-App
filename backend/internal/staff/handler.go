@@ -41,7 +41,16 @@ func (h *Handler) GetStaffList(c *gin.Context) {
 		return
 	}
 
-	drivers, err := h.service.GetDrivers(limit, offset)
+	apiKey := c.GetHeader("X-API-Key")
+	clientID := c.GetHeader("X-Client-ID")
+	parkID := c.GetHeader("X-Park-ID")
+
+	if apiKey == "" || clientID == "" || parkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing required authentication headers (X-API-Key, X-Client-ID, X-Park-ID)"})
+		return
+	}
+
+	drivers, err := h.service.GetDrivers(limit, offset, apiKey, clientID, parkID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

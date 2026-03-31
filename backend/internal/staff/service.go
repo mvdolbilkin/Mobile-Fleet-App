@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -28,15 +27,9 @@ func NewService() *Service {
 	}
 }
 
-func (s *Service) GetDrivers(limit int, offset int) (interface{}, error) {
-	// Идентификаторы мы берем из переменных окружения для безопасности
-	apiKey := os.Getenv("YANDEX_API_KEY")
-	clientID := os.Getenv("YANDEX_CLIENT_ID")
-	parkID := os.Getenv("YANDEX_PARK_ID")
-
+func (s *Service) GetDrivers(limit int, offset int, apiKey string, clientID string, parkID string) (interface{}, error) {
 	if apiKey == "" || clientID == "" || parkID == "" {
-		// Для тестирования можете временно захардкодить здесь значения, но лучше использовать .env
-		return nil, fmt.Errorf("учетные данные yandex api не установлены в переменных окружения")
+		return nil, fmt.Errorf("отсутствуют необходимые учетные данные в заголовках")
 	}
 
 	url := "https://fleet-api.taxi.yandex.net/v1/parks/driver-profiles/list"

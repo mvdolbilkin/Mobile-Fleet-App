@@ -2,11 +2,17 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mobile/shared/services/secure_storage_service.dart';
 
 String getBaseUrl() {
+  final envUrl = dotenv.env['API_BASE_URL'];
+  if (envUrl != null && envUrl.isNotEmpty) {
+    return envUrl.endsWith('/') ? envUrl : '$envUrl/';
+  }
+
   if (kIsWeb) return 'http://localhost:8080/';
-  if (Platform.isAndroid) return 'http://192.168.1.21:8080/'; // Универсальный адрес эмулятора Android для доступа к localhost хоста
+  if (Platform.isAndroid) return 'http://192.168.1.21:8081/'; // Универсальный адрес эмулятора Android для доступа к localhost хоста
   return 'http://localhost:8080/';
 }
 
