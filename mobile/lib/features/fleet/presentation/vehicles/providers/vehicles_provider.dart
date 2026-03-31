@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:mobile/features/fleet/domain/vehicle.dart';
+import 'package:mobile/features/fleet/domain/vehicle_details.dart';
 import '../../../data/vehicles_service.dart';
 
 import 'package:mobile/shared/api/dio_provider.dart';
@@ -33,4 +34,9 @@ final vehiclesProvider = FutureProvider<List<Vehicle>>((ref) async {
   final service = ref.watch(vehiclesServiceProvider);
   
   return service.getVehicles(filter);
+});
+
+final vehicleDetailsProvider = FutureProvider.family<VehicleDetails, String>((ref, id) async {
+  final service = ref.watch(vehiclesServiceProvider);
+  return service.getVehicleDetails(id);
 });

@@ -9,12 +9,14 @@ import (
 )
 
 const yandexFleetAPIURL = "https://fleet-api.taxi.yandex.net/v1/parks/cars/list"
+const yandexFleetCarAPIURL = "https://fleet-api.taxi.yandex.net/v2/parks/vehicles/car"
 
 // RegisterRoutes registers the vehicle routes onto the provided gin.Engine
 func RegisterRoutes(r *gin.Engine) {
 	vehiclesGroup := r.Group("/api/vehicles")
 	{
 		vehiclesGroup.POST("/list", listVehiclesProxy)
+		vehiclesGroup.GET("/car", getVehicleProxy)
 	}
 }
 
@@ -65,5 +67,50 @@ func listVehiclesProxy(c *gin.Context) {
 	}
 
 	// forward the exact status code and response body back to the client
+	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
+}
+
+func getVehicleProxy(c *gin.Context) {
+	vehicleID := c.Query("vehicle_id")
+	if vehicleID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
+		return
+	}
+
+	requestURL := yandexFleetCarAPIURL + "?vehicle_id=" + vehicleID
+
+	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return
+	}
+
+	apiKey := c.GetHeader("X-API-Key")
+	clientID := c.GetHeader("X-Client-ID")
+	parkID := c.GetHeader("X-Park-ID")
+
+	if apiKey == "" || clientID == "" || parkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing required authentication headers"})
+		return
+	}
+
+	req.Header.Set("X-API-Key", apiKey)
+	req.Header.Set("X-Client-ID", clientID)
+	req.Header.Set("X-Park-ID", parkID)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to reach Yandex Fleet API"})
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read response from Yandex API"})
+		return
+	}
+
 	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
 }

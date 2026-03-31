@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../app/theme.dart';
 import '../../domain/vehicle.dart';
+import 'providers/vehicles_provider.dart';
 
-class VehicleInfoScreen extends StatefulWidget {
+class VehicleInfoScreen extends ConsumerStatefulWidget {
   final Vehicle? vehicle;
 
   const VehicleInfoScreen({super.key, this.vehicle});
 
   @override
-  State<VehicleInfoScreen> createState() => _VehicleInfoScreenState();
+  ConsumerState<VehicleInfoScreen> createState() => _VehicleInfoScreenState();
 }
 
-class _VehicleInfoScreenState extends State<VehicleInfoScreen>
+class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
@@ -386,41 +388,69 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen>
   }
 
   Widget _buildDetailsTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildDetailSection(
-          'Адрес парковки',
-          'Водителям будет легче найти ваш автомобиль на карте',
-          const Text('Москва, улица Цюрупы, 30/63', style: TextStyle(fontSize: 15)),
-        ),
-        _buildDetailSection(
-          'Владелец',
-          'Кому принадлежит право использования',
-          const Text('Таксопарк', style: TextStyle(fontSize: 15)),
-        ),
-        _buildDetailSection(
-          'Об автомобиле',
-          'Детали',
-          _buildDetailGrid([
-            {'СТС': '—'}, {'Год выпуска': widget.vehicle?.year ?? '—'},
-            {'Дата выдачи СТС': '—'}, {'Номер кузова': '—'},
-            {'Госномер': widget.vehicle?.plateNumber ?? '—'}, {'Цвет': widget.vehicle?.color ?? '—'},
-            {'VIN': widget.vehicle?.id ?? '—'}, {'КПП': '—'},
-            {'Марка': widget.vehicle?.model ?? '—'}, {'Вид топлива': '—'},
-            {'Модель': '—'}, {'Тип ТС': '—'},
-            {'Пробег': widget.vehicle != null ? '${widget.vehicle!.mileage} км' : '—'},
-          ]),
-        ),
-        _buildDetailSection(
-          'Комплектация',
-          'Дополнительная информация',
-          _buildDetailGrid([
-            {'Кондиционер': 'Есть'},
-          ]),
-          showDivider: false,
-        ),
-      ],
+    if (widget.vehicle == null) {
+      return const Center(child: Text('Машина не выбрана'));
+    }
+
+    final vehicleDetailsAsync = ref.watch(vehicleDetailsProvider(widget.vehicle!.id));
+
+    return vehicleDetailsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
+      error: (error, stack) => Center(child: Text('Ошибка загрузки данных: $error')),
+      data: (details) {
+        final specs = details.specifications;
+        final licenses = details.licenses;
+        final parkProfile = details.parkProfile;
+
+        String parseTransmission(String? tr) {
+          switch (tr) {
+            case 'mechanical': return 'Механика';
+            case 'automatic': return 'Автомат';
+            case 'robotic': return 'Робот';
+            case 'variator': return 'Вариатор';
+            default: return 'Неизвестный';
+          }
+        }
+
+        String parseFuel(String? fuel) {
+          switch (fuel) {
+            case 'petrol': return 'Бензин';
+            case 'methane': return 'Метан';
+            case 'propane': return 'Пропан';
+            case 'electricity': return 'Электро';
+            default: return '—';
+          }
+        }
+
+        bool hasConditioner = parkProfile?.amenities?.contains('conditioner') ?? false;
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildDetailSection(
+              'Об автомобиле',
+              'Детали',
+              _buildDetailGrid([
+                {'СТС': licenses?.registrationCertificate ?? '—'}, {'Год выпуска': specs?.year?.toString() ?? '—'},
+                {'Дата выдачи СТС': '—'}, {'Номер кузова': specs?.bodyNumber ?? '—'},
+                {'Госномер': licenses?.licencePlateNumber ?? widget.vehicle?.plateNumber ?? '—'}, {'Цвет': specs?.color ?? widget.vehicle?.color ?? '—'},
+                {'VIN': specs?.vin ?? '—'}, {'КПП': parseTransmission(specs?.transmission)},
+                {'Марка': specs?.brand ?? widget.vehicle?.brand ?? '—'}, {'Вид топлива': parseFuel(parkProfile?.fuelType)},
+                {'Модель': specs?.model ?? '—'}, {'Тип ТС': 'Легковой автомобиль'},
+                {'Позывной': parkProfile?.callsign ?? widget.vehicle?.callsign ?? '—'},
+              ]),
+            ),
+            _buildDetailSection(
+              'Комплектация',
+              'Дополнительная информация',
+              _buildDetailGrid([
+                {'Кондиционер': hasConditioner ? 'Да' : 'Нет'},
+              ]),
+              showDivider: false,
+            ),
+          ],
+        );
+      },
     );
   }
 

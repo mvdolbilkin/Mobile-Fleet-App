@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:mobile/features/fleet/domain/vehicle.dart';
+import 'package:mobile/features/fleet/domain/vehicle_details.dart';
 import 'package:mobile/shared/services/secure_storage_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -66,7 +67,7 @@ class VehiclesService {
       final Map<String, dynamic> payload = {
         "limit": 1000,
         "offset": 0,
-        "query": {
+        "query": <String, dynamic>{
           "park": {
             "id": parkId,
             "car": _buildCarFilters(filter),
@@ -113,6 +114,33 @@ class VehiclesService {
       print('Error fetching vehicles: $e');
       // Временно возвращаем моковые данные или пустой список при ошибке? 
       // Лучше выбросить ошибку и обработать на UI, но оставим возврат пустого списка или Exception
+      throw e;
+    }
+  }
+
+  Future<VehicleDetails> getVehicleDetails(String vehicleId) async {
+    try {
+      final parkId = await _secureStorage.getParkId();
+      if (parkId == null || parkId.isEmpty) {
+        throw Exception('Park ID is not available. Please login again.');
+      }
+
+      String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080';
+
+      final response = await _dio.get(
+        '$baseUrl/api/vehicles/car',
+        queryParameters: {
+          'vehicle_id': vehicleId,
+        },
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return VehicleDetails.fromJson(response.data as Map<String, dynamic>);
+      }
+
+      throw Exception('Failed to load vehicle details');
+    } catch (e) {
+      print('Error fetching vehicle details: $e');
       throw e;
     }
   }

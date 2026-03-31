@@ -22,9 +22,79 @@ class VehiclesScreen extends ConsumerStatefulWidget {
 
 class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
   final TextEditingController _searchController = TextEditingController();
-  bool _isCheckboxSelected = false;
-  bool _isOwnerFilterSelected = true;
-  bool _isTypeFilterSelected = false;
+  bool _isSelectionMode = false;
+  final Set<String> _selectedVehicles = {};
+
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      if (!_isSelectionMode) {
+        _selectedVehicles.clear();
+      }
+    });
+  }
+
+  void _onVehicleSelect(String id, bool? selected) {
+    setState(() {
+      if (selected == true) {
+        _selectedVehicles.add(id);
+      } else {
+        _selectedVehicles.remove(id);
+      }
+    });
+  }
+
+  String _getStatusName(VehicleStatus status) {
+    switch (status) {
+      case VehicleStatus.working: return 'Работает';
+      case VehicleStatus.service: return 'Сервис';
+      case VehicleStatus.noDriver: return 'Нет водителя';
+      case VehicleStatus.preparation: return 'Подготовка';
+      case VehicleStatus.other: return 'Другое';
+      case VehicleStatus.notWorking: return 'Не работает';
+      default: return 'Неизвестно';
+    }
+  }
+
+  void _showStatusUpdateDialog() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Изменить статус (демо)',
+                  style: AppTheme.listTitle,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ...VehicleStatus.values.map((status) => ListTile(
+                      title: Text(_getStatusName(status)),
+                      onTap: () {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Статус "${_getStatusName(status)}" применен к ${_selectedVehicles.length} ТС (Заглушка)'),
+                          ),
+                        );
+                        _toggleSelectionMode();
+                      },
+                    )),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +102,22 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Автомобили', style: AppTheme.appBarTitle),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: TextButton(
+              onPressed: _toggleSelectionMode,
+              child: Text(
+                _isSelectionMode ? 'Отмена' : 'Выбрать',
+                style: const TextStyle(
+                  color: AppTheme.primaryColor,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+        ],
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: AnimatedIconButton(
@@ -75,8 +161,7 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
           const SizedBox(height: 16),
           
           // Фильтры
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+          Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
@@ -96,7 +181,7 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
                         width: 1,
                       ),
                     ),
-                    child: Center(
+                    child: const Center(
                       child: Icon(
                         Icons.tune,
                         size: 20,
@@ -108,7 +193,14 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
                 const SizedBox(width: 8),
                 
                 // Активные фильтры (Отображение)
-                ..._buildActiveFilterChips(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _buildActiveFilterChips(),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -139,32 +231,124 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
           
           // Список автомобилей
           Expanded(
-            child: ref.watch(vehiclesProvider).when(
-              data: (vehicles) {
-                if (vehicles.isEmpty) {
-                  return const Center(child: Text('Ничего не найдено'));
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: vehicles.length,
-                  itemBuilder: (context, index) {
-                    return VehicleListItem(
-                      vehicle: vehicles[index],
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => VehicleInfoScreen(
-                              vehicle: vehicles[index],
-                            ),
-                          ),
+            child: Stack(
+              children: [
+                ref.watch(vehiclesProvider).when(
+                  data: (vehicles) {
+                    if (vehicles.isEmpty) {
+                      return const Center(child: Text('Ничего не найдено'));
+                    }
+                    return ListView.builder(
+                      padding: EdgeInsets.only(
+                        left: 16,
+                        right: 16,
+                        top: 0,
+                        bottom: _isSelectionMode ? 140 : 16,
+                      ),
+                      itemCount: vehicles.length,
+                      itemBuilder: (context, index) {
+                        final vehicle = vehicles[index];
+                        return VehicleListItem(
+                          vehicle: vehicle,
+                          isSelectionMode: _isSelectionMode,
+                          isSelected: _selectedVehicles.contains(vehicle.id),
+                          onSelect: (val) => _onVehicleSelect(vehicle.id, val),
+                          onTap: () {
+                            if (_isSelectionMode) {
+                              _onVehicleSelect(vehicle.id, !_selectedVehicles.contains(vehicle.id));
+                              return;
+                            }
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => VehicleInfoScreen(
+                                  vehicle: vehicle,
+                                ),
+                              ),
+                            );
+                          },
                         );
                       },
                     );
                   },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Center(child: Text('Ошибка: $err')),
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (err, stack) => Center(child: Text('Ошибка: $err')),
+                ),
+                
+                // Всплывающая панель при выделении
+                if (_isSelectionMode)
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    bottom: 16,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.15),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          )
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${_selectedVehicles.length} выбранных автомобиля',
+                            style: AppTheme.listTitle,
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Некоторые действия недоступны, так как они применимы только для парковых автомобилей',
+                            style: AppTheme.captionSecondary,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primaryColor,
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                  ),
+                                  onPressed: _selectedVehicles.isEmpty ? null : _showStatusUpdateDialog,
+                                  child: const Text('Статус'),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.controlsColor,
+                                    foregroundColor: AppTheme.textPrimary,
+                                    elevation: 0,
+                                  ),
+                                  onPressed: _selectedVehicles.isEmpty ? null : () {},
+                                  child: const Text('Адрес'),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.controlsColor,
+                                    foregroundColor: AppTheme.textPrimary,
+                                    elevation: 0,
+                                  ),
+                                  onPressed: _selectedVehicles.isEmpty ? null : () {},
+                                  child: const Text('Условия аренды'),
+                                ),
+                              ],
+                            ),
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],

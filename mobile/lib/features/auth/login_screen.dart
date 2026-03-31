@@ -3,12 +3,50 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mobile/app/theme.dart';
+import 'package:mobile/features/auth/auth_service.dart';
 
-class LoginScreen extends ConsumerWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  bool _isCheckingAuth = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuth();
+  }
+
+  Future<void> _checkAuth() async {
+    final authService = ref.read(authServiceProvider);
+    final isLoggedIn = await authService.checkAuthAndLogin();
+    
+    if (mounted) {
+      if (isLoggedIn) {
+        context.go('/fleet');
+      } else {
+        setState(() {
+          _isCheckingAuth = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isCheckingAuth) {
+      return const Scaffold(
+        backgroundColor: Color.fromARGB(255, 245, 244, 242),
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 245, 244, 242),
       body: SafeArea(

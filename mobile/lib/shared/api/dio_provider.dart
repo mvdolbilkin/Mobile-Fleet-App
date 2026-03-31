@@ -24,12 +24,16 @@ final dioProvider = Provider<Dio>((ref) {
       
       final clid = await secureStorage.getClid();
       final apiKey = await secureStorage.getApiKey();
+      final parkId = await secureStorage.getParkId();
 
       if (clid != null && clid.isNotEmpty) {
         options.headers['X-Client-ID'] = clid;
       }
       if (apiKey != null && apiKey.isNotEmpty) {
         options.headers['X-API-Key'] = apiKey;
+      }
+      if (parkId != null && parkId.isNotEmpty) {
+        options.headers['X-Park-ID'] = parkId;
       }
 
       return handler.next(options);
