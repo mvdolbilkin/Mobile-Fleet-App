@@ -8,6 +8,19 @@ class Vehicle {
   final int mileage;
   final String? driverName;
   final String? imageUrl;
+  
+  // Поля из Яндекс API
+  final String? brand;
+  final String? callsign;
+  final String? registrationCert;
+  final String? vin;
+  final List<String>? amenities;
+
+  // Новые поля для фильтрации
+  final VehicleType type;
+  final VehicleOwner owner;
+  final VehicleUsageRight usageRight;
+  final VehicleCategory category;
 
   Vehicle({
     required this.id,
@@ -17,16 +30,126 @@ class Vehicle {
     required this.color,
     required this.status,
     required this.mileage,
+    required this.type,
+    required this.owner,
+    required this.usageRight,
+    required this.category,
     this.driverName,
     this.imageUrl,
+    this.brand,
+    this.callsign,
+    this.registrationCert,
+    this.vin,
+    this.amenities,
   });
+
+  factory Vehicle.fromJson(Map<String, dynamic> json) {
+    return Vehicle(
+      id: json['id'] as String? ?? '',
+      plateNumber: json['number'] as String? ?? 'Нет номера',
+      model: json['model'] as String? ?? 'Неизвестная модель',
+      year: json['year']?.toString() ?? 'Неизвестно',
+      color: json['color'] as String? ?? 'Неизвестно',
+      status: _parseStatus(json['status'] as String?),
+      mileage: 0, // Не отдается в API списка Яндекса
+      type: VehicleType.automobile, // По умолчанию
+      owner: VehicleOwner.notSpecified, // По умолчанию
+      usageRight: VehicleUsageRight.confirmed, // По умолчанию
+      category: _parseCategory(json['category'] as List<dynamic>?),
+      brand: json['brand'] as String?,
+      callsign: json['callsign'] as String?,
+      registrationCert: json['registration_cert'] as String?,
+      vin: json['vin'] as String?,
+      amenities: (json['amenities'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
+    );
+  }
+
+  static VehicleStatus _parseStatus(String? status) {
+    switch (status) {
+      case 'working': return VehicleStatus.working;
+      case 'not_working': return VehicleStatus.notWorking;
+      case 'repairing': return VehicleStatus.service;
+      case 'no_driver': return VehicleStatus.noDriver;
+      case 'pending': return VehicleStatus.preparation;
+      default: return VehicleStatus.other;
+    }
+  }
+
+  static VehicleCategory _parseCategory(List<dynamic>? categories) {
+    if (categories == null || categories.isEmpty) return VehicleCategory.econom;
+    final first = categories.first.toString();
+    switch (first) {
+      case 'comfort': return VehicleCategory.comfort;
+      case 'comfort_plus': return VehicleCategory.comfortPlus;
+      case 'business': return VehicleCategory.business;
+      case 'minivan': return VehicleCategory.minivan;
+      case 'vip': return VehicleCategory.vip;
+      case 'wagon': return VehicleCategory.wagon;
+      case 'pool': return VehicleCategory.pool;
+      case 'start': return VehicleCategory.start;
+      case 'standart': return VehicleCategory.standart;
+      case 'ultimate': return VehicleCategory.ultimate;
+      case 'maybach': return VehicleCategory.maybach;
+      case 'promo': return VehicleCategory.promo;
+      case 'premium_van': return VehicleCategory.premiumVan;
+      case 'premium_suv': return VehicleCategory.premiumSuv;
+      case 'suv': return VehicleCategory.suv;
+      case 'personal_driver': return VehicleCategory.personalDriver;
+      case 'express': return VehicleCategory.express;
+      case 'cargo': return VehicleCategory.cargo;
+      case 'econom':
+      default:
+        return VehicleCategory.econom;
+    }
+  }
 }
 
 enum VehicleStatus {
   working,
-  service,
   noDriver,
+  service,
   preparation,
+  other,
+  notWorking,
+}
+
+enum VehicleType {
+  automobile,
+  motorcycle,
+  rickshaw,
+}
+
+enum VehicleOwner {
+  taxiPark,
+  other,
+  notSpecified,
+}
+
+enum VehicleUsageRight {
+  confirmed,
+  notConfirmed,
+}
+
+enum VehicleCategory {
+  econom,
+  comfort,
+  comfortPlus,
+  business,
+  minivan,
+  vip,
+  wagon,
+  pool,
+  start,
+  standart,
+  ultimate,
+  maybach,
+  promo,
+  premiumVan,
+  premiumSuv,
+  suv,
+  personalDriver,
+  express,
+  cargo,
 }
 
 // Моковые данные
@@ -39,6 +162,10 @@ final List<Vehicle> mockVehicles = [
     color: 'Бежевый',
     status: VehicleStatus.working,
     mileage: 222222,
+    type: VehicleType.automobile,
+    owner: VehicleOwner.taxiPark,
+    usageRight: VehicleUsageRight.confirmed,
+    category: VehicleCategory.business,
     driverName: '1234567890',
   ),
   Vehicle(
@@ -49,6 +176,10 @@ final List<Vehicle> mockVehicles = [
     color: 'Красный',
     status: VehicleStatus.service,
     mileage: 234214,
+    type: VehicleType.rickshaw,
+    owner: VehicleOwner.other,
+    usageRight: VehicleUsageRight.notConfirmed,
+    category: VehicleCategory.econom,
     driverName: '111111111111112',
     imageUrl: 'assets/images/default.jfif',
   ),
@@ -60,6 +191,10 @@ final List<Vehicle> mockVehicles = [
     color: 'Белый',
     status: VehicleStatus.noDriver,
     mileage: 1234,
+    type: VehicleType.automobile,
+    owner: VehicleOwner.taxiPark,
+    usageRight: VehicleUsageRight.confirmed,
+    category: VehicleCategory.comfort,
     driverName: 'внпп',
   ),
   Vehicle(
@@ -70,5 +205,9 @@ final List<Vehicle> mockVehicles = [
     color: 'Черный',
     status: VehicleStatus.preparation,
     mileage: 15000,
+    type: VehicleType.automobile,
+    owner: VehicleOwner.notSpecified,
+    usageRight: VehicleUsageRight.notConfirmed,
+    category: VehicleCategory.comfortPlus,
   ),
 ];

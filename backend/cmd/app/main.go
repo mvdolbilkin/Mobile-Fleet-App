@@ -2,6 +2,7 @@ package main
 
 import (
 	"backend/internal/auth"
+	"backend/internal/vehicles"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +13,9 @@ func main() {
 
 	// Register auth routes
 	auth.RegisterRoutes(r)
+
+	// Register vehicle routes
+	vehicles.RegisterRoutes(r)
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
