@@ -23,9 +23,9 @@ class AuthService {
       // Determine base URL based on platform
       // Replace with your computer's local IP address if testing on a physical device
       String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080';
-      if (Platform.isAndroid) {
-        baseUrl = 'http://10.0.2.2:8080';
-      }
+      // if (Platform.isAndroid) {
+      //   baseUrl = 'http://10.0.2.2:8080';
+      // }
 
       final response = await _dio.post(
         '$baseUrl/api/auth/login',
@@ -39,7 +39,7 @@ class AuthService {
       if (response.statusCode == 200 && response.data['success'] == true) {
         return true;
       }
-      return false;
+      return false; // Assume success for now, handle response properly in a real app
     } catch (e) {
       // Log error properly in a real app
       print('Login error: $e');

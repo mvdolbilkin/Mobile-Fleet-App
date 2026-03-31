@@ -6,6 +6,7 @@ import 'package:mobile/shared/widgets/search_field.dart';
 import 'package:mobile/shared/widgets/animated_icon_button.dart';
 import '../../../../app/theme.dart';
 import 'widgets/vehicle_list_item.dart';
+import 'widgets/add_vehicle_bottom_sheet.dart';
 
 class VehiclesScreen extends StatefulWidget {
   const VehiclesScreen({super.key});
@@ -60,7 +61,7 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
                 const SizedBox(width: 12),
                 AnimatedIconButton(
                   onTap: () {
-                    // Логика добавления автомобиля
+                    AddVehicleBottomSheet.show(context);
                   },
                   icon: const Icon(Icons.add, size: 28, color: Colors.black),
                 ),
