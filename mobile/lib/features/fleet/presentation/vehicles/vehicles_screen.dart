@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/fleet/data/vehicles_service.dart';
-import 'package:mobile/features/fleet/domain/vehicle.dart';
 import 'package:mobile/shared/widgets/fading_button.dart';
 import 'package:mobile/shared/widgets/filter_chip.dart';
 import 'package:mobile/shared/widgets/search_field.dart';
@@ -22,9 +21,6 @@ class VehiclesScreen extends ConsumerStatefulWidget {
 
 class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
   final TextEditingController _searchController = TextEditingController();
-  bool _isCheckboxSelected = false;
-  bool _isOwnerFilterSelected = true;
-  bool _isTypeFilterSelected = false;
 
   @override
   Widget build(BuildContext context) {

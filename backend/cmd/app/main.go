@@ -2,11 +2,8 @@ package main
 
 import (
 	"backend/internal/auth"
-<<<<<<< HEAD
 	"backend/internal/staff"
-=======
 	"backend/internal/vehicles"
->>>>>>> e5b0a558ada60dbd128c0b5191c75c588de2b361
 	"net/http"
 
 	"github.com/gin-gonic/gin"

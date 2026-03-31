@@ -31,7 +31,6 @@ class StatusBadge extends StatelessWidget {
         text = 'Уволен';
         break;
       case StaffStatus.offline:
-      default:
         backgroundColor = const Color(0xFFEEEEEE);
         textColor = const Color(0xFF8A8A8A);
         text = 'Оффлайн';

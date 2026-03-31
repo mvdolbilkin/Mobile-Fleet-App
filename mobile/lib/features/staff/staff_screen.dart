@@ -30,11 +30,11 @@ class _StaffScreenState extends ConsumerState<StaffScreen> {
           case StaffStatus.onOrder:
             staffStatusStr = 'На заказе';
             break;
-          case StaffStatus.fired:
-            staffStatusStr = 'Уволен';
-            break;
           case StaffStatus.offline:
             staffStatusStr = 'Оффлайн';
+            break;
+          case StaffStatus.fired:
+            staffStatusStr = 'Уволен';
             break;
         }
         if (staffStatusStr != _selectedStatus) {

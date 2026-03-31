@@ -13,11 +13,7 @@ String getBaseUrl() {
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
-<<<<<<< HEAD
       baseUrl: getBaseUrl(),
-=======
-      baseUrl: 'http://192.168.1.104:8081',
->>>>>>> e5b0a558ada60dbd128c0b5191c75c588de2b361
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 35),
     ),

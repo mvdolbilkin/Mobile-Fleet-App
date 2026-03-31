@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/shared/api/dio_provider.dart';
 import 'dart:io';
+import 'package:mobile/shared/api/dio_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mobile/shared/services/secure_storage_service.dart';
 
@@ -23,17 +23,14 @@ class AuthService {
     required String parkId,
   }) async {
     try {
-      return true;
+      // return true;
       // Determine base URL based on platform
       // Replace with your computer's local IP address if testing on a physical device
       String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080';
-      // if (Platform.isAndroid) {
-      //   baseUrl = 'http://10.0.2.2:8080';
-      // }
-<<<<<<< HEAD
-=======
+      if (Platform.isAndroid) {
+        baseUrl = 'http://10.0.2.2:8080';
+      }
 
->>>>>>> e5b0a558ada60dbd128c0b5191c75c588de2b361
       final response = await _dio.post(
         '$baseUrl/api/auth/login',
         data: {
