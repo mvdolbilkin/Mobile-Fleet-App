@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:mobile/app/theme.dart';
 import 'package:mobile/features/staff/domain/staff.dart';
 import 'package:mobile/features/staff/widgets/status_badge.dart';
@@ -33,19 +33,27 @@ class StaffListItem extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppTheme.controlsColor.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(12),
+                image: staff.avatarUrl.isNotEmpty
+                    ? DecorationImage(
+                        image: NetworkImage(staff.avatarUrl),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
-              child: Center(
-                child: Text(
-                  staff.initials,
-                  style: const TextStyle(
-                    fontFamily: 'Yandex Sans Text',
-                    fontSize: 20,
-                    fontWeight: FontWeight.w400,
-                    color: Color(0xFF9E9B98),
-                    letterSpacing: -0.2,
+              child: staff.avatarUrl.isEmpty 
+               ? Center(
+                  child: Text(
+                    staff.initials,
+                    style: const TextStyle(
+                      fontFamily: 'Yandex Sans Text',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w400,
+                      color: Color(0xFF9E9B98),
+                      letterSpacing: -0.2,
+                    ),
                   ),
-                ),
-              ),
+                )
+               : null,
             ),
             const SizedBox(width: 12),
             // Информация о сотруднике
@@ -69,30 +77,25 @@ class StaffListItem extends StatelessWidget {
                       StatusBadge(status: staff.status),
                       const SizedBox(width: 8),
                       // Время на смене
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: AppTheme.borderColor),
-                        ),
-                        child: Text(
-                          staff.timeOnShift,
-                          style: const TextStyle(
-                            fontFamily: 'Yandex Sans Text',
-                            fontSize: 11,
-                            color: AppTheme.textPrimary,
-                            height: 14/11,
-                          ),
+                      Text(
+                        staff.timeOnShift,
+                        style: const TextStyle(
+                          fontFamily: 'Yandex Sans Text',
+                          fontSize: 12,
+                          color: AppTheme.textPrimary,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                       const SizedBox(width: 8),
                       // Телефон
                       Expanded(
                         child: Text(
-                          '∙ ${staff.phoneNumber}',
-                          style: AppTheme.searchHint.copyWith(
-                            fontSize: 13,
+                          '· ',
+                          style: const TextStyle(
+                            fontFamily: 'Yandex Sans Text',
+                            fontSize: 12,
+                            color: AppTheme.textSecondary,
+                            fontWeight: FontWeight.w400,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

@@ -1,20 +1,69 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/features/staff/data/mock_staff.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/features/staff/data/staff_repository.dart';
+import 'package:mobile/features/staff/domain/staff.dart';
 import 'package:mobile/features/staff/widgets/staff_filter_section.dart';
 import 'package:mobile/features/staff/widgets/staff_list_item.dart';
 
-class StaffScreen extends StatefulWidget {
+class StaffScreen extends ConsumerStatefulWidget {
   const StaffScreen({super.key});
 
   @override
-  State<StaffScreen> createState() => _StaffScreenState();
+  ConsumerState<StaffScreen> createState() => _StaffScreenState();
 }
 
-class _StaffScreenState extends State<StaffScreen> {
-  // Тут в будущем будет контроллер для поиска и стейт фильтров
+class _StaffScreenState extends ConsumerState<StaffScreen> {
+  String? _selectedStatus;
+  String? _selectedVehicle;
+
+  List<Staff> _filterStaffList(List<Staff> staffList) {
+    return staffList.where((staff) {
+      if (_selectedStatus != null) {
+        String staffStatusStr;
+        switch (staff.status) {
+          case StaffStatus.free:
+            staffStatusStr = 'Свободен';
+            break;
+          case StaffStatus.busy:
+            staffStatusStr = 'Занят';
+            break;
+          case StaffStatus.onOrder:
+            staffStatusStr = 'На заказе';
+            break;
+          case StaffStatus.offline:
+            staffStatusStr = 'Оффлайн';
+            break;
+          case StaffStatus.fired:
+            staffStatusStr = 'Уволен';
+            break;
+        }
+        if (staffStatusStr != _selectedStatus) {
+          return false;
+        }
+      }
+
+      if (_selectedVehicle != null) {
+        if (staff.vehicleType != _selectedVehicle) {
+          return false;
+        }
+      }
+
+      return true;
+    }).toList();
+  }
+
+  void _onFilterChanged(String? status, String? vehicle) {
+    setState(() {
+      _selectedStatus = status;
+      _selectedVehicle = vehicle;
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
+    final staffAsyncValue = ref.watch(staffListProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F4F2), // Background from Figma
       appBar: AppBar(
@@ -33,29 +82,55 @@ class _StaffScreenState extends State<StaffScreen> {
       ),
       body: CustomScrollView(
         slivers: [
-          const SliverToBoxAdapter(
+          SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.only(bottom: 16),
-              child: StaffFilterSection(),
+              padding: const EdgeInsets.only(bottom: 16),
+              child: StaffFilterSection(
+                selectedStatus: _selectedStatus,
+                selectedVehicle: _selectedVehicle,
+                onFilterChanged: _onFilterChanged,
+              ),
             ),
           ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final staff = mockStaff[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: StaffListItem(
-                      staff: staff,
-                      onTap: () {
-                        // Navigate to details
-                      },
-                    ),
-                  );
-                },
-                childCount: mockStaff.length,
+          staffAsyncValue.when(
+            data: (staffList) {
+              final filteredStaff = _filterStaffList(staffList);
+              if (filteredStaff.isEmpty) {
+                return const SliverFillRemaining(
+                  child: Center(
+                    child: Text('Ничего не найдено', style: TextStyle(fontFamily: 'Yandex Sans Text')),
+                  ),
+                );
+              }
+              return SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final staff = filteredStaff[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: StaffListItem(
+                          staff: staff,
+                          onTap: () {
+                            // Navigate to details
+                          },
+                        ),
+                      );
+                    },
+                    childCount: filteredStaff.length,
+                  ),
+                ),
+              );
+            },
+            loading: () => const SliverFillRemaining(
+              child: Center(
+                child: CircularProgressIndicator(color: Color(0xFFFCE000)),
+              ),
+            ),
+            error: (err, stack) => SliverFillRemaining(
+              child: Center(
+                child: Text('Ошибка загрузки: $err', style: const TextStyle(fontFamily: 'Yandex Sans Text', color: Colors.red)),
               ),
             ),
           ),

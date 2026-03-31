@@ -32,7 +32,6 @@ class VehicleListItem extends StatelessWidget {
         return BadgeType.preparation;
       case VehicleStatus.other:
       case VehicleStatus.notWorking:
-      default:
         return BadgeType.preparation;
     }
   }
@@ -51,8 +50,6 @@ class VehicleListItem extends StatelessWidget {
         return 'Другое';
       case VehicleStatus.notWorking:
         return 'Не работает';
-      default:
-        return 'Неизвестно';
     }
   }
 

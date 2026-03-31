@@ -2,17 +2,24 @@ package main
 
 import (
 	"backend/internal/auth"
+	"backend/internal/staff"
 	"backend/internal/vehicles"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	godotenv.Load()
+
 	r := gin.Default()
 
 	// Register auth routes
 	auth.RegisterRoutes(r)
+	
+	// Register staff routes
+	staff.RegisterRoutes(r)
 
 	// Register vehicle routes
 	vehicles.RegisterRoutes(r)
