@@ -145,6 +145,81 @@ class VehiclesService {
     }
   }
 
+  Future<String> createVehicle(Map<String, dynamic> payload) async {
+    try {
+      final parkId = await _secureStorage.getParkId();
+      if (parkId == null || parkId.isEmpty) {
+        throw Exception('Park ID is not available. Please login again.');
+      }
+
+      String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080';
+
+      print('Creating vehicle with payload: $payload');
+
+      final response = await _dio.post(
+        '$baseUrl/api/vehicles/create',
+        data: payload,
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data['vehicle_id'] as String;
+      }
+
+      throw Exception('Failed to create vehicle');
+    } on DioException catch (e) {
+      print('DioException creating vehicle:');
+      print('Status code: ${e.response?.statusCode}');
+      print('Response data: ${e.response?.data}');
+      print('Request data: ${e.requestOptions.data}');
+      
+      // Извлекаем и обрабатываем ошибки от API
+      if (e.response?.data != null) {
+        final errorData = e.response!.data;
+        if (errorData is Map) {
+          final code = errorData['code'] as String?;
+          final message = errorData['message'] as String?;
+          
+          // Обрабатываем специфичные коды ошибок
+          final userMessage = _getErrorMessage(code, message);
+          throw Exception(userMessage);
+        }
+      }
+      
+      throw Exception('Не удалось создать автомобиль: ${e.message}');
+    } catch (e) {
+      print('Error creating vehicle: $e');
+      throw e;
+    }
+  }
+
+  String _getErrorMessage(String? code, String? apiMessage) {
+    switch (code) {
+      case 'invalid_car_model':
+        return 'Указанная модель автомобиля не найдена в базе Yandex. Проверьте правильность написания модели.';
+      case 'invalid_number':
+        return 'Неверный формат государственного номера. Используйте латинские буквы и цифры (например: A123BC777).';
+      case 'invalid_vin':
+        return 'Неверный формат VIN. VIN должен содержать 17 символов (латинские буквы и цифры, без I, O, Q).';
+      case 'invalid_fuel_type':
+        return 'Неверный тип топлива. Допустимые значения: petrol, methane, propane, electricity.';
+      case 'invalid_transmission':
+        return 'Неверный тип коробки передач. Допустимые значения: mechanical, automatic, robotic, variator.';
+      case 'invalid_color':
+        return 'Неверный цвет. Используйте русские названия цветов из списка (Белый, Черный, Серый и т.д.).';
+      case 'invalid_year':
+        return 'Неверный год выпуска. Год должен быть от 1970 до текущего года.';
+      case 'duplicate_number':
+        return 'Автомобиль с таким государственным номером уже существует в системе.';
+      case 'duplicate_vin':
+        return 'Автомобиль с таким VIN уже существует в системе.';
+      case 'missing_required_field':
+        return 'Не заполнены обязательные поля. Проверьте форму.';
+      default:
+        // Возвращаем оригинальное сообщение от API, если код неизвестен
+        return apiMessage ?? 'Ошибка при создании автомобиля. Проверьте введенные данные.';
+    }
+  }
+
   Map<String, dynamic> _buildCarFilters(VehicleFilter filter) {
     final Map<String, dynamic> carQuery = {};
     

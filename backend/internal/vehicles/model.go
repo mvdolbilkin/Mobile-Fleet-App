@@ -54,6 +54,75 @@ type Vehicle struct {
 	Year             int      `json:"year,omitempty"`
 }
 
+// CreateVehicleRequest represents the payload for creating a vehicle
+type CreateVehicleRequest struct {
+	ParkProfile           *ParkProfile           `json:"park_profile,omitempty"`
+	VehicleLicenses       *VehicleLicenses       `json:"vehicle_licenses,omitempty"`
+	VehicleSpecifications *VehicleSpecifications `json:"vehicle_specifications,omitempty"`
+	Cargo                 *Cargo                 `json:"cargo,omitempty"`
+	ChildSafety           *ChildSafety           `json:"child_safety,omitempty"`
+}
+
+type ParkProfile struct {
+	Callsign          string             `json:"callsign,omitempty"`
+	Status            string             `json:"status,omitempty"`
+	FuelType          string             `json:"fuel_type,omitempty"`
+	Amenities         []string           `json:"amenities,omitempty"`
+	Categories        []string           `json:"categories,omitempty"`
+	Comment           string             `json:"comment,omitempty"`
+	IsParkProperty    bool               `json:"is_park_property,omitempty"`
+	LeasingConditions *LeasingConditions `json:"leasing_conditions,omitempty"`
+	LicenseOwnerID    string             `json:"license_owner_id,omitempty"`
+	OwnershipType     string             `json:"ownership_type,omitempty"`
+	Tariffs           []string           `json:"tariffs,omitempty"`
+}
+
+type LeasingConditions struct {
+	Company        string `json:"company,omitempty"`
+	InterestRate   string `json:"interest_rate,omitempty"`
+	MonthlyPayment int    `json:"monthly_payment,omitempty"`
+	StartDate      string `json:"start_date,omitempty"`
+	Term           int    `json:"term,omitempty"`
+}
+
+type VehicleLicenses struct {
+	LicencePlateNumber      string `json:"licence_plate_number,omitempty"`
+	LicenceNumber           string `json:"licence_number,omitempty"`
+	RegistrationCertificate string `json:"registration_certificate,omitempty"`
+}
+
+type VehicleSpecifications struct {
+	Brand        string `json:"brand,omitempty"`
+	Model        string `json:"model,omitempty"`
+	Color        string `json:"color,omitempty"`
+	Year         int    `json:"year,omitempty"`
+	Transmission string `json:"transmission,omitempty"`
+	VIN          string `json:"vin,omitempty"`
+	BodyNumber   string `json:"body_number,omitempty"`
+	Mileage      int    `json:"mileage,omitempty"`
+}
+
+type Cargo struct {
+	CargoHoldDimensions *Dimensions `json:"cargo_hold_dimensions,omitempty"`
+	CargoLoaders        int         `json:"cargo_loaders,omitempty"`
+	CarryingCapacity    int         `json:"carrying_capacity,omitempty"`
+}
+
+type Dimensions struct {
+	Height int `json:"height,omitempty"`
+	Length int `json:"length,omitempty"`
+	Width  int `json:"width,omitempty"`
+}
+
+type ChildSafety struct {
+	BoosterCount int `json:"booster_count,omitempty"`
+}
+
+// CreateVehicleResponse represents the response from creating a vehicle
+type CreateVehicleResponse struct {
+	VehicleID string `json:"vehicle_id"`
+}
+
 // ErrorResponse represents an error from the Yandex Fleet API.
 type ErrorResponse struct {
 	Message string `json:"message"`

@@ -163,45 +163,41 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
           // Фильтры
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                // Кнопка фильтров
-                GestureDetector(
-                  onTap: () {
-                    FiltersBottomSheet.show(context);
-                  },
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppTheme.controlsColor,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: AppTheme.borderColor,
-                        width: 1,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  // Кнопка фильтров
+                  GestureDetector(
+                    onTap: () {
+                      FiltersBottomSheet.show(context);
+                    },
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppTheme.controlsColor,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppTheme.borderColor,
+                          width: 1,
+                        ),
                       ),
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.tune,
-                        size: 20,
-                        color: AppTheme.textPrimary,
+                      child: const Center(
+                        child: Icon(
+                          Icons.tune,
+                          size: 20,
+                          color: AppTheme.textPrimary,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                
-                // Активные фильтры (Отображение)
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: _buildActiveFilterChips(),
-                    ),
-                  ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  
+                  // Активные фильтры (Отображение)
+                  ..._buildActiveFilterChips(),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 8),

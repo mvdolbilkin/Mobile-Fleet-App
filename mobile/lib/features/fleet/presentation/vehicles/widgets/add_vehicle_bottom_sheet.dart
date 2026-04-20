@@ -2,7 +2,82 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/app/theme.dart';
 import 'package:mobile/shared/widgets/fading_button.dart';
+import 'package:mobile/shared/widgets/custom_selector_bottom_sheet.dart';
+import 'package:mobile/shared/widgets/custom_date_picker_bottom_sheet.dart';
 import '../providers/add_vehicle_provider.dart';
+
+// Константы для выпадающих списков
+class VehicleFormConstants {
+  // Годы от текущего до 1970
+  static List<String> get years {
+    final currentYear = DateTime.now().year;
+    return List.generate(
+      currentYear - 1969,
+      (index) => (currentYear - index).toString(),
+    );
+  }
+
+  // Типы КПП
+  static const List<String> transmissions = [
+    'Механическая',
+    'Автоматическая',
+    'Роботизированная',
+    'Вариатор',
+  ];
+
+  // Цвета (из API Яндекса)
+  static const List<String> colors = [
+    'Белый',
+    'Желтый',
+    'Бежевый',
+    'Черный',
+    'Голубой',
+    'Серый',
+    'Красный',
+    'Оранжевый',
+    'Синий',
+    'Зеленый',
+    'Коричневый',
+    'Фиолетовый',
+    'Розовый',
+  ];
+
+  // Типы топлива
+  static const List<String> fuelTypes = [
+    'Бензин',
+    'Метан',
+    'Пропан',
+    'Электричество',
+  ];
+
+  // Популярные марки автомобилей
+  static const List<String> brands = [
+    'Audi',
+    'BMW',
+    'Chevrolet',
+    'Citroen',
+    'Daewoo',
+    'Fiat',
+    'Ford',
+    'Honda',
+    'Hyundai',
+    'Kia',
+    'Lada',
+    'Mazda',
+    'Mercedes-Benz',
+    'Mitsubishi',
+    'Nissan',
+    'Opel',
+    'Peugeot',
+    'Renault',
+    'Skoda',
+    'Subaru',
+    'Suzuki',
+    'Toyota',
+    'Volkswagen',
+    'Volvo',
+  ];
+}
 
 class AddVehicleBottomSheet extends ConsumerStatefulWidget {
   const AddVehicleBottomSheet({Key? key}) : super(key: key);
@@ -133,24 +208,29 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
           'СТС',
           initialValue: formData.sts,
           onChanged: (v) => notifier.updateField(sts: v),
+          fieldName: 'sts',
         ),
         const SizedBox(height: 8),
         _buildTextField(
           'Гос.номер',
           initialValue: formData.plateNumber,
           onChanged: (v) => notifier.updateField(plateNumber: v),
+          fieldName: 'plateNumber',
         ),
         const SizedBox(height: 8),
-        _buildDropdownField(
+        _buildTextField(
           'Марка',
-          value: formData.brand,
+          initialValue: formData.brand,
           onChanged: (v) => notifier.updateField(brand: v),
+          fieldName: 'brand',
         ),
         const SizedBox(height: 8),
         _buildDropdownField(
           'Год',
           value: formData.year,
           onChanged: (v) => notifier.updateField(year: v),
+          fieldName: 'year',
+          items: VehicleFormConstants.years,
         ),
         const SizedBox(height: 8),
         _buildDateField(
@@ -163,12 +243,14 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
           'VIN',
           initialValue: formData.vin,
           onChanged: (v) => notifier.updateField(vin: v),
+          fieldName: 'vin',
         ),
         const SizedBox(height: 8),
-        _buildDropdownField(
+        _buildTextField(
           'Модель',
-          value: formData.model,
+          initialValue: formData.model,
           onChanged: (v) => notifier.updateField(model: v),
+          fieldName: 'model',
         ),
         const SizedBox(height: 8),
         _buildTextField(
@@ -182,18 +264,24 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
           'Цвет',
           value: formData.color,
           onChanged: (v) => notifier.updateField(color: v),
+          fieldName: 'color',
+          items: VehicleFormConstants.colors,
         ),
         const SizedBox(height: 8),
         _buildDropdownField(
           'Вид топлива',
           value: formData.fuelType,
           onChanged: (v) => notifier.updateField(fuelType: v),
+          fieldName: 'fuelType',
+          items: VehicleFormConstants.fuelTypes,
         ),
         const SizedBox(height: 8),
         _buildDropdownField(
           'КПП',
           value: formData.transmission,
           onChanged: (v) => notifier.updateField(transmission: v),
+          fieldName: 'transmission',
+          items: VehicleFormConstants.transmissions,
         ),
       ],
     );
@@ -215,18 +303,21 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
             'Длина (в см)',
             initialValue: formData.length,
             onChanged: (v) => notifier.updateField(length: v),
+            fieldName: 'length',
           ),
           const SizedBox(height: 8),
           _buildTextField(
             'Высота (в см)',
             initialValue: formData.height,
             onChanged: (v) => notifier.updateField(height: v),
+            fieldName: 'height',
           ),
           const SizedBox(height: 8),
           _buildTextField(
             'Ширина (в см)',
             initialValue: formData.width,
             onChanged: (v) => notifier.updateField(width: v),
+            fieldName: 'width',
           ),
           Padding(
             padding: const EdgeInsets.only(top: 4, bottom: 8, left: 16),
@@ -239,6 +330,7 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
             'Грузоподъемность (в кг)',
             initialValue: formData.capacity,
             onChanged: (v) => notifier.updateField(capacity: v),
+            fieldName: 'capacity',
           ),
           const SizedBox(height: 24),
         ],
@@ -298,8 +390,30 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
             notifier.setStep(2);
           } else {
             // Save logic to API
-            await notifier.submit();
-            if (mounted) Navigator.pop(context);
+            final error = await notifier.submit();
+            if (mounted) {
+              // Закрываем sheet в любом случае
+              Navigator.pop(context);
+              
+              // Показываем результат после закрытия
+              if (error == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Автомобиль успешно создан'),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 3),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(error),
+                    backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 5),
+                  ),
+                );
+              }
+            }
           }
         },
         child: Container(
@@ -362,7 +476,12 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
     String? hintDesc,
     String? initialValue,
     ValueChanged<String>? onChanged,
+    String? fieldName,
   }) {
+    final formData = ref.watch(addVehicleFormProvider);
+    final errorMessage = fieldName != null ? formData.getFieldError(fieldName) : null;
+    final showError = errorMessage != null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -373,6 +492,9 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
           decoration: BoxDecoration(
             color: const Color(0xFFF2F2F2),
             borderRadius: BorderRadius.circular(16),
+            border: showError
+                ? Border.all(color: Colors.red, width: 1.5)
+                : null,
           ),
           child: TextFormField(
             initialValue: initialValue,
@@ -381,11 +503,21 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
               border: InputBorder.none,
               hintText: hint,
               isDense: true,
-              hintStyle: const TextStyle(color: AppTheme.textSecondary),
+              hintStyle: TextStyle(
+                color: showError ? Colors.red.shade300 : AppTheme.textSecondary,
+              ),
             ),
           ),
         ),
-        if (hintDesc != null)
+        if (showError)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, left: 16, right: 16),
+            child: Text(
+              errorMessage,
+              style: TextStyle(fontSize: 12, color: Colors.red.shade700),
+            ),
+          )
+        else if (hintDesc != null)
           Padding(
             padding: const EdgeInsets.only(top: 4, left: 16, right: 16),
             child: Text(
@@ -401,35 +533,97 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
     String hint, {
     String? value,
     ValueChanged<String?>? onChanged,
+    String? fieldName,
+    List<String>? items,
   }) {
-    return Container(
-      height: 56,
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F2),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          hint: Text(
-            value != null && value.isNotEmpty ? value : hint,
-            style: TextStyle(
-              color: value != null && value.isNotEmpty
-                  ? AppTheme.textPrimary
-                  : AppTheme.textSecondary,
+    final formData = ref.watch(addVehicleFormProvider);
+    final showError = formData.showValidationErrors &&
+                      fieldName != null &&
+                      !formData.isFieldValid(fieldName);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: items != null && items.isNotEmpty
+              ? () async {
+                  final selected = await CustomSelectorBottomSheet.show(
+                    context: context,
+                    title: hint,
+                    items: items,
+                    selectedValue: value,
+                    showSearch: items.length > 10,
+                  );
+                  if (selected != null && onChanged != null) {
+                    onChanged(selected);
+                  }
+                }
+              : null,
+          child: Container(
+            height: 56,
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF2F2F2),
+              borderRadius: BorderRadius.circular(16),
+              border: showError
+                  ? Border.all(color: Colors.red, width: 1.5)
+                  : null,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    value != null && value.isNotEmpty ? value : hint,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: showError
+                          ? Colors.red.shade300
+                          : (value != null && value.isNotEmpty
+                              ? AppTheme.textPrimary
+                              : AppTheme.textSecondary),
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.keyboard_arrow_down,
+                  color: showError ? Colors.red.shade300 : AppTheme.textPrimary,
+                  size: 24,
+                ),
+              ],
             ),
           ),
-          items: const [], // TODO: Add actual items
-          onChanged: onChanged,
-          icon: const Icon(
-            Icons.keyboard_arrow_down,
-            color: AppTheme.textPrimary,
-          ),
         ),
-      ),
+        if (showError)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, left: 16, right: 16),
+            child: Text(
+              'Обязательное поле',
+              style: TextStyle(fontSize: 12, color: Colors.red.shade700),
+            ),
+          ),
+      ],
     );
+  }
+
+  DateTime? _parseDate(String dateStr) {
+    try {
+      final parts = dateStr.split('.');
+      if (parts.length == 3) {
+        final day = int.parse(parts[0]);
+        final month = int.parse(parts[1]);
+        final year = int.parse(parts[2]);
+        return DateTime(year, month, day);
+      }
+    } catch (e) {
+      // Ignore parse errors
+    }
+    return null;
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}';
   }
 
   Widget _buildDateField(
@@ -439,9 +633,23 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
   }) {
     return GestureDetector(
       onTap: () async {
-        // Эмуляция выбора даты
-        // final date = await showDatePicker(...);
-        // if (date != null && onChanged != null) onChanged(date.toIso8601String());
+        DateTime? initialDate;
+        if (value != null && value.isNotEmpty) {
+          initialDate = _parseDate(value) ?? DateTime.now();
+        }
+
+        final selectedDate = await CustomDatePickerBottomSheet.show(
+          context: context,
+          title: hint,
+          selectedDate: initialDate,
+          firstDate: DateTime(1900),
+          lastDate: DateTime.now(),
+        );
+
+        if (selectedDate != null && onChanged != null) {
+          final formattedDate = _formatDate(selectedDate);
+          onChanged(formattedDate);
+        }
       },
       child: Container(
         height: 56,
