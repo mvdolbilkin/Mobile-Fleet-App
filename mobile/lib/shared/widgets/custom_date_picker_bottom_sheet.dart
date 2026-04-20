@@ -45,23 +45,12 @@ class _CustomDatePickerBottomSheetState extends State<CustomDatePickerBottomShee
   late DateTime _selectedDate;
   late DateTime _displayedMonth;
   DatePickerMode _mode = DatePickerMode.day;
-  late PageController _pageController;
-  
-  // Начальная страница - большое число, чтобы можно было листать назад
-  static const int _initialPage = 10000;
 
   @override
   void initState() {
     super.initState();
     _selectedDate = widget.selectedDate ?? DateTime.now();
     _displayedMonth = DateTime(_selectedDate.year, _selectedDate.month);
-    _pageController = PageController(initialPage: _initialPage);
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
   }
 
   void _previousMonth() {
@@ -311,42 +300,8 @@ class _CustomDatePickerBottomSheetState extends State<CustomDatePickerBottomShee
 
         const SizedBox(height: 8),
 
-        // PageView для свайпов между месяцами
-        SizedBox(
-          height: 320, // Фиксированная высота для календарной сетки
-          child: PageView.builder(
-            controller: _pageController,
-            onPageChanged: (page) {
-              final offset = page - _initialPage;
-              final newMonth = DateTime(
-                _selectedDate.year,
-                _selectedDate.month + offset,
-              );
-              
-              // Проверяем, не является ли новый месяц будущим
-              final now = DateTime.now();
-              if (newMonth.year > now.year ||
-                  (newMonth.year == now.year && newMonth.month > now.month)) {
-                // Возвращаемся на текущую страницу
-                _pageController.jumpToPage(page - 1);
-                return;
-              }
-              
-              setState(() {
-                _displayedMonth = newMonth;
-              });
-            },
-            itemBuilder: (context, page) {
-              final offset = page - _initialPage;
-              final monthToDisplay = DateTime(
-                _selectedDate.year,
-                _selectedDate.month + offset,
-              );
-              
-              return _buildMonthGrid(monthToDisplay);
-            },
-          ),
-        ),
+        // Сетка дней
+        _buildMonthGrid(_displayedMonth),
       ],
     );
   }
