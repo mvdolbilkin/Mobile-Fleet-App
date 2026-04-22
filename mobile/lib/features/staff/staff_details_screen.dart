@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/app/theme.dart';
+import 'package:mobile/features/staff/data/staff_repository.dart';
 import 'package:mobile/features/staff/domain/staff.dart';
 import 'package:mobile/features/staff/widgets/status_badge.dart';
 import 'package:mobile/shared/widgets/fading_button.dart';
@@ -7,17 +9,23 @@ import 'package:mobile/shared/widgets/info_block.dart';
 import 'package:mobile/shared/widgets/info_card.dart';
 import 'package:mobile/shared/widgets/badge.dart';
 
-class StaffDetailsScreen extends StatelessWidget {
+class StaffDetailsScreen extends ConsumerWidget {
   final Staff staff;
 
   const StaffDetailsScreen({super.key, required this.staff});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(staffProfileProvider(staff.id));
+    
+    // Пока данные загружаются, используем базовые данные из списка (staff).
+    // Если произошла ошибка, также показываем базовые данные.
+    final displayStaff = profileAsync.value ?? staff;
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: Text(staff.name),
+        title: Text(displayStaff.name),
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
@@ -27,35 +35,37 @@ class StaffDetailsScreen extends StatelessWidget {
         leading: const SizedBox.shrink(),
         leadingWidth: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildProfileHeader(context),
-            const SizedBox(height: 16),
-            _buildActionButtons(),
-            const SizedBox(height: 16),
-            _buildDetailsGrid(),
-            const SizedBox(height: 24),
-            _buildIndicatorsSection(),
-            const SizedBox(height: 32),
-          ],
-        ),
-      ),
+      body: profileAsync.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildProfileHeader(context, displayStaff),
+                  const SizedBox(height: 16),
+                  _buildActionButtons(),
+                  const SizedBox(height: 16),
+                  _buildDetailsGrid(displayStaff),
+                  const SizedBox(height: 24),
+                  _buildIndicatorsSection(),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context) {
+  Widget _buildProfileHeader(BuildContext context, Staff displayStaff) {
     return InfoCard(
-      title: staff.name,
-      subtitle: staff.phoneNumber,
+      title: displayStaff.name,
+      subtitle: displayStaff.phoneNumber,
       icon: CircleAvatar(
         radius: 36,
         backgroundColor: AppTheme.controlsColor,
-        backgroundImage: staff.avatarUrl.isNotEmpty ? NetworkImage(staff.avatarUrl) : null,
-        child: staff.avatarUrl.isEmpty
-            ? Text(staff.initials, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: AppTheme.textSecondary))
+        backgroundImage: displayStaff.avatarUrl.isNotEmpty ? NetworkImage(displayStaff.avatarUrl) : null,
+        child: displayStaff.avatarUrl.isEmpty
+            ? Text(displayStaff.initials, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: AppTheme.textSecondary))
             : null,
       ),
       child: Column(
@@ -66,9 +76,10 @@ class StaffDetailsScreen extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              StatusBadge(status: staff.status),
-              const CustomBadge(type: BadgeType.working, text: 'Водитель такси'),
-              if (staff.vehicleType.isNotEmpty)
+              StatusBadge(status: displayStaff.status),
+              if (displayStaff.employmentType.isNotEmpty)
+                CustomBadge(type: BadgeType.working, text: displayStaff.employmentType),
+              if (displayStaff.vehicleType.isNotEmpty)
                  CustomBadge(type: BadgeType.preparation, text: 'Парковый автомобиль'),
             ],
           ),
@@ -79,9 +90,9 @@ class StaffDetailsScreen extends StatelessWidget {
               Expanded(
                 child: Column(
                   children: [
-                    InfoBlock(title: 'ТЕЛЕФОН', value: staff.phoneNumber, icon: Icons.phone_outlined),
+                    InfoBlock(title: 'ТЕЛЕФОН', value: displayStaff.phoneNumber, icon: Icons.phone_outlined),
                     const SizedBox(height: 8),
-                    InfoBlock(title: 'ТРАФИК', value: 'Органический', icon: Icons.language),
+                    InfoBlock(title: 'EMAIL', value: displayStaff.email.isNotEmpty ? displayStaff.email : 'Не указан', icon: Icons.email_outlined),
                   ],
                 ),
               ),
@@ -89,9 +100,9 @@ class StaffDetailsScreen extends StatelessWidget {
               Expanded(
                 child: Column(
                   children: [
-                    InfoBlock(title: 'ID', value: staff.id, icon: Icons.badge_outlined),
+                    InfoBlock(title: 'ID', value: displayStaff.id, icon: Icons.badge_outlined),
                     const SizedBox(height: 8),
-                    InfoBlock(title: 'РЕЙТИНГ', value: '5.0', icon: Icons.star_border),
+                    InfoBlock(title: 'ИНН', value: displayStaff.taxNumber.isNotEmpty ? displayStaff.taxNumber : 'Не указан', icon: Icons.receipt_long_outlined),
                   ],
                 ),
               ),
@@ -117,12 +128,12 @@ class StaffDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailsGrid() {
+  Widget _buildDetailsGrid(Staff displayStaff) {
     return Column(
       children: [
         Row(
           children: [
-            Expanded(child: _StatCard(title: 'Баланс', value: staff.balance, showBalanceActions: true)),
+            Expanded(child: _StatCard(title: 'Баланс', value: displayStaff.balance, showBalanceActions: true)),
             const SizedBox(width: 12),
             const Expanded(child: _StatCard(title: 'Бонусы', value: 'Нет активных бонусов')),
           ],
@@ -131,18 +142,18 @@ class StaffDetailsScreen extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Expanded(
+            Expanded(
               child: _StatCard(
                 title: 'Комментарий',
-                value: 'Мой любимый водитель',
-                subtitle: 'Артём Добрянский, 21 нояб. 2025 г.',
+                value: displayStaff.comment.isNotEmpty ? displayStaff.comment : 'Нет комментария',
+                subtitle: 'Заметка об исполнителе',
                 isEditable: true,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _StatCard(
-                title: staff.vehicleType.isNotEmpty ? staff.vehicleType : 'Детали авто',
+                title: displayStaff.vehicleType.isNotEmpty ? displayStaff.vehicleType : 'Детали авто',
                 value: 'Ограничить поездки без ОСАГО\nОграничить поездки в других парках',
                 subtitle: 'Детали авто',
                 isEditable: true,

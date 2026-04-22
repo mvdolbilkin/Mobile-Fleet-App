@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:mobile/features/fleet/domain/vehicle.dart';
 import 'package:mobile/features/fleet/domain/vehicle_details.dart';
 import 'package:mobile/shared/services/secure_storage_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class VehicleFilter {
   final String? searchQuery;

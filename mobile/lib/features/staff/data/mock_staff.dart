@@ -1,13 +1,38 @@
 import 'package:mobile/features/staff/domain/staff.dart';
 
 final List<Staff> mockStaff = [
-  Staff(
-    id: '1',
-    name: 'Аюпов Альберт Рифович',
-    initials: 'AC',
-    status: StaffStatus.onOrder,
-    timeOnShift: '8 ч 56 мин',
-    phoneNumber: '+7 817 409 21 56',
+  Staff.fromV2ProfileJson(
+    '9b17db0cb1f24a38a5c3c8b4f6e4f63b',
+    {
+      "account": {
+        "balance_limit": "50",
+        "work_rule_id": "bc43tre6ba054dfdb7143ckfgvcby63e",
+        "payment_service_id": "12345",
+        "block_orders_on_balance_below_limit": true
+      },
+      "person": {
+        "full_name": {
+          "first_name": "Иван",
+          "middle_name": "Иванович",
+          "last_name": "Иванов"
+        },
+        "contact_info": {
+          "address": "Moscow, Ivanovskaya Ul., bld. 40/2, appt. 63",
+          "email": "example-email@example.com",
+          "phone": "+79999999999"
+        },
+        "tax_identification_number": "7743013902",
+        "employment_type": "selfemployed"
+      },
+      "profile": {
+        "hire_date": "2020-10-28",
+        "work_status": "working",
+        "fire_date": "2020-10-28",
+        "comment": "Отличный водитель, всегда вовремя",
+        "feedback": "great driver"
+      },
+      "car_id": "5011ade6ba054dfdb7143c8cc9460dbc"
+    }
   ),
   Staff(
     id: '2',

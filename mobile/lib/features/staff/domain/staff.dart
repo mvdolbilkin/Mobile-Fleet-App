@@ -1,4 +1,4 @@
-﻿enum StaffStatus { free, busy, onOrder, offline, fired }
+enum StaffStatus { free, busy, onOrder, offline, fired }
 
 class Staff {
   final String id;
@@ -10,6 +10,13 @@ class Staff {
   final String vehicleType;
   final String avatarUrl;
   final String balance;
+
+  // Новые поля из V2 API
+  final String email;
+  final String address;
+  final String taxNumber;
+  final String employmentType;
+  final String comment;
 
   // Кэшированные поля для быстрого поиска и сортировки, чтобы не грузить UI-поток
   final String searchName;
@@ -25,6 +32,11 @@ class Staff {
     this.vehicleType = 'Авто',
     this.avatarUrl = '',
     this.balance = '0 ₽',
+    this.email = '',
+    this.address = '',
+    this.taxNumber = '',
+    this.employmentType = '',
+    this.comment = '',
   }) : searchName = name.toLowerCase(),
        searchPhone = phoneNumber.toLowerCase();
 
@@ -119,6 +131,59 @@ class Staff {
       vehicleType: 'Авто',
       avatarUrl: avatarUrl,
       balance: balanceVal,
+    );
+  }
+
+  factory Staff.fromV2ProfileJson(String profileId, Map<String, dynamic> json) {
+    final person = json['person'] ?? {};
+    final fullName = person['full_name'] ?? {};
+    final firstName = fullName['first_name'] ?? '';
+    final lastName = fullName['last_name'] ?? '';
+    final middleName = fullName['middle_name'] ?? '';
+    
+    final nameParts = [lastName, firstName, middleName].where((e) => e.toString().isNotEmpty).toList();
+    final name = nameParts.join(' ');
+    
+    String initials = '';
+    if (lastName.toString().isNotEmpty) initials += lastName.toString()[0];
+    if (firstName.toString().isNotEmpty) initials += firstName.toString()[0];
+
+    final contactInfo = person['contact_info'] ?? {};
+    final phone = contactInfo['phone'] ?? '';
+    final email = contactInfo['email'] ?? '';
+    final address = contactInfo['address'] ?? '';
+
+    final taxNumber = person['tax_identification_number'] ?? '';
+    final employmentTypeStr = person['employment_type'] ?? '';
+
+    final profile = json['profile'] ?? {};
+    final workStatusStr = profile['work_status'] ?? '';
+    final comment = profile['comment'] ?? '';
+    
+    // В v2 API нет 'current_status' (свободен/занят), есть только 'work_status' (working, fired, etc.)
+    // Баланс приходит в другой ручке, поэтому здесь ставим заглушку.
+    StaffStatus status = StaffStatus.offline;
+    if (workStatusStr == 'working') {
+      status = StaffStatus.free; // Считаем, что если работает, то свободен (заглушка)
+    } else if (workStatusStr == 'fired') {
+      status = StaffStatus.fired;
+    }
+
+    return Staff(
+      id: profileId,
+      name: name.isEmpty ? 'Неизвестно' : name,
+      initials: initials.isEmpty ? '?' : initials,
+      status: status,
+      timeOnShift: '0 ч 0 мин', // Заглушка, берется из другой ручки
+      phoneNumber: phone,
+      vehicleType: 'Авто',
+      avatarUrl: '', // В v2 API driver-profile нет аватара
+      balance: '0 ₽', // Берется из /v1/parks/contractors/blocked-balance
+      email: email,
+      address: address,
+      taxNumber: taxNumber,
+      employmentType: employmentTypeStr,
+      comment: comment,
     );
   }
 }

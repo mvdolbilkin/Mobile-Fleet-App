@@ -13,6 +13,11 @@ final staffListProvider = FutureProvider<List<Staff>>((ref) async {
   return await repository.fetchStaff();
 });
 
+final staffProfileProvider = FutureProvider.family<Staff, String>((ref, profileId) async {
+  final repository = ref.watch(staffRepositoryProvider);
+  return await repository.fetchStaffProfile(profileId);
+});
+
 class StaffRepository {
   final Dio _dio;
 
@@ -42,5 +47,24 @@ class StaffRepository {
       }
     }
     return [];
+  }
+
+  Future<Staff> fetchStaffProfile(String profileId) async {
+    try {
+      final response = await _dio.get(
+        '/api/staff/profile',
+        queryParameters: {
+          'contractor_profile_id': profileId,
+        },
+      );
+
+      final data = response.data;
+      if (data != null) {
+        return Staff.fromV2ProfileJson(profileId, data);
+      }
+      throw Exception('Пустой ответ от сервера');
+    } catch (e) {
+      throw Exception('Failed to load staff profile: $e');
+    }
   }
 }

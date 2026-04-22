@@ -23,6 +23,7 @@ func RegisterRoutes(r *gin.Engine) {
 	staffGroup := r.Group("/api/staff")
 	{
 		staffGroup.GET("/list", handler.GetStaffList)
+		staffGroup.GET("/profile", handler.GetStaffProfile)
 	}
 }
 
@@ -68,11 +69,36 @@ func (h *Handler) GetStaffList(c *gin.Context) {
 	
 	fmt.Println("[STAFF] All headers present, proceeding with request")
 
-	drivers, err := h.service.GetDrivers(apiKey, clientID, parkID, limit, offset)
+	drivers, err := h.service.GetDrivers(limit, offset, apiKey, clientID, parkID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, drivers)
+}
+
+func (h *Handler) GetStaffProfile(c *gin.Context) {
+	contractorProfileID := c.Query("contractor_profile_id")
+	if contractorProfileID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "отсутствует параметр contractor_profile_id"})
+		return
+	}
+
+	apiKey := c.GetHeader("X-API-Key")
+	clientID := c.GetHeader("X-Client-ID")
+	parkID := c.GetHeader("X-Park-ID")
+
+	if apiKey == "" || clientID == "" || parkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
+		return
+	}
+
+	profile, err := h.service.GetDriverProfile(apiKey, clientID, parkID, contractorProfileID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, profile)
 }
