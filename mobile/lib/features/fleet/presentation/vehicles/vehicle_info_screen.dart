@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../app/theme.dart';
 import '../../domain/vehicle.dart';
+import '../../domain/tariff_utils.dart';
+import 'providers/vehicles_provider.dart';
+import 'widgets/tariff_edit_bottom_sheet.dart';
 
-class VehicleInfoScreen extends StatefulWidget {
+class VehicleInfoScreen extends ConsumerStatefulWidget {
   final Vehicle? vehicle;
 
   const VehicleInfoScreen({super.key, this.vehicle});
 
   @override
-  State<VehicleInfoScreen> createState() => _VehicleInfoScreenState();
+  ConsumerState<VehicleInfoScreen> createState() => _VehicleInfoScreenState();
 }
 
-class _VehicleInfoScreenState extends State<VehicleInfoScreen>
+class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
@@ -158,19 +162,198 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen>
   }
 
   Widget _buildTariffsSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+    if (widget.vehicle == null) {
+      return const SizedBox.shrink();
+    }
+
+    final vehicleDetailsAsync = ref.watch(vehicleDetailsProvider(widget.vehicle!.id));
+
+    return vehicleDetailsAsync.when(
+      loading: () => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Включенные тарифы', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 4),
+            Text('Загрузка...', style: TextStyle(color: Colors.black87)),
+          ],
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text('Включенные тарифы', style: TextStyle(fontWeight: FontWeight.bold)),
-          SizedBox(height: 4),
-          Text('Комфорт, Комфорт+, Эконом, Доставка, Межгород', style: TextStyle(color: Colors.black87)),
-        ],
+      error: (error, stack) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Включенные тарифы', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 4),
+            Text('—', style: TextStyle(color: Colors.black87)),
+          ],
+        ),
+      ),
+      data: (details) {
+        final tariffs = details.parkProfile?.tariffs ?? widget.vehicle?.tariffs ?? [];
+        final tariffNames = TariffUtils.getTariffNames(tariffs);
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Включенные тарифы', style: TextStyle(fontWeight: FontWeight.bold)),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 20),
+                    onPressed: () => _showTariffEditSheet(tariffs),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                tariffNames.isEmpty ? '—' : tariffNames,
+                style: const TextStyle(color: Colors.black87),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showTariffEditSheet(List<String> currentTariffs) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => SafeArea(
+        child: TariffEditBottomSheet(
+          currentTariffs: currentTariffs,
+          onSave: (selectedTariffs) async {
+            // Get current vehicle details to build the update payload
+            final vehicleDetailsAsync = ref.read(vehicleDetailsProvider(widget.vehicle!.id));
+            final details = await vehicleDetailsAsync.value;
+
+            if (details == null) {
+              throw Exception('Не удалось загрузить данные автомобиля');
+            }
+
+            // Build the update payload with all required fields
+            final payload = {
+              'park_profile': {
+                'tariffs': selectedTariffs,
+                // Include other required fields from current data
+                if (details.parkProfile?.callsign != null)
+                  'callsign': details.parkProfile!.callsign,
+                if (details.parkProfile?.fuelType != null)
+                  'fuel_type': details.parkProfile!.fuelType,
+                if (details.parkProfile?.status != null)
+                  'status': details.parkProfile!.status,
+                if (details.parkProfile?.amenities != null)
+                  'amenities': details.parkProfile!.amenities,
+                if (details.parkProfile?.categories != null)
+                  'categories': details.parkProfile!.categories,
+                if (details.parkProfile?.comment != null)
+                  'comment': details.parkProfile!.comment,
+                if (details.parkProfile?.isParkProperty != null)
+                  'is_park_property': details.parkProfile!.isParkProperty,
+                if (details.parkProfile?.licenseOwnerId != null)
+                  'license_owner_id': details.parkProfile!.licenseOwnerId,
+                if (details.parkProfile?.ownershipType != null)
+                  'ownership_type': details.parkProfile!.ownershipType,
+                if (details.parkProfile?.leasingConditions != null)
+                  'leasing_conditions': {
+                    if (details.parkProfile!.leasingConditions!.company != null)
+                      'company': details.parkProfile!.leasingConditions!.company,
+                    if (details.parkProfile!.leasingConditions!.interestRate != null)
+                      'interest_rate': details.parkProfile!.leasingConditions!.interestRate,
+                    if (details.parkProfile!.leasingConditions!.monthlyPayment != null)
+                      'monthly_payment': details.parkProfile!.leasingConditions!.monthlyPayment,
+                    if (details.parkProfile!.leasingConditions!.startDate != null)
+                      'start_date': details.parkProfile!.leasingConditions!.startDate,
+                    if (details.parkProfile!.leasingConditions!.term != null)
+                      'term': details.parkProfile!.leasingConditions!.term,
+                  },
+              },
+              'vehicle_licenses': {
+                if (details.licenses?.licencePlateNumber != null)
+                  'licence_plate_number': details.licenses!.licencePlateNumber,
+                if (details.licenses?.licenceNumber != null)
+                  'licence_number': details.licenses!.licenceNumber,
+                if (details.licenses?.registrationCertificate != null)
+                  'registration_certificate': details.licenses!.registrationCertificate,
+              },
+              'vehicle_specifications': {
+                if (details.specifications?.brand != null)
+                  'brand': details.specifications!.brand,
+                if (details.specifications?.color != null)
+                  'color': details.specifications!.color,
+                if (details.specifications?.model != null)
+                  'model': details.specifications!.model,
+                if (details.specifications?.transmission != null)
+                  'transmission': details.specifications!.transmission,
+                if (details.specifications?.year != null)
+                  'year': details.specifications!.year,
+                if (details.specifications?.bodyNumber != null)
+                  'body_number': details.specifications!.bodyNumber,
+                if (details.specifications?.mileage != null)
+                  'mileage': details.specifications!.mileage,
+                if (details.specifications?.vin != null)
+                  'vin': details.specifications!.vin,
+              },
+              // Add cargo field (required by API, even if empty)
+              if (details.cargo != null)
+                'cargo': {
+                  if (details.cargo!.cargoLoaders != null)
+                    'cargo_loaders': details.cargo!.cargoLoaders,
+                  if (details.cargo!.carryingCapacity != null)
+                    'carrying_capacity': details.cargo!.carryingCapacity,
+                  if (details.cargo!.cargoHoldDimensions != null)
+                    'cargo_hold_dimensions': {
+                      if (details.cargo!.cargoHoldDimensions!.height != null)
+                        'height': details.cargo!.cargoHoldDimensions!.height,
+                      if (details.cargo!.cargoHoldDimensions!.length != null)
+                        'length': details.cargo!.cargoHoldDimensions!.length,
+                      if (details.cargo!.cargoHoldDimensions!.width != null)
+                        'width': details.cargo!.cargoHoldDimensions!.width,
+                    },
+                }
+              else
+                'cargo': {},
+              // Add child_safety field (may also be required)
+              if (details.childSafety != null)
+                'child_safety': {
+                  if (details.childSafety!.boosterCount != null)
+                    'booster_count': details.childSafety!.boosterCount,
+                }
+              else
+                'child_safety': {},
+            };
+
+            // Call the update API
+            final service = ref.read(vehiclesServiceProvider);
+            await service.updateVehicle(widget.vehicle!.id, payload);
+
+            // Refresh the vehicle details
+            ref.invalidate(vehicleDetailsProvider(widget.vehicle!.id));
+        },
+        ),
       ),
     );
   }
@@ -386,41 +569,69 @@ class _VehicleInfoScreenState extends State<VehicleInfoScreen>
   }
 
   Widget _buildDetailsTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildDetailSection(
-          'Адрес парковки',
-          'Водителям будет легче найти ваш автомобиль на карте',
-          const Text('Москва, улица Цюрупы, 30/63', style: TextStyle(fontSize: 15)),
-        ),
-        _buildDetailSection(
-          'Владелец',
-          'Кому принадлежит право использования',
-          const Text('Таксопарк', style: TextStyle(fontSize: 15)),
-        ),
-        _buildDetailSection(
-          'Об автомобиле',
-          'Детали',
-          _buildDetailGrid([
-            {'СТС': '—'}, {'Год выпуска': widget.vehicle?.year ?? '—'},
-            {'Дата выдачи СТС': '—'}, {'Номер кузова': '—'},
-            {'Госномер': widget.vehicle?.plateNumber ?? '—'}, {'Цвет': widget.vehicle?.color ?? '—'},
-            {'VIN': widget.vehicle?.id ?? '—'}, {'КПП': '—'},
-            {'Марка': widget.vehicle?.model ?? '—'}, {'Вид топлива': '—'},
-            {'Модель': '—'}, {'Тип ТС': '—'},
-            {'Пробег': widget.vehicle != null ? '${widget.vehicle!.mileage} км' : '—'},
-          ]),
-        ),
-        _buildDetailSection(
-          'Комплектация',
-          'Дополнительная информация',
-          _buildDetailGrid([
-            {'Кондиционер': 'Есть'},
-          ]),
-          showDivider: false,
-        ),
-      ],
+    if (widget.vehicle == null) {
+      return const Center(child: Text('Машина не выбрана'));
+    }
+
+    final vehicleDetailsAsync = ref.watch(vehicleDetailsProvider(widget.vehicle!.id));
+
+    return vehicleDetailsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
+      error: (error, stack) => Center(child: Text('Ошибка загрузки данных: $error')),
+      data: (details) {
+        final specs = details.specifications;
+        final licenses = details.licenses;
+        final parkProfile = details.parkProfile;
+
+        String parseTransmission(String? tr) {
+          switch (tr) {
+            case 'mechanical': return 'Механика';
+            case 'automatic': return 'Автомат';
+            case 'robotic': return 'Робот';
+            case 'variator': return 'Вариатор';
+            default: return 'Неизвестный';
+          }
+        }
+
+        String parseFuel(String? fuel) {
+          switch (fuel) {
+            case 'petrol': return 'Бензин';
+            case 'methane': return 'Метан';
+            case 'propane': return 'Пропан';
+            case 'electricity': return 'Электро';
+            default: return '—';
+          }
+        }
+
+        bool hasConditioner = parkProfile?.amenities?.contains('conditioner') ?? false;
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildDetailSection(
+              'Об автомобиле',
+              'Детали',
+              _buildDetailGrid([
+                {'СТС': licenses?.registrationCertificate ?? '—'}, {'Год выпуска': specs?.year?.toString() ?? '—'},
+                {'Дата выдачи СТС': '—'}, {'Номер кузова': specs?.bodyNumber ?? '—'},
+                {'Госномер': licenses?.licencePlateNumber ?? widget.vehicle?.plateNumber ?? '—'}, {'Цвет': specs?.color ?? widget.vehicle?.color ?? '—'},
+                {'VIN': specs?.vin ?? '—'}, {'КПП': parseTransmission(specs?.transmission)},
+                {'Марка': specs?.brand ?? widget.vehicle?.brand ?? '—'}, {'Вид топлива': parseFuel(parkProfile?.fuelType)},
+                {'Модель': specs?.model ?? '—'}, {'Тип ТС': 'Легковой автомобиль'},
+                {'Позывной': parkProfile?.callsign ?? widget.vehicle?.callsign ?? '—'},
+              ]),
+            ),
+            _buildDetailSection(
+              'Комплектация',
+              'Дополнительная информация',
+              _buildDetailGrid([
+                {'Кондиционер': hasConditioner ? 'Да' : 'Нет'},
+              ]),
+              showDivider: false,
+            ),
+          ],
+        );
+      },
     );
   }
 

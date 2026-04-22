@@ -7,11 +7,17 @@ import 'package:mobile/shared/widgets/badge.dart';
 class VehicleListItem extends StatelessWidget {
   final Vehicle vehicle;
   final VoidCallback? onTap;
+  final bool isSelectionMode;
+  final bool isSelected;
+  final ValueChanged<bool?>? onSelect;
 
   const VehicleListItem({
     Key? key,
     required this.vehicle,
     this.onTap,
+    this.isSelectionMode = false,
+    this.isSelected = false,
+    this.onSelect,
   }) : super(key: key);
 
   BadgeType _getBadgeType(VehicleStatus status) {
@@ -60,6 +66,12 @@ class VehicleListItem extends StatelessWidget {
         ),
         child: Row(
           children: [
+            if (isSelectionMode)
+              Checkbox(
+                value: isSelected,
+                onChanged: onSelect,
+                activeColor: AppTheme.primaryColor,
+              ),
             // Аватар или иконка
             Container(
               width: 56,
@@ -122,7 +134,7 @@ class VehicleListItem extends StatelessWidget {
                       ),
                       SizedBox(width: 8),
                       Text(
-                        '${vehicle.mileage}',
+                        '${vehicle.mileage} км',
                         style: AppTheme.caption,
                       ),
                       if (vehicle.driverName != null) ...[

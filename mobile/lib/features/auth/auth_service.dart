@@ -56,4 +56,23 @@ class AuthService {
       return false;
     }
   }
+
+  Future<bool> checkAuthAndLogin() async {
+    final clid = await _secureStorage.getClid();
+    final apiKey = await _secureStorage.getApiKey();
+    final parkId = await _secureStorage.getParkId();
+
+    if (clid != null && clid.isNotEmpty && 
+        apiKey != null && apiKey.isNotEmpty && 
+        parkId != null && parkId.isNotEmpty) {
+      
+      final success = await login(clid: clid, apiKey: apiKey, parkId: parkId);
+      if (!success) {
+        await _secureStorage.deleteYandexCredentials();
+      }
+      return success;
+    }
+    
+    return false;
+  }
 }

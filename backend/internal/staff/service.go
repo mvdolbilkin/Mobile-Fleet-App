@@ -27,7 +27,10 @@ func NewService() *Service {
 	}
 }
 
-func (s *Service) GetDrivers(apiKey, clientID, parkID string, limit int, offset int) (interface{}, error) {
+func (s *Service) GetDrivers(limit int, offset int, apiKey string, clientID string, parkID string) (interface{}, error) {
+	if apiKey == "" || clientID == "" || parkID == "" {
+		return nil, fmt.Errorf("отсутствуют необходимые учетные данные в заголовках")
+	}
 
 	url := "https://fleet-api.taxi.yandex.net/v1/parks/driver-profiles/list"
 

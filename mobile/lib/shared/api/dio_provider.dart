@@ -3,31 +3,18 @@ import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mobile/shared/services/secure_storage_service.dart';
 
 String getBaseUrl() {
-  final envBaseUrl = dotenv.env['API_BASE_URL']?.trim();
-
-  if (kIsWeb) {
-    return (envBaseUrl == null || envBaseUrl.isEmpty)
-        ? 'http://localhost:8080'
-        : envBaseUrl;
+  final envUrl = dotenv.env['API_BASE_URL'];
+  if (envUrl != null && envUrl.isNotEmpty) {
+    return envUrl.endsWith('/') ? envUrl : '$envUrl/';
   }
 
-  if (Platform.isAndroid) {
-    if (envBaseUrl == null || envBaseUrl.isEmpty) {
-      // Android emulator cannot access host localhost directly.
-      return 'http://10.0.2.2:8080';
-    }
-
-    return envBaseUrl
-        .replaceFirst('://localhost', '://10.0.2.2')
-        .replaceFirst('://127.0.0.1', '://10.0.2.2');
-  }
-
-  return (envBaseUrl == null || envBaseUrl.isEmpty)
-      ? 'http://localhost:8080'
-      : envBaseUrl;
+  if (kIsWeb) return 'http://localhost:8080/';
+  if (Platform.isAndroid) return 'http://192.168.1.21:8081/'; // Универсальный адрес эмулятора Android для доступа к localhost хоста
+  return 'http://localhost:8080/';
 }
 
 final dioProvider = Provider<Dio>((ref) {
@@ -50,24 +37,19 @@ final dioProvider = Provider<Dio>((ref) {
     ),
   );
 
-  dio.interceptors.add(
-    InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final secureStorage = ref.read(secureStorageServiceProvider);
+  dio.interceptors.add(InterceptorsWrapper(
+    onRequest: (options, handler) async {
+      final secureStorage = ref.read(secureStorageServiceProvider);
+      
+      final clid = await secureStorage.getClid();
+      final apiKey = await secureStorage.getApiKey();
 
-        final clid = await secureStorage.getClid();
-        final apiKey = await secureStorage.getApiKey();
-        final parkId = await secureStorage.getParkId();
-
-        if (clid != null && clid.isNotEmpty) {
-          options.headers['X-Client-ID'] = clid;
-        }
-        if (apiKey != null && apiKey.isNotEmpty) {
-          options.headers['X-API-Key'] = apiKey;
-        }
-        if (parkId != null && parkId.isNotEmpty) {
-          options.headers['X-Park-ID'] = parkId;
-        }
+      if (clid != null && clid.isNotEmpty) {
+        options.headers['X-Client-ID'] = clid;
+      }
+      if (apiKey != null && apiKey.isNotEmpty) {
+        options.headers['X-API-Key'] = apiKey;
+      }
 
         return handler.next(options);
       },
