@@ -71,21 +71,60 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Text(
-                  'Изменить статус (демо)',
+                  'Изменить статус',
                   style: AppTheme.listTitle,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
                 ...VehicleStatus.values.map((status) => ListTile(
                       title: Text(_getStatusName(status)),
-                      onTap: () {
+                      onTap: () async {
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        
+                        // Сохраняем ScaffoldMessenger до async операции
+                        final messenger = ScaffoldMessenger.of(context);
+                        
+                        // Показываем индикатор загрузки
+                        messenger.showSnackBar(
                           SnackBar(
-                            content: Text('Статус "${_getStatusName(status)}" применен к ${_selectedVehicles.length} ТС (Заглушка)'),
+                            content: Text('Обновление статуса ${_selectedVehicles.length} автомобилей...'),
+                            duration: const Duration(seconds: 30),
                           ),
                         );
-                        _toggleSelectionMode();
+                        
+                        try {
+                          final service = ref.read(vehiclesServiceProvider);
+                          await service.updateVehiclesStatus(
+                            _selectedVehicles.toList(),
+                            status,
+                          );
+                          
+                          // Обновляем список автомобилей
+                          ref.invalidate(vehiclesProvider);
+                          
+                          if (mounted) {
+                            messenger.hideCurrentSnackBar();
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text('Статус "${_getStatusName(status)}" применен к ${_selectedVehicles.length} автомобилям'),
+                                backgroundColor: Colors.green,
+                                duration: const Duration(seconds: 3),
+                              ),
+                            );
+                            _toggleSelectionMode();
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            messenger.hideCurrentSnackBar();
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text('Ошибка: ${e.toString().replaceAll('Exception: ', '')}'),
+                                backgroundColor: Colors.red,
+                                duration: const Duration(seconds: 5),
+                              ),
+                            );
+                          }
+                        }
                       },
                     )),
               ],

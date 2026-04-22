@@ -59,7 +59,9 @@ class VehicleListItem extends StatelessWidget {
       onTap: onTap,
       child: Container(
         margin: EdgeInsets.only(bottom: 12),
-        padding: EdgeInsets.all(12),
+        padding: isSelectionMode
+            ? EdgeInsets.only(left: 4, top: 12, right: 12, bottom: 12)
+            : EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: AppTheme.cardColor,
           borderRadius: BorderRadius.circular(12),
@@ -67,10 +69,13 @@ class VehicleListItem extends StatelessWidget {
         child: Row(
           children: [
             if (isSelectionMode)
-              Checkbox(
-                value: isSelected,
-                onChanged: onSelect,
-                activeColor: AppTheme.primaryColor,
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: Checkbox(
+                  value: isSelected,
+                  onChanged: onSelect,
+                  activeColor: AppTheme.primaryColor,
+                ),
               ),
             // Аватар или иконка
             Container(

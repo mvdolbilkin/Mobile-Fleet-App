@@ -240,6 +240,127 @@ class VehiclesService {
     }
   }
 
+  Future<void> updateVehiclesStatus(List<String> vehicleIds, VehicleStatus status) async {
+    try {
+      final parkId = await _secureStorage.getParkId();
+      if (parkId == null || parkId.isEmpty) {
+        throw Exception('Park ID is not available. Please login again.');
+      }
+
+      String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080';
+
+      // Преобразуем статус в формат API
+      String apiStatus;
+      switch (status) {
+        case VehicleStatus.working:
+          apiStatus = 'working';
+          break;
+        case VehicleStatus.notWorking:
+          apiStatus = 'not_working';
+          break;
+        case VehicleStatus.service:
+          apiStatus = 'repairing';
+          break;
+        case VehicleStatus.noDriver:
+          apiStatus = 'no_driver';
+          break;
+        case VehicleStatus.preparation:
+          apiStatus = 'pending';
+          break;
+        case VehicleStatus.other:
+          apiStatus = 'unknown';
+          break;
+      }
+
+      // Обновляем статус для каждого автомобиля
+      for (final vehicleId in vehicleIds) {
+        // Сначала получаем полные данные автомобиля
+        final details = await getVehicleDetails(vehicleId);
+        
+        // Формируем полный payload с обновленным статусом
+        final Map<String, dynamic> payload = {
+          'park_profile': {
+            'status': apiStatus,
+            'fuel_type': details.parkProfile?.fuelType,
+            'is_park_property': details.parkProfile?.isParkProperty ?? false,
+            'ownership_type': 'park',
+            if (details.parkProfile?.categories != null && details.parkProfile!.categories!.isNotEmpty)
+              'categories': details.parkProfile!.categories,
+          },
+          'vehicle_specifications': {
+            'brand': details.specifications?.brand,
+            'model': details.specifications?.model,
+            'color': details.specifications?.color,
+            'year': details.specifications?.year,
+            'number': details.licenses?.licencePlateNumber,
+            'vin': details.specifications?.vin,
+            'registration_cert': details.licenses?.registrationCertificate,
+            'transmission': details.specifications?.transmission,
+          },
+          'vehicle_licenses': {
+            'licence_plate_number': details.licenses?.licencePlateNumber,
+            'registration_certificate': details.licenses?.registrationCertificate,
+            if (details.licenses?.licenceNumber != null)
+              'licence_number': details.licenses!.licenceNumber,
+          },
+        };
+
+        // Добавляем cargo если есть
+        if (details.cargo != null &&
+            (details.cargo!.cargoLoaders != null ||
+             details.cargo!.carryingCapacity != null ||
+             details.cargo!.cargoHoldDimensions != null)) {
+          payload['cargo'] = {
+            if (details.cargo!.cargoLoaders != null)
+              'cargo_loaders': details.cargo!.cargoLoaders,
+            if (details.cargo!.carryingCapacity != null)
+              'carrying_capacity': details.cargo!.carryingCapacity,
+            if (details.cargo!.cargoHoldDimensions != null)
+              'cargo_hold_dimensions': {
+                'length': details.cargo!.cargoHoldDimensions!.length,
+                'height': details.cargo!.cargoHoldDimensions!.height,
+                'width': details.cargo!.cargoHoldDimensions!.width,
+              },
+          };
+        }
+
+        // Добавляем child_safety если есть
+        if (details.childSafety != null && details.childSafety!.boosterCount != null) {
+          payload['child_safety'] = {
+            'booster_count': details.childSafety!.boosterCount,
+          };
+        }
+
+        await _dio.put(
+          '$baseUrl/api/vehicles/car',
+          queryParameters: {
+            'vehicle_id': vehicleId,
+          },
+          data: payload,
+        );
+      }
+    } on DioException catch (e) {
+      print('DioException updating vehicles status:');
+      print('Status code: ${e.response?.statusCode}');
+      print('Response data: ${e.response?.data}');
+      
+      if (e.response?.data != null) {
+        final errorData = e.response!.data;
+        if (errorData is Map) {
+          final code = errorData['code'] as String?;
+          final message = errorData['message'] as String?;
+          final userMessage = _getErrorMessage(code, message);
+          throw Exception(userMessage);
+        }
+      }
+      
+      throw Exception('Не удалось обновить статус автомобилей: ${e.message}');
+    } catch (e) {
+      print('Error updating vehicles status: $e');
+      throw e;
+    }
+  }
+
   String _getErrorMessage(String? code, String? apiMessage) {
     switch (code) {
       case 'invalid_car_model':

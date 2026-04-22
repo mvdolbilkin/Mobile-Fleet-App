@@ -61,6 +61,29 @@ class _TariffEditBottomSheetState extends State<TariffEditBottomSheet> {
     }
   }
 
+  String _getVehicleType() {
+    // Определяем тип ТС по наличию тарифа 'cargo'
+    final hasCargo = widget.currentTariffs?.contains('cargo') ?? false;
+    return hasCargo ? 'Грузовой автомобиль' : 'Легковой автомобиль';
+  }
+
+  Map<String, String> _getAvailableTariffs() {
+    final isTruckVehicle = _getVehicleType() == 'Грузовой автомобиль';
+    
+    if (isTruckVehicle) {
+      // Для грузовых автомобилей доступны только cargo и express
+      return {
+        'cargo': TariffUtils.tariffNames['cargo']!,
+        'express': TariffUtils.tariffNames['express']!,
+      };
+    }
+    
+    // Для легковых автомобилей все тарифы кроме cargo
+    return Map.fromEntries(
+      TariffUtils.tariffNames.entries.where((entry) => entry.key != 'cargo'),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -74,23 +97,35 @@ class _TariffEditBottomSheetState extends State<TariffEditBottomSheet> {
           // Заголовок
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
+            child: Column(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-                const Expanded(
-                  child: Text(
-                    'Редактировать тарифы',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
-                    textAlign: TextAlign.center,
+                    const Expanded(
+                      child: Text(
+                        'Редактировать тарифы',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(width: 48), // Spacer to center the title
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Тип ТС: ${_getVehicleType()}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
                   ),
                 ),
-                const SizedBox(width: 48), // Spacer to center the title
               ],
             ),
           ),
@@ -99,10 +134,11 @@ class _TariffEditBottomSheetState extends State<TariffEditBottomSheet> {
           Flexible(
             child: ListView.builder(
               shrinkWrap: true,
-              itemCount: TariffUtils.tariffNames.length,
+              itemCount: _getAvailableTariffs().length,
               itemBuilder: (context, index) {
-                final key = TariffUtils.tariffNames.keys.elementAt(index);
-                final name = TariffUtils.tariffNames[key]!;
+                final tariffs = _getAvailableTariffs();
+                final key = tariffs.keys.elementAt(index);
+                final name = tariffs[key]!;
                 return _buildTariffItem(key, name);
               },
             ),
@@ -117,40 +153,68 @@ class _TariffEditBottomSheetState extends State<TariffEditBottomSheet> {
   Widget _buildTariffItem(String key, String name) {
     final iconPath = TariffUtils.tariffIcons[key] ?? 'assets/images/TariffEditSheet/fallback-9U2fbpSe.png';
     
+    // Проверяем, является ли это тариф 'cargo' для грузового автомобиля
+    final isCargoTariff = key == 'cargo';
+    final isTruckVehicle = _getVehicleType() == 'Грузовой автомобиль';
+    final isDisabled = isCargoTariff && isTruckVehicle;
+    
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 1, 16, 1),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Image.asset(
-            iconPath,
-            width: 56,
-            height: 56,
-            errorBuilder: (context, error, stackTrace) {
-              return const SizedBox(
+          Row(
+            children: [
+              Image.asset(
+                iconPath,
                 width: 56,
                 height: 56,
-                child: Icon(Icons.local_taxi, size: 38),
-              );
-            },
+                errorBuilder: (context, error, stackTrace) {
+                  return const SizedBox(
+                    width: 56,
+                    height: 56,
+                    child: Icon(Icons.local_taxi, size: 38),
+                  );
+                },
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  name,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontFamily: 'YSText-Regular',
+                    color: isDisabled ? Colors.grey[600] : Colors.black,
+                  ),
+                ),
+              ),
+              Opacity(
+                opacity: isDisabled ? 0.5 : 1.0,
+                child: CustomSwitch(
+                  value: _tariffStates[key] ?? false,
+                  onChanged: isDisabled
+                      ? (_) {} // Пустая функция для disabled состояния
+                      : (value) {
+                          setState(() {
+                            _tariffStates[key] = value;
+                          });
+                        },
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              name,
-              style: const TextStyle(
-                fontSize: 16,
-                fontFamily: 'YSText-Regular',
+          if (isDisabled)
+            Padding(
+              padding: const EdgeInsets.only(left: 68, top: 4, bottom: 8),
+              child: Text(
+                'Всегда включён для грузового автомобиля',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontFamily: 'YSText-Regular',
+                ),
               ),
             ),
-          ),
-          CustomSwitch(
-            value: _tariffStates[key] ?? false,
-            onChanged: (value) {
-              setState(() {
-                _tariffStates[key] = value;
-              });
-            },
-          ),
         ],
       ),
     );

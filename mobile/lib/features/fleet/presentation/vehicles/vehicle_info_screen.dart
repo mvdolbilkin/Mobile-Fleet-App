@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../app/theme.dart';
 import '../../domain/vehicle.dart';
+import '../../domain/vehicle_details.dart';
 import '../../domain/tariff_utils.dart';
 import 'providers/vehicles_provider.dart';
 import 'widgets/tariff_edit_bottom_sheet.dart';
+import 'widgets/edit_vehicle_bottom_sheet.dart';
 
 class VehicleInfoScreen extends ConsumerStatefulWidget {
   final Vehicle? vehicle;
@@ -200,8 +202,8 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
         ),
       ),
       data: (details) {
-        final tariffs = details.parkProfile?.tariffs ?? widget.vehicle?.tariffs ?? [];
-        final tariffNames = TariffUtils.getTariffNames(tariffs);
+        final categories = details.parkProfile?.categories ?? widget.vehicle?.tariffs ?? [];
+        final tariffNames = TariffUtils.getTariffNames(categories);
 
         return Container(
           padding: const EdgeInsets.all(16),
@@ -218,7 +220,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
                   const Text('Включенные тарифы', style: TextStyle(fontWeight: FontWeight.bold)),
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, size: 20),
-                    onPressed: () => _showTariffEditSheet(tariffs),
+                    onPressed: () => _showTariffEditSheet(categories),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
@@ -257,7 +259,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
             // Build the update payload with all required fields
             final payload = {
               'park_profile': {
-                'tariffs': selectedTariffs,
+                'categories': selectedTariffs,
                 // Include other required fields from current data
                 if (details.parkProfile?.callsign != null)
                   'callsign': details.parkProfile!.callsign,
@@ -267,8 +269,6 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
                   'status': details.parkProfile!.status,
                 if (details.parkProfile?.amenities != null)
                   'amenities': details.parkProfile!.amenities,
-                if (details.parkProfile?.categories != null)
-                  'categories': details.parkProfile!.categories,
                 if (details.parkProfile?.comment != null)
                   'comment': details.parkProfile!.comment,
                 if (details.parkProfile?.isParkProperty != null)
@@ -317,8 +317,11 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
                 if (details.specifications?.vin != null)
                   'vin': details.specifications!.vin,
               },
-              // Add cargo field (required by API, even if empty)
-              if (details.cargo != null)
+              // Add cargo field only if it has data
+              if (details.cargo != null &&
+                  (details.cargo!.cargoLoaders != null ||
+                   details.cargo!.carryingCapacity != null ||
+                   details.cargo!.cargoHoldDimensions != null))
                 'cargo': {
                   if (details.cargo!.cargoLoaders != null)
                     'cargo_loaders': details.cargo!.cargoLoaders,
@@ -333,17 +336,12 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
                       if (details.cargo!.cargoHoldDimensions!.width != null)
                         'width': details.cargo!.cargoHoldDimensions!.width,
                     },
-                }
-              else
-                'cargo': {},
-              // Add child_safety field (may also be required)
-              if (details.childSafety != null)
+                },
+              // Add child_safety field only if it has data
+              if (details.childSafety != null && details.childSafety!.boosterCount != null)
                 'child_safety': {
-                  if (details.childSafety!.boosterCount != null)
-                    'booster_count': details.childSafety!.boosterCount,
-                }
-              else
-                'child_safety': {},
+                  'booster_count': details.childSafety!.boosterCount,
+                },
             };
 
             // Call the update API
@@ -603,6 +601,12 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
           }
         }
 
+        String _getVehicleType(ParkProfile? profile) {
+          // Определяем тип ТС по категориям
+          final hasCargo = profile?.categories?.contains('cargo') ?? false;
+          return hasCargo ? 'Грузовой автомобиль' : 'Легковой автомобиль';
+        }
+
         bool hasConditioner = parkProfile?.amenities?.contains('conditioner') ?? false;
 
         return ListView(
@@ -617,9 +621,10 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
                 {'Госномер': licenses?.licencePlateNumber ?? widget.vehicle?.plateNumber ?? '—'}, {'Цвет': specs?.color ?? widget.vehicle?.color ?? '—'},
                 {'VIN': specs?.vin ?? '—'}, {'КПП': parseTransmission(specs?.transmission)},
                 {'Марка': specs?.brand ?? widget.vehicle?.brand ?? '—'}, {'Вид топлива': parseFuel(parkProfile?.fuelType)},
-                {'Модель': specs?.model ?? '—'}, {'Тип ТС': 'Легковой автомобиль'},
+                {'Модель': specs?.model ?? '—'}, {'Тип ТС': _getVehicleType(parkProfile)},
                 {'Позывной': parkProfile?.callsign ?? widget.vehicle?.callsign ?? '—'},
               ]),
+              onEdit: () => _showEditVehicleSheet(details),
             ),
             _buildDetailSection(
               'Комплектация',
@@ -635,15 +640,32 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
     );
   }
 
-  Widget _buildDetailSection(String title, String subtitle, Widget content, {bool showDivider = true}) {
+  Widget _buildDetailSection(String title, String subtitle, Widget content, {bool showDivider = true, VoidCallback? onEdit}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                ],
+              ),
+              if (onEdit != null)
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  onPressed: onEdit,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+            ],
+          ),
           const SizedBox(height: 16),
           content,
           if (showDivider) ...[
@@ -652,6 +674,16 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
           ],
         ],
       ),
+    );
+  }
+
+  void _showEditVehicleSheet(VehicleDetails details) {
+    if (widget.vehicle == null) return;
+    
+    EditVehicleBottomSheet.show(
+      context,
+      widget.vehicle!.id,
+      details,
     );
   }
 

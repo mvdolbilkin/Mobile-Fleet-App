@@ -1,109 +1,76 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/app/theme.dart';
+import 'package:mobile/features/fleet/domain/vehicle_details.dart';
 import 'package:mobile/shared/widgets/fading_button.dart';
 import 'package:mobile/shared/widgets/custom_selector_bottom_sheet.dart';
 import 'package:mobile/shared/widgets/custom_date_picker_bottom_sheet.dart';
-import '../providers/add_vehicle_provider.dart';
+import 'package:mobile/shared/widgets/custom_switch.dart';
+import '../providers/edit_vehicle_provider.dart';
+import 'add_vehicle_bottom_sheet.dart';
 
-// Константы для выпадающих списков
-class VehicleFormConstants {
-  // Годы от текущего до 1970
-  static List<String> get years {
-    final currentYear = DateTime.now().year;
-    return List.generate(
-      currentYear - 1969,
-      (index) => (currentYear - index).toString(),
-    );
-  }
+class EditVehicleBottomSheet extends ConsumerStatefulWidget {
+  final String vehicleId;
+  final VehicleDetails vehicleDetails;
 
-  // Типы КПП
-  static const List<String> transmissions = [
-    'Механическая',
-    'Автоматическая',
-    'Роботизированная',
-    'Вариатор',
-  ];
+  const EditVehicleBottomSheet({
+    Key? key,
+    required this.vehicleId,
+    required this.vehicleDetails,
+  }) : super(key: key);
 
-  // Цвета (из API Яндекса)
-  static const List<String> colors = [
-    'Белый',
-    'Желтый',
-    'Бежевый',
-    'Черный',
-    'Голубой',
-    'Серый',
-    'Красный',
-    'Оранжевый',
-    'Синий',
-    'Зеленый',
-    'Коричневый',
-    'Фиолетовый',
-    'Розовый',
-  ];
-
-  // Типы топлива
-  static const List<String> fuelTypes = [
-    'Бензин',
-    'Метан',
-    'Пропан',
-    'Электричество',
-  ];
-
-  // Популярные марки автомобилей
-  static const List<String> brands = [
-    'Audi',
-    'BMW',
-    'Chevrolet',
-    'Citroen',
-    'Daewoo',
-    'Fiat',
-    'Ford',
-    'Honda',
-    'Hyundai',
-    'Kia',
-    'Lada',
-    'Mazda',
-    'Mercedes-Benz',
-    'Mitsubishi',
-    'Nissan',
-    'Opel',
-    'Peugeot',
-    'Renault',
-    'Skoda',
-    'Subaru',
-    'Suzuki',
-    'Toyota',
-    'Volkswagen',
-    'Volvo',
-  ];
-}
-
-class AddVehicleBottomSheet extends ConsumerStatefulWidget {
-  const AddVehicleBottomSheet({Key? key}) : super(key: key);
-
-  static void show(BuildContext context) {
+  static void show(
+    BuildContext context,
+    String vehicleId,
+    VehicleDetails vehicleDetails,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      useSafeArea: true,
-      builder: (context) => const AddVehicleBottomSheet(),
+      builder: (context) => SafeArea(
+        child: EditVehicleBottomSheet(
+          vehicleId: vehicleId,
+          vehicleDetails: vehicleDetails,
+        ),
+      ),
     );
   }
 
   @override
-  ConsumerState<AddVehicleBottomSheet> createState() =>
-      _AddVehicleBottomSheetState();
+  ConsumerState<EditVehicleBottomSheet> createState() =>
+      _EditVehicleBottomSheetState();
 }
 
-class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
-  // Для больших форм лучше использовать контроллеры, чтобы курсор не сбрасывался при наборе
-  // Для простоты реализации свяжем их через initialValue (ниже в _buildTextField).
+class _EditVehicleBottomSheetState
+    extends ConsumerState<EditVehicleBottomSheet> {
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(editVehicleFormProvider.notifier).initialize(
+            widget.vehicleId,
+            widget.vehicleDetails,
+          );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final formData = ref.watch(addVehicleFormProvider);
+    final formData = ref.watch(editVehicleFormProvider);
+
+    if (formData == null) {
+      return Container(
+        height: 200,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -118,13 +85,11 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildHeader(formData),
+            _buildHeader(),
             Flexible(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: formData.step == 1
-                    ? _buildStep1(formData)
-                    : _buildStep2(formData),
+                child: _buildForm(formData),
               ),
             ),
             _buildFooter(formData),
@@ -134,7 +99,7 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
     );
   }
 
-  Widget _buildHeader(AddVehicleFormData formData) {
+  Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: const BoxDecoration(
@@ -144,17 +109,8 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          SizedBox(
-            width: 60,
-            child: formData.step == 2
-                ? GestureDetector(
-                    onTap: () =>
-                        ref.read(addVehicleFormProvider.notifier).setStep(1),
-                    child: const Icon(Icons.arrow_back_ios, size: 20),
-                  )
-                : null,
-          ),
-          const Text('Новое ТС', style: AppTheme.appBarTitle),
+          const SizedBox(width: 60),
+          const Text('Редактировать ТС', style: AppTheme.appBarTitle),
           SizedBox(
             width: 60,
             child: GestureDetector(
@@ -171,8 +127,8 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
     );
   }
 
-  Widget _buildStep1(AddVehicleFormData formData) {
-    final notifier = ref.read(addVehicleFormProvider.notifier);
+  Widget _buildForm(EditVehicleFormData formData) {
+    final notifier = ref.read(editVehicleFormProvider.notifier);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,7 +140,7 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
                 title: 'Автомобиль',
                 icon: Icons.directions_car,
                 isSelected: !formData.isTruck,
-                onTap: () => notifier.setIsTruck(false),
+                onTap: null, // Disabled
               ),
             ),
             const SizedBox(width: 12),
@@ -193,7 +149,7 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
                 title: 'Грузовой автомобиль',
                 icon: Icons.local_shipping,
                 isSelected: formData.isTruck,
-                onTap: () => notifier.setIsTruck(true),
+                onTap: null, // Disabled
               ),
             ),
           ],
@@ -211,32 +167,17 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
           fieldName: 'sts',
         ),
         const SizedBox(height: 8),
+        _buildDateField(
+          'Дата выдачи СТС',
+          value: formData.stsIssueDate,
+          onChanged: (v) => notifier.updateField(stsIssueDate: v),
+        ),
+        const SizedBox(height: 8),
         _buildTextField(
           'Гос.номер',
           initialValue: formData.plateNumber,
           onChanged: (v) => notifier.updateField(plateNumber: v),
           fieldName: 'plateNumber',
-        ),
-        const SizedBox(height: 8),
-        _buildTextField(
-          'Марка',
-          initialValue: formData.brand,
-          onChanged: (v) => notifier.updateField(brand: v),
-          fieldName: 'brand',
-        ),
-        const SizedBox(height: 8),
-        _buildDropdownField(
-          'Год',
-          value: formData.year,
-          onChanged: (v) => notifier.updateField(year: v),
-          fieldName: 'year',
-          items: VehicleFormConstants.years,
-        ),
-        const SizedBox(height: 8),
-        _buildDateField(
-          'Дата выдачи СТС',
-          value: formData.stsIssueDate,
-          onChanged: (v) => notifier.updateField(stsIssueDate: v),
         ),
         const SizedBox(height: 8),
         _buildTextField(
@@ -247,10 +188,25 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
         ),
         const SizedBox(height: 8),
         _buildTextField(
+          'Марка',
+          initialValue: formData.brand,
+          onChanged: (v) => notifier.updateField(brand: v),
+          fieldName: 'brand',
+        ),
+        const SizedBox(height: 8),
+        _buildTextField(
           'Модель',
           initialValue: formData.model,
           onChanged: (v) => notifier.updateField(model: v),
           fieldName: 'model',
+        ),
+        const SizedBox(height: 8),
+        _buildDropdownField(
+          'Год',
+          value: formData.year,
+          onChanged: (v) => notifier.updateField(year: v),
+          fieldName: 'year',
+          items: VehicleFormConstants.years,
         ),
         const SizedBox(height: 8),
         _buildTextField(
@@ -269,80 +225,31 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
         ),
         const SizedBox(height: 8),
         _buildDropdownField(
-          'Вид топлива',
-          value: formData.fuelType,
-          onChanged: (v) => notifier.updateField(fuelType: v),
-          fieldName: 'fuelType',
-          items: VehicleFormConstants.fuelTypes,
-        ),
-        const SizedBox(height: 8),
-        _buildDropdownField(
           'КПП',
           value: formData.transmission,
           onChanged: (v) => notifier.updateField(transmission: v),
           fieldName: 'transmission',
           items: VehicleFormConstants.transmissions,
         ),
-      ],
-    );
-  }
-
-  Widget _buildStep2(AddVehicleFormData formData) {
-    final notifier = ref.read(addVehicleFormProvider.notifier);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (formData.isTruck) ...[
-          const Text(
-            'Параметры грузового отсека',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          _buildTextField(
-            'Длина (в см)',
-            initialValue: formData.length,
-            onChanged: (v) => notifier.updateField(length: v),
-            fieldName: 'length',
-          ),
-          const SizedBox(height: 8),
-          _buildTextField(
-            'Высота (в см)',
-            initialValue: formData.height,
-            onChanged: (v) => notifier.updateField(height: v),
-            fieldName: 'height',
-          ),
-          const SizedBox(height: 8),
-          _buildTextField(
-            'Ширина (в см)',
-            initialValue: formData.width,
-            onChanged: (v) => notifier.updateField(width: v),
-            fieldName: 'width',
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 8, left: 16),
-            child: Text(
-              'Для каблуков указывается расстояние между колёсными арками',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            ),
-          ),
-          _buildTextField(
-            'Грузоподъемность (в кг)',
-            initialValue: formData.capacity,
-            onChanged: (v) => notifier.updateField(capacity: v),
-            fieldName: 'capacity',
-          ),
-          const SizedBox(height: 24),
-        ],
+        const SizedBox(height: 8),
+        _buildDropdownField(
+          'Вид топлива',
+          value: formData.fuelType,
+          onChanged: (v) => notifier.updateField(fuelType: v),
+          fieldName: 'fuelType',
+          items: VehicleFormConstants.fuelTypes,
+        ),
+        const SizedBox(height: 24),
         const Text(
-          'Владелец',
+          'Адрес парковки',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        _buildSwitchField(
-          'Парковый автомобиль',
-          formData.isParkVehicle,
-          (v) => notifier.setIsParkVehicle(v),
+        _buildTextField(
+          'Адрес парковки',
+          hintDesc: 'Необязательно',
+          initialValue: formData.parkingAddress,
+          onChanged: (v) => notifier.updateField(parkingAddress: v),
         ),
         const SizedBox(height: 24),
         const Text(
@@ -357,23 +264,22 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
         ),
         const SizedBox(height: 24),
         const Text(
-          'Дополнительно',
+          'Дополнительная информация',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         _buildTextField(
-          'Позывной',
-          hintDesc: 'Необязательно                            0/500',
-          initialValue: formData.callsign,
-          onChanged: (v) => notifier.updateField(callsign: v),
+          'Дополнительная информация',
+          hintDesc: 'Необязательно',
+          initialValue: formData.additionalInfo,
+          onChanged: (v) => notifier.updateField(additionalInfo: v),
+          maxLines: 3,
         ),
       ],
     );
   }
 
-  Widget _buildFooter(AddVehicleFormData formData) {
-    final notifier = ref.read(addVehicleFormProvider.notifier);
-
+  Widget _buildFooter(EditVehicleFormData formData) {
     return Container(
       padding: EdgeInsets.fromLTRB(
         16,
@@ -382,44 +288,28 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
         16 + MediaQuery.of(context).padding.bottom,
       ),
       decoration: const BoxDecoration(
-        color: Colors.white, // Matching background
+        color: Colors.white,
       ),
       child: FadingButton(
-        onTap: () async {
-          if (formData.step == 1) {
-            notifier.setStep(2);
-          } else {
-            // Проверяем валидацию шага 2
-            if (!formData.isStep2Valid) {
-              // Показываем ошибки валидации
-              notifier.showValidationErrors();
-              return; // Не отправляем запрос и не закрываем modal
-            }
-            
-            // Save logic to API
-            final error = await notifier.submit();
-            if (mounted) {
-              // Показываем результат
-              if (error == null) {
-                // Закрываем sheet только при успехе
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Автомобиль успешно создан'),
-                    backgroundColor: Colors.green,
-                    duration: Duration(seconds: 3),
-                  ),
-                );
-              } else {
-                // При ошибке не закрываем sheet, показываем ошибку
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(error),
-                    backgroundColor: Colors.red,
-                    duration: const Duration(seconds: 5),
-                  ),
-                );
-              }
+        onTap: _isLoading ? null : () async {
+          setState(() => _isLoading = true);
+
+          final notifier = ref.read(editVehicleFormProvider.notifier);
+          final error = await notifier.submit();
+
+          if (mounted) {
+            setState(() => _isLoading = false);
+
+            if (error == null) {
+              Navigator.pop(context);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(error),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 5),
+                ),
+              );
             }
           }
         },
@@ -430,13 +320,27 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
             color: AppTheme.buttonColor,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Text(
-            formData.step == 1 ? 'Далее' : 'Сохранить',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.black,
+          child: SizedBox(
+            height: 20,
+            child: Center(
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                      ),
+                    )
+                  : const Text(
+                      'Сохранить',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
             ),
           ),
         ),
@@ -448,18 +352,21 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
     required String title,
     required IconData icon,
     required bool isSelected,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
   }) {
+    final isDisabled = onTap == null;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 100,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppTheme.cardColor,
+          color: isDisabled ? Colors.grey.shade300 : AppTheme.cardColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? AppTheme.textPrimary : AppTheme.borderColor,
+            color: isDisabled
+                ? Colors.grey.shade400
+                : (isSelected ? AppTheme.textPrimary : AppTheme.borderColor),
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -467,10 +374,17 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(icon, color: AppTheme.textPrimary),
+            Icon(
+              icon,
+              color: isDisabled ? Colors.grey.shade500 : AppTheme.textPrimary,
+            ),
             Text(
               title,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isDisabled ? Colors.grey.shade600 : Colors.black,
+              ),
             ),
           ],
         ),
@@ -484,28 +398,32 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
     String? initialValue,
     ValueChanged<String>? onChanged,
     String? fieldName,
+    int maxLines = 1,
   }) {
-    final formData = ref.watch(addVehicleFormProvider);
-    final errorMessage = fieldName != null ? formData.getFieldError(fieldName) : null;
+    final formData = ref.watch(editVehicleFormProvider);
+    final errorMessage =
+        fieldName != null && formData != null ? formData.getFieldError(fieldName) : null;
     final showError = errorMessage != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          height: 56,
-          alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          constraints: BoxConstraints(minHeight: 56),
+          alignment: maxLines > 1 ? Alignment.topLeft : Alignment.centerLeft,
+          padding: EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: maxLines > 1 ? 16 : 0,
+          ),
           decoration: BoxDecoration(
             color: const Color(0xFFF2F2F2),
             borderRadius: BorderRadius.circular(16),
-            border: showError
-                ? Border.all(color: Colors.red, width: 1.5)
-                : null,
+            border: showError ? Border.all(color: Colors.red, width: 1.5) : null,
           ),
           child: TextFormField(
             initialValue: initialValue,
             onChanged: onChanged,
+            maxLines: maxLines,
             decoration: InputDecoration(
               border: InputBorder.none,
               hintText: hint,
@@ -543,10 +461,11 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
     String? fieldName,
     List<String>? items,
   }) {
-    final formData = ref.watch(addVehicleFormProvider);
-    final showError = formData.showValidationErrors &&
-                      fieldName != null &&
-                      !formData.isFieldValid(fieldName);
+    final formData = ref.watch(editVehicleFormProvider);
+    final showError = formData != null &&
+        formData.showValidationErrors &&
+        fieldName != null &&
+        !formData.isFieldValid(fieldName);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -573,9 +492,8 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
             decoration: BoxDecoration(
               color: const Color(0xFFF2F2F2),
               borderRadius: BorderRadius.circular(16),
-              border: showError
-                  ? Border.all(color: Colors.red, width: 1.5)
-                  : null,
+              border:
+                  showError ? Border.all(color: Colors.red, width: 1.5) : null,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -707,11 +625,9 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
             title,
             style: const TextStyle(fontSize: 16, color: AppTheme.textSecondary),
           ),
-          Switch(
+          CustomSwitch(
             value: value,
             onChanged: onChanged,
-            activeColor: Colors.white,
-            activeTrackColor: AppTheme.statusGreen,
           ),
         ],
       ),

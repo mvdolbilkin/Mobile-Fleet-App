@@ -29,14 +29,14 @@ final vehiclesFilterProvider = StateNotifierProvider<VehiclesFilterNotifier, Veh
   return VehiclesFilterNotifier();
 });
 
-final vehiclesProvider = FutureProvider<List<Vehicle>>((ref) async {
+final vehiclesProvider = FutureProvider.autoDispose<List<Vehicle>>((ref) async {
   final filter = ref.watch(vehiclesFilterProvider);
   final service = ref.watch(vehiclesServiceProvider);
   
   return service.getVehicles(filter);
 });
 
-final vehicleDetailsProvider = FutureProvider.family<VehicleDetails, String>((ref, id) async {
+final vehicleDetailsProvider = FutureProvider.autoDispose.family<VehicleDetails, String>((ref, id) async {
   final service = ref.watch(vehiclesServiceProvider);
   return service.getVehicleDetails(id);
 });

@@ -116,10 +116,10 @@ class AddVehicleFormData {
       case 'color': return color.isNotEmpty;
       case 'fuelType': return fuelType.isNotEmpty;
       case 'transmission': return transmission.isNotEmpty;
-      case 'length': return length.isNotEmpty && _isValidNumber(length);
-      case 'height': return height.isNotEmpty && _isValidNumber(height);
-      case 'width': return width.isNotEmpty && _isValidNumber(width);
-      case 'capacity': return capacity.isNotEmpty && _isValidNumber(capacity);
+      case 'length': return length.isNotEmpty && _isValidLength(length);
+      case 'height': return height.isNotEmpty && _isValidHeight(height);
+      case 'width': return width.isNotEmpty && _isValidWidth(width);
+      case 'capacity': return capacity.isNotEmpty && _isValidCapacity(capacity);
       default: return true;
     }
   }
@@ -148,6 +148,34 @@ class AddVehicleFormData {
   // Валидация числа
   bool _isValidNumber(String value) {
     return int.tryParse(value) != null;
+  }
+
+  // Валидация длины грузового отсека (170-601 см)
+  bool _isValidLength(String value) {
+    final num = int.tryParse(value);
+    if (num == null) return false;
+    return num >= 170 && num <= 601;
+  }
+
+  // Валидация ширины грузового отсека (96-250 см)
+  bool _isValidWidth(String value) {
+    final num = int.tryParse(value);
+    if (num == null) return false;
+    return num >= 96 && num <= 250;
+  }
+
+  // Валидация высоты грузового отсека (90-250 см)
+  bool _isValidHeight(String value) {
+    final num = int.tryParse(value);
+    if (num == null) return false;
+    return num >= 90 && num <= 250;
+  }
+
+  // Валидация грузоподъемности (300-6000 кг)
+  bool _isValidCapacity(String value) {
+    final num = int.tryParse(value);
+    if (num == null) return false;
+    return num >= 300 && num <= 6000;
   }
 
   // Проверка на латиницу и цифры
@@ -179,14 +207,24 @@ class AddVehicleFormData {
         if (!_isValidYear(year)) return 'Год от 1970 до ${DateTime.now().year}';
         return null;
       case 'length':
+        if (length.isEmpty) return 'Обязательное поле';
+        if (!_isValidNumber(length)) return 'Только цифры';
+        if (!_isValidLength(length)) return 'Длина от 170 до 601 см';
+        return null;
       case 'height':
+        if (height.isEmpty) return 'Обязательное поле';
+        if (!_isValidNumber(height)) return 'Только цифры';
+        if (!_isValidHeight(height)) return 'Высота от 90 до 250 см';
+        return null;
       case 'width':
+        if (width.isEmpty) return 'Обязательное поле';
+        if (!_isValidNumber(width)) return 'Только цифры';
+        if (!_isValidWidth(width)) return 'Ширина от 96 до 250 см';
+        return null;
       case 'capacity':
-        final value = fieldName == 'length' ? length :
-                      fieldName == 'height' ? height :
-                      fieldName == 'width' ? width : capacity;
-        if (value.isEmpty) return 'Обязательное поле';
-        if (!_isValidNumber(value)) return 'Только цифры';
+        if (capacity.isEmpty) return 'Обязательное поле';
+        if (!_isValidNumber(capacity)) return 'Только цифры';
+        if (!_isValidCapacity(capacity)) return 'Грузоподъемность от 300 до 6000 кг';
         return null;
       default:
         if (!isFieldValid(fieldName)) return 'Обязательное поле';
@@ -201,6 +239,7 @@ class AddVehicleFormData {
            brand.isNotEmpty &&
            year.isNotEmpty &&
            vin.isNotEmpty &&
+           _isValidVIN(vin) &&
            model.isNotEmpty &&
            color.isNotEmpty &&
            fuelType.isNotEmpty &&
@@ -225,6 +264,8 @@ class AddVehicleFormData {
         'fuel_type': _mapFuelType(fuelType),
         'is_park_property': isParkVehicle,
         'ownership_type': 'park', // Тип собственности: park или leasing
+        // Добавляем категорию cargo для грузовых автомобилей
+        if (isTruck) 'categories': ['cargo'],
       },
       'vehicle_licenses': {
         'licence_plate_number': _transliteratePlateNumber(plateNumber),
@@ -257,6 +298,7 @@ class AddVehicleFormData {
     // Добавляем параметры грузового отсека для грузовых автомобилей
     if (isTruck && length.isNotEmpty && height.isNotEmpty && width.isNotEmpty && capacity.isNotEmpty) {
       payload['cargo'] = {
+        'cargo_loaders': 0, // Обязательное поле, по умолчанию 0
         'cargo_hold_dimensions': {
           'length': int.tryParse(length) ?? 0,
           'height': int.tryParse(height) ?? 0,
@@ -429,6 +471,10 @@ class AddVehicleFormNotifier extends Notifier<AddVehicleFormData> {
       state = state.copyWith(isParkVehicle: isParkVehicle);
   void setHasAirConditioner(bool hasAirConditioner) =>
       state = state.copyWith(hasAirConditioner: hasAirConditioner);
+
+  void showValidationErrors() {
+    state = state.copyWith(showValidationErrors: true);
+  }
 
   void reset() {
     state = const AddVehicleFormData();
