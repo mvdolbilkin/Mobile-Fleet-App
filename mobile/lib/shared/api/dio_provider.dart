@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mobile/shared/services/secure_storage_service.dart';
@@ -20,17 +21,21 @@ final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
       baseUrl: getBaseUrl(),
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 35),
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(
+        seconds: 120,
+      ), // Увеличено из-за большого объема данных (limit=4000)
     ),
   );
 
-  dio.interceptors.add(LogInterceptor(
-    request: false,
-    requestHeader: false,
-    responseBody: false,
-    responseHeader: false,
-  ));
+  dio.interceptors.add(
+    LogInterceptor(
+      request: false,
+      requestHeader: false,
+      responseBody: false,
+      responseHeader: false,
+    ),
+  );
 
   dio.interceptors.add(InterceptorsWrapper(
     onRequest: (options, handler) async {
@@ -50,9 +55,10 @@ final dioProvider = Provider<Dio>((ref) {
         options.headers['X-Park-ID'] = parkId;
       }
 
-      return handler.next(options);
-    },
-  ));
+        return handler.next(options);
+      },
+    ),
+  );
 
   return dio;
 });
