@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -28,16 +27,7 @@ func NewService() *Service {
 	}
 }
 
-func (s *Service) GetDrivers(limit int, offset int) (interface{}, error) {
-	// Идентификаторы мы берем из переменных окружения для безопасности
-	apiKey := os.Getenv("YANDEX_API_KEY")
-	clientID := os.Getenv("YANDEX_CLIENT_ID")
-	parkID := os.Getenv("YANDEX_PARK_ID")
-
-	if apiKey == "" || clientID == "" || parkID == "" {
-		// Для тестирования можете временно захардкодить здесь значения, но лучше использовать .env
-		return nil, fmt.Errorf("учетные данные yandex api не установлены в переменных окружения")
-	}
+func (s *Service) GetDrivers(apiKey, clientID, parkID string, limit int, offset int) (interface{}, error) {
 
 	url := "https://fleet-api.taxi.yandex.net/v1/parks/driver-profiles/list"
 
@@ -48,7 +38,7 @@ func (s *Service) GetDrivers(limit int, offset int) (interface{}, error) {
 	reqBody.Query.Park.ID = parkID
 	reqBody.Fields.DriverProfile = []string{"id", "first_name", "last_name", "middle_name", "phones", "work_status"}
 	reqBody.Fields.Car = []string{}
-	reqBody.Fields.Account = []string{}
+	reqBody.Fields.Account = []string{"id", "balance_limit", "balance"}
 	reqBody.Fields.CurrentStatus = []string{"status"}
 
 	jsonBody, err := json.Marshal(reqBody)
@@ -64,6 +54,7 @@ func (s *Service) GetDrivers(limit int, offset int) (interface{}, error) {
 		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
 	}
 
+	// Используем ключи, переданные из мобильного приложения
 	req.Header.Set("X-Client-ID", clientID)
 	req.Header.Set("X-API-Key", apiKey)
 	req.Header.Set("Accept-Language", "ru")

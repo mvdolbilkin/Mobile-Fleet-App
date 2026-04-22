@@ -6,12 +6,14 @@ class StaffFilterSection extends StatefulWidget {
   final String? selectedStatus;
   final String? selectedVehicle;
   final void Function(String? status, String? vehicle) onFilterChanged;
+  final ValueChanged<String>? onSearchChanged;
 
   const StaffFilterSection({
     super.key,
     this.selectedStatus,
     this.selectedVehicle,
     required this.onFilterChanged,
+    this.onSearchChanged,
   });
 
   @override
@@ -19,7 +21,13 @@ class StaffFilterSection extends StatefulWidget {
 }
 
 class _StaffFilterSectionState extends State<StaffFilterSection> {
-  final List<String> _statuses = ['Работает', 'Свободен', 'На заказе', 'Занят', 'Оффлайн'];
+  final List<String> _statuses = [
+    'Работает',
+    'Свободен',
+    'На заказе',
+    'Занят',
+    'Оффлайн',
+  ];
   final List<String> _vehicles = ['Авто', 'Мото', 'Рикша'];
 
   void _showFilterBottomSheet() {
@@ -151,10 +159,11 @@ class _StaffFilterSectionState extends State<StaffFilterSection> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: SearchField(
             hint: 'Поиск по имени, ВУ или позывному',
+            onChanged: widget.onSearchChanged,
           ),
         ),
         const SizedBox(height: 12),
-        
+
         // Filter Row
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -172,13 +181,13 @@ class _StaffFilterSectionState extends State<StaffFilterSection> {
                 child: const Icon(Icons.check, size: 20, color: Colors.black),
               ),
               const SizedBox(width: 8),
-              
+
               // Filter Icon Circle
               GestureDetector(
                 onTap: _showFilterBottomSheet,
                 child: Container(
                   width: 40,
-                  height: 40, 
+                  height: 40,
                   decoration: BoxDecoration(
                     color: AppTheme.controlsColor,
                     shape: BoxShape.circle,
@@ -187,7 +196,8 @@ class _StaffFilterSectionState extends State<StaffFilterSection> {
                     alignment: Alignment.center,
                     children: [
                       const Icon(Icons.tune, size: 20, color: Colors.black),
-                      if (widget.selectedStatus != null || widget.selectedVehicle != null)
+                      if (widget.selectedStatus != null ||
+                          widget.selectedVehicle != null)
                         Positioned(
                           right: 8,
                           top: 8,
@@ -205,13 +215,16 @@ class _StaffFilterSectionState extends State<StaffFilterSection> {
                 ),
               ),
               const SizedBox(width: 8),
-              
+
               // Filter Pill: Status
               if (widget.selectedStatus != null) ...[
                 _buildFilterPill(
                   label: 'Статус на линии: ',
                   valueWidget: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: _getStatusColor(widget.selectedStatus!),
                       borderRadius: BorderRadius.circular(4),
@@ -223,7 +236,7 @@ class _StaffFilterSectionState extends State<StaffFilterSection> {
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: Colors.white,
-                        height: 14/12,
+                        height: 14 / 12,
                       ),
                     ),
                   ),
@@ -233,7 +246,7 @@ class _StaffFilterSectionState extends State<StaffFilterSection> {
                 ),
                 const SizedBox(width: 8),
               ],
-              
+
               // Filter Pill: Car Type
               if (widget.selectedVehicle != null)
                 _buildFilterPill(
@@ -245,9 +258,9 @@ class _StaffFilterSectionState extends State<StaffFilterSection> {
             ],
           ),
         ),
-        
+
         const SizedBox(height: 12),
-        
+
         // Reset Link
         if (widget.selectedStatus != null || widget.selectedVehicle != null)
           GestureDetector(
@@ -270,7 +283,11 @@ class _StaffFilterSectionState extends State<StaffFilterSection> {
     );
   }
 
-  Widget _buildFilterPill({required String label, Widget? valueWidget, required VoidCallback onClear}) {
+  Widget _buildFilterPill({
+    required String label,
+    Widget? valueWidget,
+    required VoidCallback onClear,
+  }) {
     return Container(
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -290,13 +307,15 @@ class _StaffFilterSectionState extends State<StaffFilterSection> {
               color: AppTheme.textPrimary,
             ),
           ),
-          if (valueWidget != null) ...[
-            valueWidget,
-          ],
+          if (valueWidget != null) ...[valueWidget],
           const SizedBox(width: 6),
           GestureDetector(
             onTap: onClear,
-            child: const Icon(Icons.close, size: 16, color: AppTheme.textSecondary),
+            child: const Icon(
+              Icons.close,
+              size: 16,
+              color: AppTheme.textSecondary,
+            ),
           ),
         ],
       ),

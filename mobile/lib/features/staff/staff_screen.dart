@@ -4,6 +4,7 @@ import 'package:mobile/features/staff/data/staff_repository.dart';
 import 'package:mobile/features/staff/domain/staff.dart';
 import 'package:mobile/features/staff/widgets/staff_filter_section.dart';
 import 'package:mobile/features/staff/widgets/staff_list_item.dart';
+import 'package:mobile/features/staff/staff_details_screen.dart';
 
 class StaffScreen extends ConsumerStatefulWidget {
   const StaffScreen({super.key});
@@ -15,9 +16,23 @@ class StaffScreen extends ConsumerStatefulWidget {
 class _StaffScreenState extends ConsumerState<StaffScreen> {
   String? _selectedStatus;
   String? _selectedVehicle;
+  String _searchQuery = '';
 
   List<Staff> _filterStaffList(List<Staff> staffList) {
-    return staffList.where((staff) {
+    if (staffList.isEmpty) return [];
+
+    final lowerQuery = _searchQuery.toLowerCase();
+
+    final filtered = staffList.where((staff) {
+      if (lowerQuery.isNotEmpty) {
+        final matchesName = staff.searchName.contains(lowerQuery);
+        final matchesPhone = staff.searchPhone.contains(lowerQuery);
+
+        if (!matchesName && !matchesPhone) {
+          return false;
+        }
+      }
+
       if (_selectedStatus != null) {
         String staffStatusStr;
         switch (staff.status) {
@@ -50,6 +65,12 @@ class _StaffScreenState extends ConsumerState<StaffScreen> {
 
       return true;
     }).toList();
+
+    // Сортируем с кэшированием или без выделения кучи новых строк каждую итерацию.
+    // Поскольку `build` вызывается часто, используем более дешевое сравнение.
+    filtered.sort((a, b) => a.searchName.compareTo(b.searchName));
+
+    return filtered;
   }
 
   void _onFilterChanged(String? status, String? vehicle) {
@@ -59,6 +80,11 @@ class _StaffScreenState extends ConsumerState<StaffScreen> {
     });
   }
 
+  void _onSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,61 +106,79 @@ class _StaffScreenState extends ConsumerState<StaffScreen> {
         elevation: 0,
         centerTitle: false,
       ),
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: StaffFilterSection(
-                selectedStatus: _selectedStatus,
-                selectedVehicle: _selectedVehicle,
-                onFilterChanged: _onFilterChanged,
+      body: RefreshIndicator(
+        color: const Color(0xFF21201F),
+        backgroundColor: const Color(0xFFFCE000),
+        onRefresh: () async {
+          return await ref.refresh(staffListProvider.future);
+        },
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: StaffFilterSection(
+                  selectedStatus: _selectedStatus,
+                  selectedVehicle: _selectedVehicle,
+                  onFilterChanged: _onFilterChanged,
+                  onSearchChanged: _onSearchChanged,
+                ),
               ),
             ),
-          ),
-          staffAsyncValue.when(
-            data: (staffList) {
-              final filteredStaff = _filterStaffList(staffList);
-              if (filteredStaff.isEmpty) {
-                return const SliverFillRemaining(
-                  child: Center(
-                    child: Text('Ничего не найдено', style: TextStyle(fontFamily: 'Yandex Sans Text')),
-                  ),
-                );
-              }
-              return SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
+            staffAsyncValue.when(
+              data: (staffList) {
+                final filteredStaff = _filterStaffList(staffList);
+                if (filteredStaff.isEmpty) {
+                  return const SliverFillRemaining(
+                    child: Center(
+                      child: Text(
+                        'Ничего не найдено',
+                        style: TextStyle(fontFamily: 'Yandex Sans Text'),
+                      ),
+                    ),
+                  );
+                }
+                return SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate((context, index) {
                       final staff = filteredStaff[index];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 6),
                         child: StaffListItem(
                           staff: staff,
                           onTap: () {
-                            // Navigate to details
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => StaffDetailsScreen(staff: staff),
+                              ),
+                            );
                           },
                         ),
                       );
-                    },
-                    childCount: filteredStaff.length,
+                    }, childCount: filteredStaff.length),
+                  ),
+                );
+              },
+              loading: () => const SliverFillRemaining(
+                child: Center(
+                  child: CircularProgressIndicator(color: Color(0xFFFCE000)),
+                ),
+              ),
+              error: (err, stack) => SliverFillRemaining(
+                child: Center(
+                  child: Text(
+                    'Ошибка загрузки: $err',
+                    style: const TextStyle(
+                      fontFamily: 'Yandex Sans Text',
+                      color: Colors.red,
+                    ),
                   ),
                 ),
-              );
-            },
-            loading: () => const SliverFillRemaining(
-              child: Center(
-                child: CircularProgressIndicator(color: Color(0xFFFCE000)),
               ),
             ),
-            error: (err, stack) => SliverFillRemaining(
-              child: Center(
-                child: Text('Ошибка загрузки: $err', style: const TextStyle(fontFamily: 'Yandex Sans Text', color: Colors.red)),
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

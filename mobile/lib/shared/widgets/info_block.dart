@@ -48,13 +48,17 @@ class InfoBlock extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  fontFamily: 'Yandex Sans Text',
-                  height: 1.2,
+              Flexible(
+                child: Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'Yandex Sans Text',
+                    height: 1.2,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               if (icon != null) ...[

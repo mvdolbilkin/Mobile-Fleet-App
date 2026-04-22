@@ -1,7 +1,7 @@
 import 'package:mobile/features/staff/domain/staff.dart';
 
 final List<Staff> mockStaff = [
-  const Staff(
+  Staff(
     id: '1',
     name: 'Аюпов Альберт Рифович',
     initials: 'AC',
@@ -9,7 +9,7 @@ final List<Staff> mockStaff = [
     timeOnShift: '8 ч 56 мин',
     phoneNumber: '+7 817 409 21 56',
   ),
-  const Staff(
+  Staff(
     id: '2',
     name: 'Иванов Иван Иванович',
     initials: 'ИИ',
@@ -18,7 +18,7 @@ final List<Staff> mockStaff = [
     phoneNumber: '+7 900 123 45 67',
     vehicleType: 'Мото',
   ),
-  const Staff(
+  Staff(
     id: '3',
     name: 'Петров Петр Петрович',
     initials: 'ПП',
@@ -27,7 +27,7 @@ final List<Staff> mockStaff = [
     phoneNumber: '+7 999 888 77 66',
     vehicleType: 'Рикша',
   ),
-  const Staff(
+  Staff(
     id: '4',
     name: 'Сидоров Сидор Сидорович',
     initials: 'СС',
@@ -35,7 +35,7 @@ final List<Staff> mockStaff = [
     timeOnShift: '2 ч 15 мин',
     phoneNumber: '+7 911 222 33 44',
   ),
-  const Staff(
+  Staff(
     id: '5',
     name: 'Смирнов Алексей Владимирович',
     initials: 'СА',
