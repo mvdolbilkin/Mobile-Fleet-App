@@ -22,6 +22,7 @@ func RegisterRoutes(r *gin.Engine) {
 		vehiclesGroup.POST("/list", listVehiclesProxy)
 		vehiclesGroup.GET("/car", getVehicleProxy)
 		vehiclesGroup.POST("/create", createVehicleProxy)
+		vehiclesGroup.PUT("/car", updateVehicleProxy)
 	}
 }
 
@@ -182,4 +183,64 @@ func generateIdempotencyToken() string {
 	// Simple implementation using timestamp and random component
 	// This should be at least 16 characters as per API requirements
 	return fmt.Sprintf("%d%016x", time.Now().Unix(), rand.Int63())
+}
+
+func updateVehicleProxy(c *gin.Context) {
+	vehicleID := c.Query("vehicle_id")
+	if vehicleID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
+		return
+	}
+
+	// Read the incoming request body
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read request body"})
+		return
+	}
+
+	requestURL := yandexFleetCarAPIURL + "?vehicle_id=" + vehicleID
+
+	// Create a new HTTP request to Yandex API
+	req, err := http.NewRequest(http.MethodPut, requestURL, bytes.NewBuffer(body))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+	
+	// Retrieving API keys from headers sent by the mobile app
+	apiKey := c.GetHeader("X-API-Key")
+	clientID := c.GetHeader("X-Client-ID")
+	parkID := c.GetHeader("X-Park-ID")
+
+	if apiKey == "" || clientID == "" || parkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing required authentication headers"})
+		return
+	}
+
+	req.Header.Set("X-API-Key", apiKey)
+	req.Header.Set("X-Client-ID", clientID)
+	req.Header.Set("X-Park-ID", parkID)
+
+	// Initialize HTTP client and execute the request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to reach Yandex Fleet API"})
+		return
+	}
+	defer resp.Body.Close()
+
+	// Read the response from Yandex API
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read response from Yandex API"})
+		return
+	}
+
+	// Forward the exact status code and response body back to the client
+	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
 }

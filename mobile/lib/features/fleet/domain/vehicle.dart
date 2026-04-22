@@ -15,6 +15,16 @@ class Vehicle {
   final String? registrationCert;
   final String? vin;
   final List<String>? amenities;
+  final List<String>? categories;
+  final List<String>? tariffs;
+  final String? transmission;
+  final String? bodyNumber;
+  final String? fuelType;
+  final String? comment;
+  final bool? isParkProperty;
+  final String? licenseOwnerId;
+  final String? ownershipType;
+  final String? licenseNumber;
 
   // Новые поля для фильтрации
   final VehicleType type;
@@ -41,6 +51,16 @@ class Vehicle {
     this.registrationCert,
     this.vin,
     this.amenities,
+    this.categories,
+    this.tariffs,
+    this.transmission,
+    this.bodyNumber,
+    this.fuelType,
+    this.comment,
+    this.isParkProperty,
+    this.licenseOwnerId,
+    this.ownershipType,
+    this.licenseNumber,
   });
 
   factory Vehicle.fromJson(Map<String, dynamic> json) {
@@ -51,7 +71,7 @@ class Vehicle {
       year: json['year']?.toString() ?? 'Неизвестно',
       color: json['color'] as String? ?? 'Неизвестно',
       status: _parseStatus(json['status'] as String?),
-      mileage: 0, // Не отдается в API списка Яндекса
+      mileage: json['mileage'] as int? ?? 0,
       type: VehicleType.automobile, // По умолчанию
       owner: VehicleOwner.notSpecified, // По умолчанию
       usageRight: VehicleUsageRight.confirmed, // По умолчанию
@@ -61,6 +81,16 @@ class Vehicle {
       registrationCert: json['registration_cert'] as String?,
       vin: json['vin'] as String?,
       amenities: (json['amenities'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
+      categories: (json['categories'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
+      tariffs: (json['tariffs'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
+      transmission: json['transmission'] as String?,
+      bodyNumber: json['body_number'] as String?,
+      fuelType: json['fuel_type'] as String?,
+      comment: json['comment'] as String?,
+      isParkProperty: json['is_park_property'] as bool?,
+      licenseOwnerId: json['license_owner_id'] as String?,
+      ownershipType: json['ownership_type'] as String?,
+      licenseNumber: json['licence_number'] as String?,
     );
   }
 

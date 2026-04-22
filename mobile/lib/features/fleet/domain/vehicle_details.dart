@@ -42,6 +42,8 @@ class ParkProfile {
   final bool? isParkProperty;
   final String? licenseOwnerId;
   final String? ownershipType;
+  final List<String>? tariffs;
+  final LeasingConditions? leasingConditions;
 
   ParkProfile({
     this.callsign,
@@ -53,6 +55,8 @@ class ParkProfile {
     this.isParkProperty,
     this.licenseOwnerId,
     this.ownershipType,
+    this.tariffs,
+    this.leasingConditions,
   });
 
   factory ParkProfile.fromJson(Map<String, dynamic> json) {
@@ -66,6 +70,10 @@ class ParkProfile {
       isParkProperty: json['is_park_property'] as bool?,
       licenseOwnerId: json['license_owner_id'] as String?,
       ownershipType: json['ownership_type'] as String?,
+      tariffs: (json['tariffs'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
+      leasingConditions: json['leasing_conditions'] != null
+          ? LeasingConditions.fromJson(json['leasing_conditions'] as Map<String, dynamic>)
+          : null,
     );
   }
 }
@@ -128,14 +136,41 @@ class VehicleSpecifications {
 class Cargo {
   final int? cargoLoaders;
   final int? carryingCapacity;
-  // Dimensions can be added if needed
+  final Dimensions? cargoHoldDimensions;
 
-  Cargo({this.cargoLoaders, this.carryingCapacity});
+  Cargo({
+    this.cargoLoaders,
+    this.carryingCapacity,
+    this.cargoHoldDimensions,
+  });
 
   factory Cargo.fromJson(Map<String, dynamic> json) {
     return Cargo(
       cargoLoaders: json['cargo_loaders'] as int?,
       carryingCapacity: json['carrying_capacity'] as int?,
+      cargoHoldDimensions: json['cargo_hold_dimensions'] != null
+          ? Dimensions.fromJson(json['cargo_hold_dimensions'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+}
+
+class Dimensions {
+  final int? height;
+  final int? length;
+  final int? width;
+
+  Dimensions({
+    this.height,
+    this.length,
+    this.width,
+  });
+
+  factory Dimensions.fromJson(Map<String, dynamic> json) {
+    return Dimensions(
+      height: json['height'] as int?,
+      length: json['length'] as int?,
+      width: json['width'] as int?,
     );
   }
 }
@@ -148,6 +183,32 @@ class ChildSafety {
   factory ChildSafety.fromJson(Map<String, dynamic> json) {
     return ChildSafety(
       boosterCount: json['booster_count'] as int?,
+    );
+  }
+}
+
+class LeasingConditions {
+  final String? company;
+  final String? interestRate;
+  final int? monthlyPayment;
+  final String? startDate;
+  final int? term;
+
+  LeasingConditions({
+    this.company,
+    this.interestRate,
+    this.monthlyPayment,
+    this.startDate,
+    this.term,
+  });
+
+  factory LeasingConditions.fromJson(Map<String, dynamic> json) {
+    return LeasingConditions(
+      company: json['company'] as String?,
+      interestRate: json['interest_rate'] as String?,
+      monthlyPayment: json['monthly_payment'] as int?,
+      startDate: json['start_date'] as String?,
+      term: json['term'] as int?,
     );
   }
 }

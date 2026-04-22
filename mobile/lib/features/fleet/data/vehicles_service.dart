@@ -192,6 +192,54 @@ class VehiclesService {
     }
   }
 
+  Future<void> updateVehicle(String vehicleId, Map<String, dynamic> payload) async {
+    try {
+      final parkId = await _secureStorage.getParkId();
+      if (parkId == null || parkId.isEmpty) {
+        throw Exception('Park ID is not available. Please login again.');
+      }
+
+      String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080';
+
+      print('Updating vehicle $vehicleId with payload: $payload');
+
+      final response = await _dio.put(
+        '$baseUrl/api/vehicles/car',
+        queryParameters: {
+          'vehicle_id': vehicleId,
+        },
+        data: payload,
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to update vehicle');
+      }
+    } on DioException catch (e) {
+      print('DioException updating vehicle:');
+      print('Status code: ${e.response?.statusCode}');
+      print('Response data: ${e.response?.data}');
+      print('Request data: ${e.requestOptions.data}');
+      
+      // Извлекаем и обрабатываем ошибки от API
+      if (e.response?.data != null) {
+        final errorData = e.response!.data;
+        if (errorData is Map) {
+          final code = errorData['code'] as String?;
+          final message = errorData['message'] as String?;
+          
+          // Обрабатываем специфичные коды ошибок
+          final userMessage = _getErrorMessage(code, message);
+          throw Exception(userMessage);
+        }
+      }
+      
+      throw Exception('Не удалось обновить автомобиль: ${e.message}');
+    } catch (e) {
+      print('Error updating vehicle: $e');
+      throw e;
+    }
+  }
+
   String _getErrorMessage(String? code, String? apiMessage) {
     switch (code) {
       case 'invalid_car_model':
