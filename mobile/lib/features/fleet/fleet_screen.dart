@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/features/fleet/presentation/vehicles/vehicles_screen.dart';
+import 'package:mobile/features/fleet/presentation/expenses/expenses_screen.dart';
 import 'package:mobile/shared/widgets/fading_button.dart';
 
 class FleetScreen extends StatelessWidget {
@@ -8,7 +9,7 @@ class FleetScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     // Стиль для заголовков разделов
     final sectionStyle = theme.textTheme.labelLarge?.copyWith(
       fontWeight: FontWeight.bold,
@@ -36,9 +37,10 @@ class FleetScreen extends StatelessWidget {
             icon: Icons.directions_car_filled_rounded,
             iconColor: const Color(0xFF007AFF),
             onTap: () {
-              Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(builder: (_) => VehiclesScreen()),
-              );
+              Navigator.of(
+                context,
+                rootNavigator: true,
+              ).push(MaterialPageRoute(builder: (_) => VehiclesScreen()));
             },
           ),
           const SizedBox(height: 8),
@@ -53,14 +55,19 @@ class FleetScreen extends StatelessWidget {
           const SizedBox(height: 24),
 
           Padding(
-             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
             child: Text('ФИНАНСЫ', style: sectionStyle),
           ),
           AnimatedMenuRow(
             title: 'Расходы по автомобилям',
             icon: Icons.payments_rounded,
             iconColor: const Color(0xFFFF9500),
-            onTap: () {},
+            onTap: () {
+              Navigator.of(
+                context,
+                rootNavigator: true,
+              ).push(MaterialPageRoute(builder: (_) => const ExpensesScreen()));
+            },
           ),
           const SizedBox(height: 8),
           AnimatedMenuRow(
@@ -87,7 +94,7 @@ class FleetScreen extends StatelessWidget {
           const SizedBox(height: 24),
 
           Padding(
-             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
             child: Text('АНАЛИТИКА', style: sectionStyle),
           ),
           AnimatedMenuRow(
@@ -103,7 +110,7 @@ class FleetScreen extends StatelessWidget {
             iconColor: Colors.blueGrey,
             onTap: () {},
           ),
-          
+
           const SizedBox(height: 40),
         ],
       ),
@@ -146,9 +153,9 @@ class AnimatedMenuRow extends StatelessWidget {
               ),
               child: Icon(icon, color: Colors.white, size: 24),
             ),
-            
+
             const SizedBox(width: 16),
-            
+
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,7 +180,7 @@ class AnimatedMenuRow extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             Icon(
               Icons.chevron_right_rounded,
               color: theme.colorScheme.outline.withOpacity(0.5),
