@@ -4,12 +4,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"time"
+
+	"backend/internal/session"
 
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterRoutes(r *gin.Engine) {
 	r.POST("/api/auth/login", LoginHandler)
+	r.POST("/api/auth/webview-session", SaveWebViewSessionHandler)
 }
 
 func LoginHandler(c *gin.Context) {
@@ -73,5 +77,36 @@ func LoginHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, LoginResponse{
 		Success: true,
 		Message: "Login successful",
+	})
+}
+
+// SaveWebViewSessionHandler сохраняет сессию из WebView авторизации
+func SaveWebViewSessionHandler(c *gin.Context) {
+	var req WebViewSessionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Создаем сессию
+	userSession := &session.UserSession{
+		UserID:     req.ParkID, // Используем ParkID как UserID
+		SessionID:  req.SessionID,
+		SessionID2: req.SessionID2,
+		LoginToken: req.LoginToken,
+		ParkID:     req.ParkID,
+		Login:      req.Login,
+		UID:        req.UID,
+		CreatedAt:  time.Now(),
+		ExpiresAt:  time.Now().Add(24 * time.Hour), // Сессия на 24 часа
+	}
+
+	// Сохраняем в store
+	store := session.GetStore()
+	store.Set(req.ParkID, userSession)
+
+	c.JSON(http.StatusOK, LoginResponse{
+		Success: true,
+		Message: "WebView session saved successfully",
 	})
 }

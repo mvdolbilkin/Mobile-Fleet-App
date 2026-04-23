@@ -19,6 +19,72 @@ class Expense {
     required this.isDeleted,
   });
 
+  // Фабричный метод для создания из API ответа
+  factory Expense.fromYandexApi(Map<String, dynamic> json) {
+    // Парсим amount - может быть строкой или числом
+    final amountValue = json['amount'];
+    double amount = 0;
+    if (amountValue is num) {
+      amount = amountValue.toDouble();
+    } else if (amountValue is String) {
+      amount = double.tryParse(amountValue) ?? 0;
+    }
+    
+    // Парсим дату
+    final dateStr = json['date'] as String? ?? '';
+    DateTime? parsedDate;
+    try {
+      parsedDate = DateTime.parse(dateStr);
+    } catch (e) {
+      parsedDate = DateTime.now();
+    }
+    final formattedDate = '${parsedDate.year}-${parsedDate.month.toString().padLeft(2, '0')}-${parsedDate.day.toString().padLeft(2, '0')}';
+
+    // Парсим объект автомобиля
+    final carJson = json['car'] as Map<String, dynamic>? ?? {};
+    final car = ExpenseCar(
+      id: carJson['id'] as String? ?? '',
+      brand: carJson['brand'] as String? ?? '',
+      model: carJson['model'] as String? ?? '',
+      color: carJson['color'] as String? ?? '',
+      year: carJson['year'] as int? ?? 0,
+      number: carJson['number'] as String? ?? '',
+    );
+
+    // Парсим тип расхода
+    final typeJson = json['type'] as Map<String, dynamic>? ?? {};
+    final type = ExpenseType(
+      id: typeJson['id'] as String? ?? '',
+      name: typeJson['name'] as String? ?? '',
+    );
+
+    return Expense(
+      id: json['id'] as String? ?? '',
+      car: car,
+      date: formattedDate,
+      name: json['name'] as String? ?? '',
+      type: type,
+      amount: amount.toStringAsFixed(0),
+      createdByUserName: json['created_by_user_name'] as String? ?? '',
+      isDeleted: json['is_deleted'] as bool? ?? false,
+    );
+  }
+
+  static String _getCategoryName(String category) {
+    const categoryNames = {
+      'fuel': 'Топливо',
+      'maintenance': 'Обслуживание',
+      'repair': 'Ремонт',
+      'insurance': 'Страховка',
+      'tax': 'Налоги',
+      'parking': 'Парковка',
+      'fine': 'Штрафы',
+      'loan': 'Кредит',
+      'other': 'Прочее',
+    };
+    return categoryNames[category] ?? 'Прочее';
+  }
+
   String get formattedDate {
     try {
       final parts = date.split('-');
