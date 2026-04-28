@@ -64,13 +64,19 @@ class Vehicle {
   });
 
   factory Vehicle.fromJson(Map<String, dynamic> json) {
+    // status может прийти как объект {id, name} или как строка
+    final statusRaw = json['status'];
+    final String? statusId = statusRaw is Map
+        ? statusRaw['id'] as String?
+        : statusRaw as String?;
+
     return Vehicle(
       id: json['id'] as String? ?? '',
       plateNumber: json['number'] as String? ?? 'Нет номера',
       model: json['model'] as String? ?? 'Неизвестная модель',
       year: json['year']?.toString() ?? 'Неизвестно',
-      color: json['color'] as String? ?? 'Неизвестно',
-      status: _parseStatus(json['status'] as String?),
+      color: (json['color_name'] ?? json['color']) as String? ?? 'Неизвестно',
+      status: _parseStatus(statusId),
       mileage: json['mileage'] as int? ?? 0,
       type: VehicleType.automobile, // По умолчанию
       owner: VehicleOwner.notSpecified, // По умолчанию

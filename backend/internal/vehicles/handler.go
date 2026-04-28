@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"time"
 
+	"backend/internal/session"
+
 	"github.com/gin-gonic/gin"
 )
 
-const yandexFleetAPIURL = "https://fleet-api.taxi.yandex.net/v1/parks/cars/list"
+const yandexFleetVehiclesListURL = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/vehicles/list"
 const yandexFleetCarAPIURL = "https://fleet-api.taxi.yandex.net/v2/parks/vehicles/car"
 const yandexFleetCreateCarAPIURL = "https://fleet-api.taxi.yandex.net/v2/parks/vehicles/car"
 
@@ -27,6 +29,24 @@ func RegisterRoutes(r *gin.Engine) {
 }
 
 func listVehiclesProxy(c *gin.Context) {
+	// Получаем userID из заголовка (park_id используется как userID)
+	userID := c.GetHeader("X-Park-ID")
+	if userID == "" {
+		userID = c.GetHeader("x-park-id")
+	}
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "X-Park-ID header is required"})
+		return
+	}
+
+	// Получаем сессию пользователя
+	store := session.GetStore()
+	userSession, exists := store.Get(userID)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Session not found. Please login again."})
+		return
+	}
+
 	// Read the incoming request body
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
@@ -35,26 +55,28 @@ func listVehiclesProxy(c *gin.Context) {
 	}
 
 	// Create a new HTTP request to Yandex API
-	req, err := http.NewRequest(http.MethodPost, yandexFleetAPIURL, bytes.NewBuffer(body))
+	req, err := http.NewRequest(http.MethodPost, yandexFleetVehiclesListURL, bytes.NewBuffer(body))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
 		return
 	}
 
-	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	
-	// Retrieving API keys from headers sent by the mobile app.
-	apiKey := c.GetHeader("X-API-Key")
-	clientID := c.GetHeader("X-Client-ID")
+	req.Header.Set("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7")
+	req.Header.Set("x-park-id", userSession.ParkID)
 
-	if apiKey == "" || clientID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing X-API-Key or X-Client-ID headers"})
-		return
+	// Формируем cookie header из сессии
+	cookieValue := "Session_id=" + userSession.SessionID + "; sessionid2=" + userSession.SessionID2
+	if userSession.LoginToken != "" {
+		cookieValue += "; L=" + userSession.LoginToken
 	}
-
-	req.Header.Set("X-API-Key", apiKey)
-	req.Header.Set("X-Client-ID", clientID)
+	if userSession.Login != "" {
+		cookieValue += "; yandex_login=" + userSession.Login
+	}
+	if userSession.UID != "" {
+		cookieValue += "; yandexuid=" + userSession.UID
+	}
+	req.Header.Set("Cookie", cookieValue)
 
 	// Initialize HTTP client and execute the request
 	client := &http.Client{}

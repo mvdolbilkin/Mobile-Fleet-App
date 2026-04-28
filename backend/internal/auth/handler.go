@@ -103,7 +103,10 @@ func SaveWebViewSessionHandler(c *gin.Context) {
 
 	// Сохраняем в store
 	store := session.GetStore()
-	store.Set(req.ParkID, userSession)
+	if err := store.Set(req.ParkID, userSession); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
+		return
+	}
 
 	c.JSON(http.StatusOK, LoginResponse{
 		Success: true,
