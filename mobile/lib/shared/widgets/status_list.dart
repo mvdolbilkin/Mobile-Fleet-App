@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class StatusList extends StatelessWidget {
-  final List<({Color color, String text})> items;
+  final List<({Color color, String text, VoidCallback? onTap})> items;
 
   const StatusList({super.key, required this.items});
 
@@ -28,13 +28,13 @@ class StatusList extends StatelessWidget {
 }
 
 class _StatusRow extends StatelessWidget {
-  final ({Color color, String text}) item;
+  final ({Color color, String text, VoidCallback? onTap}) item;
 
   const _StatusRow({required this.item});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final content = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
@@ -56,5 +56,18 @@ class _StatusRow extends StatelessWidget {
         ),
       ],
     );
+
+    if (item.onTap != null) {
+      return InkWell(
+        onTap: item.onTap,
+        borderRadius: BorderRadius.circular(4),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: content,
+        ),
+      );
+    }
+
+    return content;
   }
 }

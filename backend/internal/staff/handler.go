@@ -25,6 +25,9 @@ func RegisterRoutes(r *gin.Engine) {
 		staffGroup.GET("/profile", handler.GetStaffProfile)
 		staffGroup.GET("/orders", handler.GetDriverOrders)
 		staffGroup.GET("/car", handler.GetCarInfo)
+		staffGroup.GET("/categories", handler.GetTransactionCategories)
+		staffGroup.POST("/transaction", handler.CreateTransaction)
+		staffGroup.POST("/details", handler.GetDriverDetails)
 	}
 }
 
@@ -61,6 +64,8 @@ func (h *Handler) GetStaffList(c *gin.Context) {
 
 	drivers, err := h.service.GetDrivers(limit, offset, cookieHeader, parkID)
 	if err != nil {
+		// Логируем ошибку для отладки
+		println("Error in GetStaffList:", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -141,4 +146,82 @@ func (h *Handler) GetCarInfo(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, car)
+}
+
+func (h *Handler) GetTransactionCategories(c *gin.Context) {
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	if cookieHeader == "" && parkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
+		return
+	}
+
+	categories, err := h.service.GetTransactionCategories(cookieHeader, parkID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, categories)
+}
+
+func (h *Handler) CreateTransaction(c *gin.Context) {
+	var transaction TransactionRequest
+	if err := c.ShouldBindJSON(&transaction); err != nil {
+		println("Error binding JSON:", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат запроса: " + err.Error()})
+		return
+	}
+
+	println("Transaction request received:")
+	println("  ContractorProfileID:", transaction.ContractorProfileID)
+	println("  Amount:", transaction.Amount)
+	println("  Kind:", transaction.Data.Kind)
+	println("  FeeAmount:", transaction.Data.FeeAmount)
+
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	println("  Cookie:", cookieHeader[:50], "...")
+	println("  ParkID:", parkID)
+
+	if cookieHeader == "" && parkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
+		return
+	}
+
+	result, err := h.service.CreateTransaction(cookieHeader, parkID, transaction)
+	if err != nil {
+		println("Error creating transaction:", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	println("Transaction created successfully")
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetDriverDetails(c *gin.Context) {
+	var req DriverDetailsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат запроса: " + err.Error()})
+		return
+	}
+
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	if cookieHeader == "" && parkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
+		return
+	}
+
+	result, err := h.service.GetDriverDetails(cookieHeader, parkID, req.DriverID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
 }

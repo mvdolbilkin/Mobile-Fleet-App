@@ -1,126 +1,125 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mobile/app/theme.dart';
+import 'package:mobile/features/menu/models/loyalty_program_model.dart';
+import 'package:mobile/features/menu/providers/loyalty_program_provider.dart';
 import 'package:mobile/shared/widgets/info_card.dart';
 import 'package:mobile/features/menu/widgets/menu_icon.dart';
 
-class LoyaltyProgramCard extends StatelessWidget {
+class LoyaltyProgramCard extends ConsumerWidget {
   const LoyaltyProgramCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return InfoCard(
-      title: 'Программа лояльности',
-      subtitle: 'Прогресс в январе',
-      icon: const MenuIcon(assetPath: 'assets/images/menu_loyalty_program.svg'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Basic Level
-          _LevelHeader(
-            icon: SvgPicture.asset(
-              'assets/images/menu_loyalty_base.svg',
-              width: 24,
-              height: 24,
-            ),
-            text: 'Базовый',
-          ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final loyaltyAsync = ref.watch(loyaltyProgramDataProvider);
 
-          const SizedBox(height: 16),
+    return loyaltyAsync.when(
+      data: (data) {
+        final goal = data.currentGoal;
+        if (goal == null) {
+          return const SizedBox.shrink();
+        }
 
-          // Bronze Level (Locked/Upcoming)
-          _LevelHeader(
-            icon: SvgPicture.asset(
-              'assets/images/menu_loyalty_bronze.svg', // Placeholder asset
-              width: 24,
-              height: 24,
-            ), 
-            text: 'Бронзовый',
-            isLocked: true,
+        return InfoCard(
+          title: goal.title,
+          subtitle: goal.periodText,
+          icon: const MenuIcon(assetPath: 'assets/images/menu_loyalty_program.svg'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ...goal.rewards.map((reward) => _buildRewardSection(reward)),
+            ],
           ),
+        );
+      },
+      loading: () => InfoCard(
+        title: 'Программа лояльности',
+        icon: const MenuIcon(assetPath: 'assets/images/menu_loyalty_program.svg'),
+        child: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(32.0),
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      ),
+      error: (error, stack) => InfoCard(
+        title: 'Программа лояльности',
+        icon: const MenuIcon(assetPath: 'assets/images/menu_loyalty_program.svg'),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 48),
+              const SizedBox(height: 8),
+              Text(
+                'Ошибка загрузки данных',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRewardSection(Reward reward) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _LevelHeader(
+          icon: SvgPicture.asset(
+            reward.iconAsset,
+            width: 24,
+            height: 24,
+          ),
+          text: reward.title,
+          isLocked: !reward.isCompleted,
+        ),
+        if (reward.subtitle != null) ...[
+          const SizedBox(height: 4),
           Padding(
-            padding: const EdgeInsets.only(left: 0.0, top: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: const [
-                    _BenefitBadge(
-                        text: 'Галочка в Про',
-                        assetPath: 'assets/images/menu_loyalty_lock.svg'),
-                    _BenefitBadge(
-                        text: 'Обратный звонок',
-                        assetPath: 'assets/images/menu_loyalty_lock.svg'),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                const Padding(
-                  padding: EdgeInsets.only(left: 8.0),
-                  child: _RequirementRow(
-                    text: '2000 поездок в месяц',
-                    state: _RequirementState.failed,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Padding(
-                  padding: EdgeInsets.only(left: 8.0),
-                  child: _RequirementRow(
-                    text: 'Заполнен профиль партнёра',
-                    state: _RequirementState.completed,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Padding(
-                  padding: EdgeInsets.only(left: 8.0),
-                  child: _RequirementRow(
-                    text: 'Исполнители подтвердили занятость',
-                    state: _RequirementState.completed,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Silver Level
-          _LevelHeader(
-            icon: SvgPicture.asset(
-              'assets/images/menu_loyalty_silver.svg', // Placeholder asset
-              width: 24,
-              height: 24,
-            ),
-            text: 'Серебряный',
-            isLocked: true,
-          ),
-            Padding(
-            padding: const EdgeInsets.only(left: 0.0, top: 12),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: const _BenefitBadge(
-                text: 'Скидка на Диспетчерскую',
-                assetPath: 'assets/images/menu_loyalty_lock.svg'),
-            ),
-            ),
-
-          const SizedBox(height: 24),
-          const Divider(height: 1, color: AppTheme.borderColor),
-          const SizedBox(height: 12),
-
-          const Text(
-            'Можно выбрать показатель «Часы на линии».\nПодтвердите право собственности на 7 из 10 авто',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppTheme.textPrimary,
-              fontFamily: 'Yandex Sans Text',
-              height: 1.3,
+            padding: const EdgeInsets.only(left: 32.0),
+            child: Text(
+              reward.subtitle!,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppTheme.textSecondary,
+                fontFamily: 'Yandex Sans Text',
+              ),
             ),
           ),
         ],
-      ),
+        if (reward.benefitItems.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.only(left: 0.0),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: reward.benefitItems
+                  .map((item) => _BenefitBadge(
+                        text: item.value,
+                        assetPath: 'assets/images/menu_loyalty_lock.svg',
+                      ))
+                  .toList(),
+            ),
+          ),
+        ],
+        if (reward.keyPerformanceIndicators.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          ...reward.keyPerformanceIndicators.map((kpi) => Padding(
+                padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+                child: _RequirementRow(
+                  text: kpi.title,
+                  state: kpi.isCompleted
+                      ? _RequirementState.completed
+                      : _RequirementState.failed,
+                ),
+              )),
+        ],
+        const SizedBox(height: 16),
+      ],
     );
   }
 }
@@ -145,17 +144,12 @@ class _LevelHeader extends StatelessWidget {
         Text(
           text,
           style: TextStyle(
-            fontSize: 24, // Use large font for level names as in image
+            fontSize: 24,
             fontWeight: FontWeight.w700,
             color: isLocked ? const Color(0xFF9E9E9E) : const Color(0xFF455A64),
             fontFamily: 'Yandex Sans Text',
           ),
         ),
-        if (isLocked) ...[
-          const SizedBox(width: 6),
-          // const Icon(Icons.lock_outline, size: 16, color: Color(0xFF9E9E9E)),
-          // Image doesn't explicitly show separate lock icon, the shield IS the lock metaphor often
-        ]
       ],
     );
   }
@@ -175,13 +169,12 @@ class _BenefitBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFF8E8E93), // Grey background
+        color: const Color(0xFF8E8E93),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // const Icon(Icons.lock, size: 12, color: Colors.white),
           SizedBox(
             width: 12,
             height: 12,
@@ -219,33 +212,27 @@ class _RequirementRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // IconData iconData;
     String assetPath;
 
     switch (state) {
       case _RequirementState.completed:
-        assetPath = 'assets/images/menu_accept.svg'; // Placeholder
-        // iconData = Icons.check_circle;
+        assetPath = 'assets/images/menu_accept.svg';
         break;
       case _RequirementState.failed:
-        assetPath = 'assets/images/menu_reject.svg'; // Placeholder
-        // iconData = Icons.cancel;
+        assetPath = 'assets/images/menu_reject.svg';
         break;
       case _RequirementState.neutral:
-        assetPath = 'assets/images/menu_stuff.svg'; // Placeholder
-        // iconData = Icons.circle_outlined;
+        assetPath = 'assets/images/menu_stuff.svg';
         break;
     }
 
     return Row(
       children: [
-        // Icon(iconData, color: iconColor, size: 20),
         SizedBox(
-            width: 20,
-            height: 20,
-            child: SvgPicture.asset(
-              assetPath,
-            )),
+          width: 20,
+          height: 20,
+          child: SvgPicture.asset(assetPath),
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Text(

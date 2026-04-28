@@ -1,4 +1,4 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/staff/domain/staff.dart';
 import 'package:mobile/shared/api/dio_provider.dart';
@@ -18,24 +18,43 @@ final staffProfileProvider = FutureProvider.family<Staff, String>((ref, profileI
   return await repository.fetchStaffProfile(profileId);
 });
 
-final driverOrdersProvider = FutureProvider.family<List<dynamic>, String>((ref, profileId) async {
+// Параметры для провайдера заказов водителя
+class DriverOrdersParams {
+  final String profileId;
+  final int days;
+
+  const DriverOrdersParams(this.profileId, this.days);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DriverOrdersParams &&
+          runtimeType == other.runtimeType &&
+          profileId == other.profileId &&
+          days == other.days;
+
+  @override
+  int get hashCode => profileId.hashCode ^ days.hashCode;
+}
+
+final driverOrdersProvider = FutureProvider.family<Map<String, dynamic>, DriverOrdersParams>((ref, params) async {
   final repository = ref.watch(staffRepositoryProvider);
   
   // Рассчитываем даты внутри провайдера, чтобы избежать бесконечного цикла обновлений UI.
   // API Яндекса требует таймзону.
   final now = DateTime.now();
-  final thirtyDaysAgo = now.subtract(const Duration(days: 30));
+  final startDate = now.subtract(Duration(days: params.days));
   
   // Форматируем с нулями и добавляем таймзону
   String formatYandexDate(DateTime dt) {
     return '${dt.toIso8601String().split('.')[0]}+03:00'; // Упрощенный формат для примера
   }
 
-  final fromStr = formatYandexDate(thirtyDaysAgo);
+  final fromStr = formatYandexDate(startDate);
   final toStr = formatYandexDate(now);
 
-  final data = await repository.fetchDriverOrders(profileId, fromStr, toStr);
-  return data['orders'] as List<dynamic>? ?? [];
+  final data = await repository.fetchDriverOrders(params.profileId, fromStr, toStr);
+  return data;
 });
 
 final carInfoProvider = FutureProvider.family<Map<String, dynamic>?, String>((ref, carId) async {
@@ -47,6 +66,16 @@ final carInfoProvider = FutureProvider.family<Map<String, dynamic>?, String>((re
     return cars.first as Map<String, dynamic>;
   }
   return null;
+});
+
+final transactionCategoriesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final repository = ref.watch(staffRepositoryProvider);
+  return await repository.fetchTransactionCategories();
+});
+
+final driverDetailsProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, driverId) async {
+  final repository = ref.watch(staffRepositoryProvider);
+  return await repository.fetchDriverDetails(driverId);
 });
 
 class StaffRepository {
@@ -97,11 +126,129 @@ class StaffRepository {
 
       final data = response.data;
       if (data != null) {
-        return Staff.fromV2ProfileJson(profileId, data);
+        return Staff.fromContractorDataJson(data);
       }
       throw Exception('Пустой ответ от сервера');
     } catch (e) {
       throw Exception('Failed to load staff profile: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchTransactionCategories() async {
+    try {
+      final response = await _dio.get('/api/staff/categories');
+      final data = response.data;
+      if (data != null && data['categories'] != null) {
+        return List<Map<String, dynamic>>.from(data['categories']);
+      }
+      return [];
+    } catch (e) {
+      throw Exception('Failed to load transaction categories: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> createTransaction({
+    required String contractorProfileId,
+    required String amount,
+    required String kind,
+    String? categoryId,
+    String? balanceMin,
+    String? receiptCondition,
+    String? description,
+    String? feeAmount,
+    String? childDriverId,
+    String? objectId,
+    String? objectType,
+    String? parkFee,
+    String? fuelValue,
+    String? fuelUnits,
+    String? reason,
+  }) async {
+    try {
+      // Check if this is a custom category
+      final isCustomCategory = categoryId != null && categoryId.startsWith('partner_service_manual_');
+      
+      final requestBody = <String, dynamic>{
+        'contractor_profile_id': contractorProfileId,
+        'amount': amount,
+      };
+
+      if (isCustomCategory) {
+        // For custom categories: category_id at top level, no data object
+        requestBody['category_id'] = categoryId;
+      } else {
+        // For system categories: use data object with kind
+        final dataMap = <String, dynamic>{
+          'kind': kind,
+        };
+
+        // Add fee_amount if provided (convert positive to negative for API)
+        if (feeAmount != null && feeAmount.isNotEmpty) {
+          final feeValue = double.tryParse(feeAmount);
+          if (feeValue != null && feeValue > 0) {
+            dataMap['fee_amount'] = (-feeValue).toStringAsFixed(4);
+          }
+        }
+
+        // Add receipt_condition to data if provided
+        if (receiptCondition != null && receiptCondition.isNotEmpty) {
+          dataMap['receipt_condition'] = receiptCondition;
+        }
+
+        // Add child_driver_id for referal program
+        if (childDriverId != null && childDriverId.isNotEmpty) {
+          dataMap['child_driver_id'] = childDriverId;
+        }
+
+        // Add object for rent (vehicle information)
+        if (objectId != null && objectId.isNotEmpty && objectType != null && objectType.isNotEmpty) {
+          dataMap['object'] = {
+            'object_type': objectType,
+            'object_id': objectId,
+          };
+        }
+
+        // Add park_fee for fine (convert positive to negative for API)
+        if (parkFee != null && parkFee.isNotEmpty) {
+          final parkFeeValue = double.tryParse(parkFee);
+          if (parkFeeValue != null && parkFeeValue > 0) {
+            dataMap['park_fee'] = (-parkFeeValue).toStringAsFixed(4);
+          }
+        }
+
+        // Add fuel value and units for fuel category
+        if (fuelValue != null && fuelValue.isNotEmpty) {
+          dataMap['value'] = fuelValue;
+        }
+        if (fuelUnits != null && fuelUnits.isNotEmpty) {
+          dataMap['units'] = fuelUnits;
+        }
+
+        // Add reason for other category
+        if (reason != null && reason.isNotEmpty) {
+          dataMap['reason'] = reason;
+        }
+
+        requestBody['data'] = dataMap;
+      }
+
+      // Add condition with balance_min if provided (must be a valid number with max 4 decimal places)
+      if (balanceMin != null && balanceMin.isNotEmpty) {
+        final balanceValue = double.tryParse(balanceMin);
+        if (balanceValue != null) {
+          requestBody['condition'] = {'balance_min': balanceValue.toStringAsFixed(4)};
+        }
+      }
+
+      // Add description (comment) if provided
+      if (description != null && description.isNotEmpty) {
+        requestBody['description'] = description;
+      }
+
+      final response = await _dio.post('/api/staff/transaction', data: requestBody);
+      return response.data ?? {};
+    } catch (e) {
+      throw Exception('Failed to create transaction: $e');
     }
   }
 
@@ -134,4 +281,19 @@ class StaffRepository {
       throw Exception('Failed to load car info: $e');
     }
   }
+
+  Future<Map<String, dynamic>> fetchDriverDetails(String driverId) async {
+    try {
+      final response = await _dio.post(
+        '/api/staff/details',
+        data: {
+          'driver_id': driverId,
+        },
+      );
+      return response.data ?? {};
+    } catch (e) {
+      throw Exception('Failed to load driver details: $e');
+    }
+  }
 }
+
