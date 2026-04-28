@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:mobile/shared/api/dio_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mobile/shared/services/secure_storage_service.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) {
   final dio = ref.watch(dioProvider);
@@ -113,7 +114,17 @@ class AuthService {
 
   // Выход из системы
   Future<void> logout() async {
+    // Удаляем сохраненные credentials и cookies из secure storage
     await _secureStorage.deleteYandexCredentials();
     await _secureStorage.deleteYandexCookies();
+    
+    // Очищаем cookies из WebView для полного выхода из Yandex аккаунта
+    try {
+      final cookieManager = CookieManager.instance();
+      await cookieManager.deleteAllCookies();
+      print('✅ WebView cookies cleared');
+    } catch (e) {
+      print('⚠️ Failed to clear WebView cookies: $e');
+    }
   }
 }

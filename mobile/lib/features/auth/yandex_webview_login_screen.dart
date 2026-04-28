@@ -55,6 +55,31 @@ class _YandexWebViewLoginScreenState
                   value: _progress,
                   backgroundColor: Colors.grey[200],
                 ),
+              // Подсказка для пользователя (скрывается когда park_id появляется в URL)
+              if (_currentUrl.contains('fleet.yandex.ru') &&
+                  !_currentUrl.contains('/parks/') &&
+                  !_currentUrl.contains('park_id=') &&
+                  !_isProcessing)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  color: Colors.blue.shade50,
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Ожидание загрузки парка...',
+                          style: TextStyle(
+                            color: Colors.blue.shade700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               Expanded(
                 child: InAppWebView(
                   initialUrlRequest: URLRequest(
@@ -93,6 +118,23 @@ class _YandexWebViewLoginScreenState
                     setState(() {
                       _progress = progress / 100;
                     });
+                  },
+                  onUpdateVisitedHistory: (controller, url, isReload) async {
+                    // Этот callback срабатывает при изменении URL (включая изменения через JavaScript)
+                    if (url != null) {
+                      setState(() {
+                        _currentUrl = url.toString();
+                      });
+                      ref.read(loggerProvider).i('URL updated: $url');
+                      
+                      // Проверяем cookies при изменении URL
+                      if (url.toString().contains('fleet.yandex.ru') &&
+                          !url.toString().contains('/passport') &&
+                          !url.toString().contains('/auth') &&
+                          !_isProcessing) {
+                        await _checkAndSaveCookies(url.toString());
+                      }
+                    }
                   },
                   onLoadError: (controller, url, code, message) {
                     ref.read(loggerProvider).e('WebView error: $message');
@@ -270,9 +312,20 @@ class _YandexWebViewLoginScreenState
   String? _extractParkIdFromUrl(String url) {
     try {
       final uri = Uri.parse(url);
-      final parkId = uri.queryParameters['park_id'];
-      if (parkId != null && parkId.isNotEmpty) {
-        return parkId;
+      
+      // Проверяем query параметр park_id
+      final queryParkId = uri.queryParameters['park_id'];
+      if (queryParkId != null && queryParkId.isNotEmpty) {
+        return queryParkId;
+      }
+      
+      // Проверяем путь вида /parks/{park_id}/...
+      final pathSegments = uri.pathSegments;
+      if (pathSegments.length >= 2 && pathSegments[0] == 'parks') {
+        final parkId = pathSegments[1];
+        if (parkId.isNotEmpty) {
+          return parkId;
+        }
       }
     } catch (e) {
       ref.read(loggerProvider).e('Error extracting park_id: $e');

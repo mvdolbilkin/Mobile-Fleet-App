@@ -5,6 +5,7 @@ import 'package:mobile/features/fleet/domain/expense.dart';
 import 'package:mobile/features/fleet/presentation/expenses/widgets/add_expense_sheet.dart';
 import 'package:mobile/features/fleet/presentation/expenses/widgets/expense_details_sheet.dart';
 import 'package:mobile/shared/widgets/animated_icon_button.dart';
+import 'package:mobile/shared/widgets/search_field.dart';
 import 'package:mobile/features/fleet/data/expenses_repository.dart';
 import 'package:mobile/shared/services/secure_storage_service.dart';
 import 'package:mobile/shared/providers/logger_provider.dart';
@@ -108,20 +109,11 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: Container(
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: AppTheme.controlsColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: TextField(
-                      decoration: const InputDecoration(
-                        hintText: 'Поиск по расходам',
-                        prefixIcon: Icon(Icons.search),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 0),
-                      ),
-                    ),
+                  child: SearchField(
+                    hint: 'Поиск по расходам',
+                    onChanged: (value) {
+                      // TODO: Implement search functionality
+                    },
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -292,19 +284,36 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                                 ),
                               ),
                             ),
-                            Text(
-                              expense.amount,
-                              style: Theme.of(context).textTheme.bodyLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: expense.isDeleted
-                                        ? Theme.of(context).colorScheme.outline
-                                        : null,
-                                    decoration: expense.isDeleted
-                                        ? TextDecoration.lineThrough
-                                        : null,
+                            expense.isDeleted
+                                ? Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      Text(
+                                        '${expense.amount} ₽',
+                                        style: Theme.of(context).textTheme.bodyLarge
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: Theme.of(context).colorScheme.outline,
+                                            ),
+                                      ),
+                                      Positioned.fill(
+                                        child: Align(
+                                          alignment: Alignment.center,
+                                          child: Container(
+                                            height: 1.5,
+                                            color: Theme.of(context).colorScheme.outline,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Text(
+                                    '${expense.amount} ₽',
+                                    style: Theme.of(context).textTheme.bodyLarge
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                   ),
-                            ),
                           ],
                         ),
                         const SizedBox(height: 8),
