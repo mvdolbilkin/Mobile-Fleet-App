@@ -1,7 +1,6 @@
 package staff
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -45,33 +44,22 @@ func (h *Handler) GetStaffList(c *gin.Context) {
 		return
 	}
 
-	// Получаем ключи из заголовков, отправленных мобильным приложением
-	apiKey := c.GetHeader("X-API-Key")
-	clientID := c.GetHeader("X-Client-ID")
+	// Получаем куки или заголовки от мобилки
+	cookieHeader := c.GetHeader("Cookie")
 	parkID := c.GetHeader("X-Park-ID")
 
-	// Детальное логирование для отладки
-	fmt.Printf("[STAFF] Headers received: X-API-Key=%q, X-Client-ID=%q, X-Park-ID=%q\n", apiKey, clientID, parkID)
-	
-	if apiKey == "" {
-		fmt.Println("[STAFF] ERROR: Missing X-API-Key header")
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing X-API-Key header"})
-		return
-	}
-	if clientID == "" {
-		fmt.Println("[STAFF] ERROR: Missing X-Client-ID header")
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing X-Client-ID header"})
-		return
-	}
-	if parkID == "" {
-		fmt.Println("[STAFF] ERROR: Missing X-Park-ID header")
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing X-Park-ID header"})
-		return
-	}
-	
-	fmt.Println("[STAFF] All headers present, proceeding with request")
+	if cookieHeader == "" {
+		// Резервный вариант, если клиент все еще шлет старые заголовки
+		apiKey := c.GetHeader("X-API-Key")
+		clientID := c.GetHeader("X-Client-ID")
 
-	drivers, err := h.service.GetDrivers(limit, offset, apiKey, clientID, parkID)
+		if apiKey == "" || clientID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing credentials"})
+			return
+		}
+	}
+
+	drivers, err := h.service.GetDrivers(limit, offset, cookieHeader, parkID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -87,16 +75,15 @@ func (h *Handler) GetStaffProfile(c *gin.Context) {
 		return
 	}
 
-	apiKey := c.GetHeader("X-API-Key")
-	clientID := c.GetHeader("X-Client-ID")
+	cookieHeader := c.GetHeader("Cookie")
 	parkID := c.GetHeader("X-Park-ID")
 
-	if apiKey == "" || clientID == "" || parkID == "" {
+	if cookieHeader == "" && parkID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
 		return
 	}
 
-	profile, err := h.service.GetDriverProfile(apiKey, clientID, parkID, contractorProfileID)
+	profile, err := h.service.GetDriverProfile(cookieHeader, parkID, contractorProfileID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -115,16 +102,15 @@ func (h *Handler) GetDriverOrders(c *gin.Context) {
 		return
 	}
 
-	apiKey := c.GetHeader("X-API-Key")
-	clientID := c.GetHeader("X-Client-ID")
+	cookieHeader := c.GetHeader("Cookie")
 	parkID := c.GetHeader("X-Park-ID")
 
-	if apiKey == "" || clientID == "" || parkID == "" {
+	if cookieHeader == "" && parkID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
 		return
 	}
 
-	orders, err := h.service.GetDriverOrders(apiKey, clientID, parkID, driverID, from, to)
+	orders, err := h.service.GetDriverOrders(cookieHeader, parkID, driverID, from, to)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -140,16 +126,15 @@ func (h *Handler) GetCarInfo(c *gin.Context) {
 		return
 	}
 
-	apiKey := c.GetHeader("X-API-Key")
-	clientID := c.GetHeader("X-Client-ID")
+	cookieHeader := c.GetHeader("Cookie")
 	parkID := c.GetHeader("X-Park-ID")
 
-	if apiKey == "" || clientID == "" || parkID == "" {
+	if cookieHeader == "" && parkID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
 		return
 	}
 
-	car, err := h.service.GetCar(apiKey, clientID, parkID, carID)
+	car, err := h.service.GetCar(cookieHeader, parkID, carID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
