@@ -74,12 +74,14 @@ class VehiclesService {
         carQuery["vehicle_types"] = vehicleTypes;
       }
 
+      final Map<String, dynamic> queryMap = {"car": carQuery};
+
       if (filter.searchQuery != null && filter.searchQuery!.isNotEmpty) {
-        carQuery["text"] = filter.searchQuery;
+        queryMap["text"] = filter.searchQuery;
       }
 
       final Map<String, dynamic> payload = {
-        "query": {"car": carQuery},
+        "query": queryMap,
         "limit": 30,
       };
 
@@ -205,10 +207,8 @@ class VehiclesService {
         throw Exception('Park ID is not available. Please login again.');
       }
 
-      String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080';
-
       final response = await _dio.get(
-        '$baseUrl/api/vehicles/car',
+        '/api/vehicles/car',
         queryParameters: {
           'vehicle_id': vehicleId,
         },
@@ -232,12 +232,8 @@ class VehiclesService {
         throw Exception('Park ID is not available. Please login again.');
       }
 
-      String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080';
-
-      print('Creating vehicle with payload: $payload');
-
       final response = await _dio.post(
-        '$baseUrl/api/vehicles/create',
+        '/api/vehicles/create',
         data: payload,
       );
 
@@ -279,12 +275,8 @@ class VehiclesService {
         throw Exception('Park ID is not available. Please login again.');
       }
 
-      String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080';
-
-      print('Updating vehicle $vehicleId with payload: $payload');
-
       final response = await _dio.put(
-        '$baseUrl/api/vehicles/car',
+        '/api/vehicles/car',
         queryParameters: {
           'vehicle_id': vehicleId,
         },
@@ -327,8 +319,6 @@ class VehiclesService {
         throw Exception('Park ID is not available. Please login again.');
       }
 
-      String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080';
-
       // Преобразуем статус в формат API
       String apiStatus;
       switch (status) {
@@ -352,78 +342,27 @@ class VehiclesService {
           break;
       }
 
-      // Обновляем статус для каждого автомобиля
-      for (final vehicleId in vehicleIds) {
-        // Сначала получаем полные данные автомобиля
-        final details = await getVehicleDetails(vehicleId);
-        
-        // Формируем полный payload с обновленным статусом
-        final Map<String, dynamic> payload = {
-          'park_profile': {
-            'status': apiStatus,
-            'fuel_type': details.parkProfile?.fuelType,
-            'is_park_property': details.parkProfile?.isParkProperty ?? false,
-            'ownership_type': 'park',
-            if (details.parkProfile?.categories != null && details.parkProfile!.categories!.isNotEmpty)
-              'categories': details.parkProfile!.categories,
+      // Формируем payload для нового API fleet-operations/vehicle-status
+      final Map<String, dynamic> payload = {
+        'filters': {
+          'car': {
+            'status': <String>[],
+            'categories': <String>[],
+            'owner': 'park',
+            'car_ids': vehicleIds,
           },
-          'vehicle_specifications': {
-            'brand': details.specifications?.brand,
-            'model': details.specifications?.model,
-            'color': details.specifications?.color,
-            'year': details.specifications?.year,
-            'number': details.licenses?.licencePlateNumber,
-            'vin': details.specifications?.vin,
-            'registration_cert': details.licenses?.registrationCertificate,
-            'transmission': details.specifications?.transmission,
-          },
-          'vehicle_licenses': {
-            'licence_plate_number': details.licenses?.licencePlateNumber,
-            'registration_certificate': details.licenses?.registrationCertificate,
-            if (details.licenses?.licenceNumber != null)
-              'licence_number': details.licenses!.licenceNumber,
-          },
-        };
+        },
+        'action': {
+          'status': apiStatus,
+        },
+      };
 
-        // Добавляем cargo если есть
-        if (details.cargo != null &&
-            (details.cargo!.cargoLoaders != null ||
-             details.cargo!.carryingCapacity != null ||
-             details.cargo!.cargoHoldDimensions != null)) {
-          payload['cargo'] = {
-            if (details.cargo!.cargoLoaders != null)
-              'cargo_loaders': details.cargo!.cargoLoaders,
-            if (details.cargo!.carryingCapacity != null)
-              'carrying_capacity': details.cargo!.carryingCapacity,
-            if (details.cargo!.cargoHoldDimensions != null)
-              'cargo_hold_dimensions': {
-                'length': details.cargo!.cargoHoldDimensions!.length,
-                'height': details.cargo!.cargoHoldDimensions!.height,
-                'width': details.cargo!.cargoHoldDimensions!.width,
-              },
-          };
-        }
-
-        // Добавляем child_safety если есть
-        if (details.childSafety != null && details.childSafety!.boosterCount != null) {
-          payload['child_safety'] = {
-            'booster_count': details.childSafety!.boosterCount,
-          };
-        }
-
-        await _dio.put(
-          '$baseUrl/api/vehicles/car',
-          queryParameters: {
-            'vehicle_id': vehicleId,
-          },
-          data: payload,
-        );
-      }
+      await _dio.post('/api/vehicles/status', data: payload);
     } on DioException catch (e) {
       print('DioException updating vehicles status:');
       print('Status code: ${e.response?.statusCode}');
       print('Response data: ${e.response?.data}');
-      
+
       if (e.response?.data != null) {
         final errorData = e.response!.data;
         if (errorData is Map) {
@@ -433,7 +372,7 @@ class VehiclesService {
           throw Exception(userMessage);
         }
       }
-      
+
       throw Exception('Не удалось обновить статус автомобилей: ${e.message}');
     } catch (e) {
       print('Error updating vehicles status: $e');
@@ -566,5 +505,106 @@ class VehiclesService {
     }
 
     return carQuery;
+  }
+
+  Future<List<String>> getBrands() async {
+    try {
+      final response = await _dio.get('/api/vehicles/brands');
+
+      if (response.statusCode == 200 && response.data != null) {
+        final brands = (response.data['brands'] as List<dynamic>)
+            .map((e) => (e as Map<String, dynamic>)['name'] as String)
+            .toList();
+        return brands;
+      }
+
+      throw Exception('Failed to load brands');
+    } catch (e) {
+      print('Error fetching brands: $e');
+      throw e;
+    }
+  }
+
+  Future<List<String>> getModels(String brand) async {
+    try {
+      final response = await _dio.get(
+        '/api/vehicles/models',
+        queryParameters: {'brand': brand},
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final models = (response.data['models'] as List<dynamic>)
+            .map((e) => (e as Map<String, dynamic>)['name'] as String)
+            .toList();
+        return models;
+      }
+
+      throw Exception('Failed to load models');
+    } catch (e) {
+      print('Error fetching models: $e');
+      throw e;
+    }
+  }
+
+  Future<List<String>> getCategories(String vehicleId) async {
+    try {
+      final response = await _dio.get(
+        '/api/vehicles/categories',
+        queryParameters: {'vehicle_id': vehicleId},
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final categories = (response.data['categories'] as List<dynamic>)
+            .map((e) => e.toString())
+            .toList();
+        return categories;
+      }
+
+      throw Exception('Failed to load categories');
+    } catch (e) {
+      print('Error fetching categories: $e');
+      throw e;
+    }
+  }
+
+  Future<void> updateCategories(String vehicleId, List<String> categories) async {
+    try {
+      await _dio.post(
+        '/api/vehicles/categories',
+        queryParameters: {'vehicle_id': vehicleId},
+        data: {'categories': categories},
+      );
+    } catch (e) {
+      print('Error updating categories: $e');
+      throw e;
+    }
+  }
+
+  Future<Map<String, String>> getCarCategories() async {
+    try {
+      final response = await _dio.post(
+        '/api/vehicles/references',
+        data: {'references': ['car_categories']},
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final List<dynamic> categories = response.data['car_categories'] as List<dynamic>;
+        final Map<String, String> result = {};
+        for (final cat in categories) {
+          final map = cat as Map<String, dynamic>;
+          final id = map['id'] as String;
+          final name = (map['name'] as String?) ?? id;
+          if (id.isNotEmpty) {
+            result[id] = name;
+          }
+        }
+        return result;
+      }
+
+      throw Exception('Failed to load car categories');
+    } catch (e) {
+      print('Error fetching car categories: $e');
+      throw e;
+    }
   }
 }

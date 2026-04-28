@@ -3,6 +3,7 @@ import 'package:mobile/features/fleet/data/vehicles_service.dart';
 import 'package:mobile/features/fleet/domain/vehicle_details.dart';
 import 'package:mobile/shared/api/dio_provider.dart';
 import 'package:mobile/shared/services/secure_storage_service.dart';
+import 'vehicles_provider.dart';
 
 class EditVehicleFormData {
   final String vehicleId;
@@ -26,6 +27,8 @@ class EditVehicleFormData {
   final String parkingAddress;
   final bool hasAirConditioner;
   final String additionalInfo;
+  final String callsign;
+  final String officeId;
 
   // Флаг для отображения ошибок
   final bool showValidationErrors;
@@ -48,6 +51,8 @@ class EditVehicleFormData {
     this.parkingAddress = '',
     this.hasAirConditioner = false,
     this.additionalInfo = '',
+    this.callsign = '',
+    this.officeId = '',
     this.showValidationErrors = false,
   });
 
@@ -73,7 +78,7 @@ class EditVehicleFormData {
       plateNumber: licenses?.licencePlateNumber ?? '',
       brand: specs?.brand ?? '',
       year: specs?.year?.toString() ?? '',
-      stsIssueDate: '', // API не возвращает дату выдачи СТС
+      stsIssueDate: licenses?.registrationCertIssueDate ?? '',
       vin: specs?.vin ?? '',
       model: specs?.model ?? '',
       bodyNumber: specs?.bodyNumber ?? '',
@@ -83,6 +88,8 @@ class EditVehicleFormData {
       parkingAddress: '', // API не возвращает адрес парковки
       hasAirConditioner: profile?.amenities?.contains('conditioner') ?? false,
       additionalInfo: profile?.comment ?? '',
+      callsign: profile?.callsign ?? '',
+      officeId: profile?.officeId ?? '',
     );
   }
 
@@ -134,6 +141,8 @@ class EditVehicleFormData {
     String? parkingAddress,
     bool? hasAirConditioner,
     String? additionalInfo,
+    String? callsign,
+    String? officeId,
     bool? showValidationErrors,
   }) {
     return EditVehicleFormData(
@@ -154,6 +163,8 @@ class EditVehicleFormData {
       parkingAddress: parkingAddress ?? this.parkingAddress,
       hasAirConditioner: hasAirConditioner ?? this.hasAirConditioner,
       additionalInfo: additionalInfo ?? this.additionalInfo,
+      callsign: callsign ?? this.callsign,
+      officeId: officeId ?? this.officeId,
       showValidationErrors: showValidationErrors ?? this.showValidationErrors,
     );
   }
@@ -236,81 +247,63 @@ class EditVehicleFormData {
 
   Map<String, dynamic> toYandexApiJson() {
     final Map<String, dynamic> payload = {
-      'park_profile': {
-        'status': 'working',
-        'fuel_type': _mapFuelType(fuelType),
-        'is_park_property': true,
-        'ownership_type': 'park',
-        // Копируем categories из оригинальных данных
-        if (originalDetails.parkProfile?.categories != null)
-          'categories': originalDetails.parkProfile!.categories,
-      },
-      'vehicle_licenses': {
-        'licence_plate_number': _transliteratePlateNumber(plateNumber),
-        'registration_certificate': _transliterateToLatin(sts),
-      },
-      'vehicle_specifications': {
-        'brand': brand,
-        'model': model,
-        'color': _mapColor(color),
-        'year': int.tryParse(year) ?? 0,
-        'transmission': _mapTransmission(transmission),
-        'vin': vin.toUpperCase(),
-      },
+      'car_id': vehicleId,
+      'brand': brand,
+      'model': model,
+      'color': _mapColor(color),
+      'year': int.tryParse(year) ?? 0,
+      'transmission': _mapTransmission(transmission),
+      'vin': vin.toUpperCase(),
+      'licence_plate_number': _transliteratePlateNumber(plateNumber),
+      'registration_cert': _transliterateToLatin(sts),
+      'fuel_type': _mapFuelType(fuelType),
+      'vehicle_owner_type': 'park',
+      'amenities': hasAirConditioner ? ['conditioner'] : <String>[],
+      'office_id': officeId.isNotEmpty ? officeId : (originalDetails.parkProfile?.officeId ?? ''),
+      'is_readonly': originalDetails.parkProfile?.isReadonly ?? false,
+      'is_created_by_contractor': originalDetails.parkProfile?.isCreatedByContractor ?? false,
+      'rental': originalDetails.parkProfile?.rental ?? false,
+      'is_cargo_frauder': originalDetails.parkProfile?.isCargoFrauder ?? false,
     };
 
-    if (bodyNumber.isNotEmpty) {
-      payload['vehicle_specifications']['body_number'] = bodyNumber;
+    if (stsIssueDate.isNotEmpty) {
+      payload['registration_cert_issue_date'] = _formatDateForApi(stsIssueDate);
+    } else if (originalDetails.licenses?.registrationCertIssueDate != null && originalDetails.licenses!.registrationCertIssueDate!.isNotEmpty) {
+      payload['registration_cert_issue_date'] = originalDetails.licenses!.registrationCertIssueDate!;
     }
 
-    if (hasAirConditioner) {
-      payload['park_profile']['amenities'] = ['conditioner'];
+    if (bodyNumber.isNotEmpty) {
+      payload['body_number'] = bodyNumber;
+    }
+
+    if (callsign.isNotEmpty) {
+      payload['callsign'] = callsign;
     }
 
     if (additionalInfo.isNotEmpty) {
-      payload['park_profile']['comment'] = additionalInfo;
+      payload['comment'] = additionalInfo;
     }
 
-    // Копируем cargo из оригинальных данных только если это грузовой автомобиль
-    // И только если cargo действительно содержит данные
-    if (isTruck && originalDetails.cargo != null) {
-      final cargo = originalDetails.cargo!;
-      
-      // Проверяем, есть ли хоть какие-то значимые данные в cargo
-      final hasCargoLoaders = cargo.cargoLoaders != null && cargo.cargoLoaders! > 0;
-      final hasCarryingCapacity = cargo.carryingCapacity != null && cargo.carryingCapacity! > 0;
-      final hasDimensions = cargo.cargoHoldDimensions != null &&
-          (cargo.cargoHoldDimensions!.height != null ||
-           cargo.cargoHoldDimensions!.length != null ||
-           cargo.cargoHoldDimensions!.width != null);
-      
-      // Отправляем cargo только если есть хоть одно значимое поле
-      if (hasCargoLoaders || hasCarryingCapacity || hasDimensions) {
-        payload['cargo'] = {
-          if (cargo.cargoLoaders != null) 'cargo_loaders': cargo.cargoLoaders,
-          if (cargo.carryingCapacity != null) 'carrying_capacity': cargo.carryingCapacity,
-          if (cargo.cargoHoldDimensions != null)
-            'cargo_hold_dimensions': {
-              if (cargo.cargoHoldDimensions!.height != null)
-                'height': cargo.cargoHoldDimensions!.height,
-              if (cargo.cargoHoldDimensions!.length != null)
-                'length': cargo.cargoHoldDimensions!.length,
-              if (cargo.cargoHoldDimensions!.width != null)
-                'width': cargo.cargoHoldDimensions!.width,
-            },
-        };
-      }
-    }
+    // Копируем office_id из оригинальных данных если есть
+    // (в текущей модели нет отдельного поля, пропускаем)
 
-    // Копируем child_safety из оригинальных данных
-    final childSafety = originalDetails.childSafety;
-    if (childSafety != null) {
-      payload['child_safety'] = {
-        if (childSafety.boosterCount != null) 'booster_count': childSafety.boosterCount,
-      };
+    // Копируем categories из оригинальных данных
+    if (originalDetails.parkProfile?.categories != null) {
+      payload['categories'] = originalDetails.parkProfile!.categories;
     }
 
     return payload;
+  }
+
+  // Конвертирует дату из DD.MM.YYYY в YYYY-MM-DD для API
+  String _formatDateForApi(String dateStr) {
+    try {
+      final parts = dateStr.split('.');
+      if (parts.length == 3) {
+        return '${parts[2]}-${parts[1].padLeft(2, '0')}-${parts[0].padLeft(2, '0')}';
+      }
+    } catch (e) {}
+    return dateStr;
   }
 
   String _mapFuelType(String fuelType) {
@@ -480,6 +473,8 @@ class EditVehicleFormNotifier extends Notifier<EditVehicleFormData?> {
     String? transmission,
     String? parkingAddress,
     String? additionalInfo,
+    String? callsign,
+    String? officeId,
   }) {
     if (state == null) return;
     state = state!.copyWith(
@@ -496,6 +491,8 @@ class EditVehicleFormNotifier extends Notifier<EditVehicleFormData?> {
       transmission: transmission,
       parkingAddress: parkingAddress,
       additionalInfo: additionalInfo,
+      callsign: callsign,
+      officeId: officeId,
     );
   }
 
@@ -529,6 +526,10 @@ class EditVehicleFormNotifier extends Notifier<EditVehicleFormData?> {
 
       final payload = state!.toYandexApiJson();
       await vehiclesService.updateVehicle(state!.vehicleId, payload);
+
+      // Инвалидируем кэш списков и деталей
+      ref.invalidate(vehiclesProvider);
+      ref.invalidate(vehicleDetailsProvider(state!.vehicleId));
 
       return null; // успех
     } catch (e) {

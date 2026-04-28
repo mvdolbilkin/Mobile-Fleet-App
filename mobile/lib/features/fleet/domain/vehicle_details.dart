@@ -14,6 +14,40 @@ class VehicleDetails {
   });
 
   factory VehicleDetails.fromJson(Map<String, dynamic> json) {
+    // New flat format from vehicles-manager v2 details endpoint
+    if (json['park_profile'] == null && json['brand'] != null) {
+      return VehicleDetails(
+        parkProfile: ParkProfile(
+          callsign: json['callsign'] as String?,
+          fuelType: json['fuel_type'] as String?,
+          amenities: (json['amenities'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
+          ownershipType: json['vehicle_owner_type'] as String?,
+          officeId: json['office_id'] as String?,
+          isReadonly: json['is_readonly'] as bool?,
+          isCreatedByContractor: json['is_created_by_contractor'] as bool?,
+          rental: json['rental'] as bool?,
+          isCargoFrauder: json['is_cargo_frauder'] as bool?,
+        ),
+        licenses: VehicleLicenses(
+          licencePlateNumber: json['number'] as String?,
+          registrationCertificate: json['registration_cert'] as String?,
+          registrationCertIssueDate: json['registration_cert_issue_date'] as String?,
+        ),
+        specifications: VehicleSpecifications(
+          brand: json['brand'] as String?,
+          model: json['model'] as String?,
+          color: json['color'] as String?,
+          year: json['year'] as int?,
+          transmission: json['transmission'] as String?,
+          vin: json['vin'] as String?,
+          bodyNumber: json['body_number'] as String?,
+        ),
+        cargo: null,
+        childSafety: null,
+      );
+    }
+
+    // Old nested format
     return VehicleDetails(
       parkProfile: json['park_profile'] != null
           ? ParkProfile.fromJson(json['park_profile'] as Map<String, dynamic>)
@@ -42,6 +76,11 @@ class ParkProfile {
   final bool? isParkProperty;
   final String? licenseOwnerId;
   final String? ownershipType;
+  final String? officeId;
+  final bool? isReadonly;
+  final bool? isCreatedByContractor;
+  final bool? rental;
+  final bool? isCargoFrauder;
   final List<String>? tariffs;
   final LeasingConditions? leasingConditions;
 
@@ -55,6 +94,11 @@ class ParkProfile {
     this.isParkProperty,
     this.licenseOwnerId,
     this.ownershipType,
+    this.officeId,
+    this.isReadonly,
+    this.isCreatedByContractor,
+    this.rental,
+    this.isCargoFrauder,
     this.tariffs,
     this.leasingConditions,
   });
@@ -70,6 +114,11 @@ class ParkProfile {
       isParkProperty: json['is_park_property'] as bool?,
       licenseOwnerId: json['license_owner_id'] as String?,
       ownershipType: json['ownership_type'] as String?,
+      officeId: json['office_id'] as String?,
+      isReadonly: json['is_readonly'] as bool?,
+      isCreatedByContractor: json['is_created_by_contractor'] as bool?,
+      rental: json['rental'] as bool?,
+      isCargoFrauder: json['is_cargo_frauder'] as bool?,
       tariffs: (json['tariffs'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
       leasingConditions: json['leasing_conditions'] != null
           ? LeasingConditions.fromJson(json['leasing_conditions'] as Map<String, dynamic>)
@@ -82,11 +131,13 @@ class VehicleLicenses {
   final String? licencePlateNumber;
   final String? licenceNumber;
   final String? registrationCertificate;
+  final String? registrationCertIssueDate;
 
   VehicleLicenses({
     this.licencePlateNumber,
     this.licenceNumber,
     this.registrationCertificate,
+    this.registrationCertIssueDate,
   });
 
   factory VehicleLicenses.fromJson(Map<String, dynamic> json) {
@@ -94,6 +145,7 @@ class VehicleLicenses {
       licencePlateNumber: json['licence_plate_number'] as String?,
       licenceNumber: json['licence_number'] as String?,
       registrationCertificate: json['registration_certificate'] as String?,
+      registrationCertIssueDate: json['registration_cert_issue_date'] as String?,
     );
   }
 }
