@@ -1,12 +1,92 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/app/theme.dart';
 import 'package:mobile/features/fleet/domain/expense.dart';
 import 'package:mobile/features/fleet/presentation/expenses/widgets/add_expense_sheet.dart';
 import 'package:mobile/features/fleet/presentation/expenses/widgets/expense_details_sheet.dart';
 import 'package:mobile/shared/widgets/animated_icon_button.dart';
+import 'package:mobile/shared/widgets/search_field.dart';
+import 'package:mobile/features/fleet/data/expenses_repository.dart';
+import 'package:mobile/shared/services/secure_storage_service.dart';
+import 'package:mobile/shared/providers/logger_provider.dart';
 
-class ExpensesScreen extends StatelessWidget {
+class ExpensesScreen extends ConsumerStatefulWidget {
   const ExpensesScreen({Key? key}) : super(key: key);
+
+  @override
+  ConsumerState<ExpensesScreen> createState() => _ExpensesScreenState();
+}
+
+class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
+  bool _isLoading = false;
+  String? _error;
+  List<Expense> _expenses = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExpenses();
+  }
+
+  Future<void> _loadExpenses() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final secureStorage = ref.read(secureStorageServiceProvider);
+      final parkId = await secureStorage.getParkId();
+
+      if (parkId == null || parkId.isEmpty) {
+        setState(() {
+          _error = 'Park ID не найден. Пожалуйста, авторизуйтесь заново.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final repository = ref.read(expensesRepositoryProvider);
+      
+      // Используем указанные даты: 2025-11-01 до 2026-06-30
+      final dateFrom = DateTime(2024, 11, 1);
+      final dateTo = DateTime(2026, 6, 30);
+
+      final data = await repository.getCostsList(
+        parkId: parkId,
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+      );
+
+      // Парсим ответ в список Expense объектов
+      final List<Expense> expenses = [];
+      if (data['costs'] != null && data['costs'] is List) {
+        for (final costJson in data['costs']) {
+          try {
+            ref.read(loggerProvider).d('📦 Parsing cost JSON: $costJson');
+            expenses.add(Expense.fromYandexApi(costJson));
+          } catch (e, stackTrace) {
+            ref.read(loggerProvider).w('⚠️ Failed to parse expense: $e');
+            ref.read(loggerProvider).w('Stack trace: $stackTrace');
+            ref.read(loggerProvider).w('JSON data: $costJson');
+          }
+        }
+      }
+
+      setState(() {
+        _expenses = expenses;
+        _isLoading = false;
+      });
+
+      ref.read(loggerProvider).i('✅ Loaded ${expenses.length} expenses from Yandex Fleet API');
+    } catch (e) {
+      ref.read(loggerProvider).e('❌ Failed to load expenses: $e');
+      setState(() {
+        _error = 'Не удалось загрузить расходы: $e';
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,20 +109,11 @@ class ExpensesScreen extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: Container(
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: AppTheme.controlsColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: TextField(
-                      decoration: const InputDecoration(
-                        hintText: 'Поиск по расходам',
-                        prefixIcon: Icon(Icons.search),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 0),
-                      ),
-                    ),
+                  child: SearchField(
+                    hint: 'Поиск по расходам',
+                    onChanged: (value) {
+                      // TODO: Implement search functionality
+                    },
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -119,15 +190,59 @@ class ExpensesScreen extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              itemCount: mockExpenses.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final expense = mockExpenses[index];
-                return GestureDetector(
-                  onTap: () => showExpenseDetailsSheet(context, expense),
-                  child: Container(
+            child: _isLoading
+                ? const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Загрузка расходов из Yandex Fleet API...'),
+                      ],
+                    ),
+                  )
+                : _error != null
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                size: 48,
+                                color: Colors.red,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                _error!,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: _loadExpenses,
+                                child: const Text('Повторить'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : _expenses.isNotEmpty
+                        ? ListView.separated(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            itemCount: _expenses.length,
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final expense = _expenses[index];
+                              return GestureDetector(
+                                onTap: () =>
+                                    showExpenseDetailsSheet(context, expense),
+                                child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -169,19 +284,36 @@ class ExpensesScreen extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            Text(
-                              '${expense.amount} ₽',
-                              style: Theme.of(context).textTheme.bodyLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: expense.isDeleted
-                                        ? Theme.of(context).colorScheme.outline
-                                        : null,
-                                    decoration: expense.isDeleted
-                                        ? TextDecoration.lineThrough
-                                        : null,
+                            expense.isDeleted
+                                ? Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      Text(
+                                        '${expense.amount} ₽',
+                                        style: Theme.of(context).textTheme.bodyLarge
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: Theme.of(context).colorScheme.outline,
+                                            ),
+                                      ),
+                                      Positioned.fill(
+                                        child: Align(
+                                          alignment: Alignment.center,
+                                          child: Container(
+                                            height: 1.5,
+                                            color: Theme.of(context).colorScheme.outline,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Text(
+                                    '${expense.amount} ₽',
+                                    style: Theme.of(context).textTheme.bodyLarge
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                   ),
-                            ),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -242,7 +374,35 @@ class ExpensesScreen extends StatelessWidget {
                   ),
                 );
               },
-            ),
+            )
+                        : Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.inbox_outlined,
+                                    size: 64,
+                                    color: Colors.grey,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Нет расходов за выбранный период',
+                                    style: Theme.of(context).textTheme.titleMedium,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Расходы за период с 01.11.2025 по 30.06.2026 не найдены',
+                                    textAlign: TextAlign.center,
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.outline,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
           ),
         ],
       ),

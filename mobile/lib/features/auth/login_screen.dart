@@ -97,7 +97,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Center(
                 child: ElevatedButton(
                   onPressed: () {
-                     context.push('/api-setup');
+                     context.push('/yandex-login');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color.fromARGB(255, 252, 224, 0),
@@ -118,7 +118,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: const Text('Войти'),
                 ),
               ),
-              const SizedBox(height: 56),
+              const SizedBox(height: 16),
+              // API Setup Button (альтернативный метод)
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    context.push('/api-setup');
+                  },
+                  child: const Text(
+                    'Войти через API ключи',
+                    style: TextStyle(
+                      color: Colors.black54,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
             ],
           ),
         ),

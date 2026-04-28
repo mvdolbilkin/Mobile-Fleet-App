@@ -41,24 +41,50 @@ final dioProvider = Provider<Dio>((ref) {
     onRequest: (options, handler) async {
       final secureStorage = ref.read(secureStorageServiceProvider);
       
-      final clid = await secureStorage.getClid();
-      final apiKey = await secureStorage.getApiKey();
-      final parkId = await secureStorage.getParkId();
+      // Проверяем наличие cookies (приоритет для закрытого API)
+      final sessionId = await secureStorage.getYandexSessionId();
+      final sessionId2 = await secureStorage.getYandexSessionId2();
+      final loginToken = await secureStorage.getYandexLoginToken();
+      final yandexLogin = await secureStorage.getYandexLogin();
+      final yandexUid = await secureStorage.getYandexUid();
 
-      if (clid != null && clid.isNotEmpty) {
-        options.headers['X-Client-ID'] = clid;
-      }
-      if (apiKey != null && apiKey.isNotEmpty) {
-        options.headers['X-API-Key'] = apiKey;
-      }
-      if (parkId != null && parkId.isNotEmpty) {
-        options.headers['X-Park-ID'] = parkId;
+      if (sessionId != null && sessionId2 != null) {
+        // Используем cookies для закрытого API
+        final cookieParts = <String>[];
+        
+        cookieParts.add('Session_id=$sessionId');
+        cookieParts.add('sessionid2=$sessionId2');
+        if (loginToken != null) cookieParts.add('L=$loginToken');
+        if (yandexLogin != null) cookieParts.add('yandex_login=$yandexLogin');
+        if (yandexUid != null) cookieParts.add('yandexuid=$yandexUid');
+        
+        options.headers['cookie'] = cookieParts.join('; ');
+        
+        // Добавляем park_id если есть
+        final parkId = await secureStorage.getParkId();
+        if (parkId != null && parkId.isNotEmpty) {
+          options.headers['x-park-id'] = parkId;
+        }
+      } else {
+        // Используем API ключи для открытого API
+        final clid = await secureStorage.getClid();
+        final apiKey = await secureStorage.getApiKey();
+        final parkId = await secureStorage.getParkId();
+
+        if (clid != null && clid.isNotEmpty) {
+          options.headers['X-Client-ID'] = clid;
+        }
+        if (apiKey != null && apiKey.isNotEmpty) {
+          options.headers['X-API-Key'] = apiKey;
+        }
+        if (parkId != null && parkId.isNotEmpty) {
+          options.headers['X-Park-ID'] = parkId;
+        }
       }
 
-        return handler.next(options);
-      },
-    ),
-  );
+      return handler.next(options);
+    },
+  ));
 
   return dio;
 });

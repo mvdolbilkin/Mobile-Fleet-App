@@ -2,6 +2,7 @@ package main
 
 import (
 	"backend/internal/auth"
+	"backend/internal/expenses"
 	"backend/internal/staff"
 	"backend/internal/vehicles"
 	"net/http"
@@ -23,6 +24,9 @@ func main() {
 
 	// Register vehicle routes
 	vehicles.RegisterRoutes(r)
+
+	// Register expenses routes
+	expenses.RegisterRoutes(r)
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
