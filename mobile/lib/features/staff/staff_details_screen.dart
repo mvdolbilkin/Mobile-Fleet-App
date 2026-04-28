@@ -4,23 +4,48 @@ import 'package:mobile/app/theme.dart';
 import 'package:mobile/features/staff/data/staff_repository.dart';
 import 'package:mobile/features/staff/domain/staff.dart';
 import 'package:mobile/features/staff/widgets/status_badge.dart';
+import 'package:mobile/features/staff/widgets/transaction_bottom_sheet.dart';
 import 'package:mobile/shared/widgets/fading_button.dart';
 import 'package:mobile/shared/widgets/info_block.dart';
 import 'package:mobile/shared/widgets/info_card.dart';
 import 'package:mobile/shared/widgets/badge.dart';
 
-class StaffDetailsScreen extends ConsumerWidget {
+class StaffDetailsScreen extends ConsumerStatefulWidget {
   final Staff staff;
 
   const StaffDetailsScreen({super.key, required this.staff});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final profileAsync = ref.watch(staffProfileProvider(staff.id));
+  ConsumerState<StaffDetailsScreen> createState() => _StaffDetailsScreenState();
+}
+
+class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final profileAsync = ref.watch(staffProfileProvider(widget.staff.id));
     
     // Пока данные загружаются, используем базовые данные из списка (staff).
-    // Если произошла ошибка, также показываем базовые данные.
-    final displayStaff = profileAsync.value ?? staff;
+    // Если данные загрузились, объединяем их, сохраняя баланс и аватар из списка
+    final displayStaff = profileAsync.value?.copyWith(
+      balance: widget.staff.balance,
+      avatarUrl: widget.staff.avatarUrl,
+      timeOnShift: widget.staff.timeOnShift,
+      status: widget.staff.status != StaffStatus.offline ? widget.staff.status : profileAsync.value?.status,
+    ) ?? widget.staff;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
@@ -34,25 +59,190 @@ class StaffDetailsScreen extends ConsumerWidget {
         ],
         leading: const SizedBox.shrink(),
         leadingWidth: 0,
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          labelColor: Colors.black,
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: Colors.black,
+          tabs: const [
+            Tab(text: 'Главное'),
+            Tab(text: 'Детали'),
+          ],
+        ),
       ),
       body: profileAsync.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildProfileHeader(context, displayStaff),
-                  const SizedBox(height: 16),
-                  _buildActionButtons(),
-                  const SizedBox(height: 16),
-                  _buildDetailsGrid(displayStaff),
-                  const SizedBox(height: 24),
-                  _buildIndicatorsSection(),
-                  const SizedBox(height: 32),
-                ],
-              ),
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildMainTab(displayStaff),
+                _buildDetailsTab(displayStaff),
+              ],
             ),
+    );
+  }
+
+  Widget _buildMainTab(Staff displayStaff) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildProfileHeader(context, displayStaff),
+          const SizedBox(height: 16),
+          _buildActionButtons(),
+          const SizedBox(height: 16),
+          _buildDetailsGrid(context, displayStaff),
+          const SizedBox(height: 24),
+          _buildIndicatorsSection(displayStaff),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailsTab(Staff displayStaff) {
+    final nameParts = displayStaff.name.split(' ');
+    final lastName = nameParts.isNotEmpty ? nameParts[0] : '—';
+    final firstName = nameParts.length > 1 ? nameParts[1] : '—';
+    final middleName = nameParts.length > 2 ? nameParts.sublist(2).join(' ') : '—';
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildDetailSection(
+          'Детали',
+          'Некоторые поля недоступны для редактирования, для внесения изменений обратитесь в поддержку',
+          _buildDetailGrid([
+            {'Фамилия': lastName}, {'Водительский стаж с': displayStaff.driverLicenseIssueDate.isNotEmpty ? displayStaff.driverLicenseIssueDate : '—'},
+            {'Имя': firstName}, {'Серия и номер ВУ': displayStaff.driverLicenseNumber.isNotEmpty ? displayStaff.driverLicenseNumber : '—'},
+            {'Отчество': middleName}, {'Страна выдачи ВУ': displayStaff.driverLicenseCountry.isNotEmpty ? displayStaff.driverLicenseCountry.toUpperCase() : '—'},
+            {'Телефон': displayStaff.phoneNumber.isNotEmpty ? displayStaff.phoneNumber : '—'}, {'Дата выдачи ВУ': displayStaff.driverLicenseIssueDate.isNotEmpty ? displayStaff.driverLicenseIssueDate : '—'},
+            {'Адрес': displayStaff.address.isNotEmpty ? displayStaff.address : '—'}, {'Действует до': displayStaff.driverLicenseExpiryDate.isNotEmpty ? displayStaff.driverLicenseExpiryDate : '—'},
+            {'Статус': displayStaff.status == StaffStatus.fired ? 'Уволен' : 'Работает'}, {'Слабослышащий водитель': 'Нет'},
+          ]),
+          onEdit: () {},
+        ),
+        _buildDetailSection(
+          'Комментарий',
+          '',
+          Text(displayStaff.comment.isNotEmpty ? displayStaff.comment : 'Нет комментария', style: const TextStyle(fontSize: 15)),
+          onEdit: () {},
+        ),
+        _buildDetailSection(
+          'Условия работы',
+          '',
+          _buildDetailGrid([
+            {'Условия работы': displayStaff.employmentType.isNotEmpty ? displayStaff.employmentType : '—'}, {'Заказы от платформы': 'Да'},
+            {'Лимит по счету': displayStaff.balanceLimit.isNotEmpty ? displayStaff.balanceLimit : '—'}, {'Запрещать принимать безналичные заказы': 'Нет'},
+            {'Дата принятия': displayStaff.hireDate.isNotEmpty ? displayStaff.hireDate : '—'}, {'Автомобиль ID': displayStaff.carId.isNotEmpty ? displayStaff.carId : '—'},
+          ]),
+        ),
+        _buildDetailSection(
+          'Личные данные',
+          '',
+          _buildDetailGrid([
+            {'Доверенный контакт': '—'}, {'Дата рождения': '—'},
+            {'Email': displayStaff.email.isNotEmpty ? displayStaff.email : '—'}, {'ID для платежа': displayStaff.id},
+            {'Отзыв о водителе': '—'},
+          ]),
+        ),
+        _buildDetailSection(
+          'Паспортные данные',
+          '',
+          _buildDetailGrid([
+            {'Статус проверки паспорта': 'Не пройдено'}, {'Номер и серия': '—'},
+            {'Вид паспорта': 'Не указано'}, {'Почтовый индекс': '—'},
+            {'Страна': 'Не указано'}, {'Дата выдачи': '—'},
+            {'Кем выдан': '—'}, {'Действует до': '—'},
+            {'Адрес регистрации': '—'}, {'ОГРН': '—'},
+            {'ИНН': displayStaff.taxNumber.isNotEmpty ? displayStaff.taxNumber : '—'},
+          ]),
+        ),
+        _buildDetailSection(
+          'Банковские реквизиты',
+          '',
+          _buildDetailGrid([
+            {'БИК': '—'}, {'Корреспондентский счет': '—'},
+            {'Расчетный счет': '—'},
+          ]),
+          showDivider: false,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailSection(String title, String subtitle, Widget content, {bool showDivider = true, VoidCallback? onEdit}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    if (subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                    ]
+                  ],
+                ),
+              ),
+              if (onEdit != null)
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  onPressed: onEdit,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          content,
+          if (showDivider) ...[
+            const SizedBox(height: 24),
+            const Divider(color: Color(0xFFEEEEEE), height: 1),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailGrid(List<Map<String, String>> items) {
+    List<Widget> rows = [];
+    for (int i = 0; i < items.length; i += 2) {
+      rows.add(Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: _buildDetailItem(items[i].keys.first, items[i].values.first)),
+          const SizedBox(width: 16),
+          if (i + 1 < items.length)
+            Expanded(child: _buildDetailItem(items[i + 1].keys.first, items[i + 1].values.first))
+          else
+            const Expanded(child: SizedBox()),
+        ],
+      ));
+      if (i + 2 < items.length) {
+        rows.add(const SizedBox(height: 16));
+      }
+    }
+    return Column(children: rows);
+  }
+
+  Widget _buildDetailItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontSize: 15)),
+      ],
     );
   }
 
@@ -128,12 +318,32 @@ class StaffDetailsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildDetailsGrid(Staff displayStaff) {
+  Widget _buildDetailsGrid(BuildContext context, Staff displayStaff) {
+    final carAsync = ref.watch(carInfoProvider(displayStaff.carId));
+    final carTitle = carAsync.value != null 
+        ? '${carAsync.value!['brand']} ${carAsync.value!['model']}' 
+        : (displayStaff.vehicleType.isNotEmpty ? displayStaff.vehicleType : 'Парковый автомобиль');
+    final carValue = carAsync.value != null 
+        ? '${carAsync.value!['callsign']}\nГод: ${carAsync.value!['year']}' 
+        : 'Ограничить поездки без ОСАГО\nОграничить поездки в других парках';
+
     return Column(
       children: [
         Row(
           children: [
-            Expanded(child: _StatCard(title: 'Баланс', value: displayStaff.balance, showBalanceActions: true)),
+            Expanded(
+              child: _StatCard(
+                title: 'Баланс', 
+                value: displayStaff.balance, 
+                showBalanceActions: true,
+                onAddTap: () {
+                  TransactionBottomSheet.show(context: context, staff: displayStaff);
+                },
+                onRemoveTap: () {
+                  TransactionBottomSheet.show(context: context, staff: displayStaff);
+                },
+              ),
+            ),
             const SizedBox(width: 12),
             const Expanded(child: _StatCard(title: 'Бонусы', value: 'Нет активных бонусов')),
           ],
@@ -153,8 +363,8 @@ class StaffDetailsScreen extends ConsumerWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _StatCard(
-                title: displayStaff.vehicleType.isNotEmpty ? displayStaff.vehicleType : 'Детали авто',
-                value: 'Ограничить поездки без ОСАГО\nОграничить поездки в других парках',
+                title: carAsync.isLoading ? 'Загрузка...' : carTitle,
+                value: carAsync.isLoading ? '' : carValue,
                 subtitle: 'Детали авто',
                 isEditable: true,
                 valueFontSize: 13,
@@ -167,7 +377,27 @@ class StaffDetailsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildIndicatorsSection() {
+  Widget _buildIndicatorsSection(Staff displayStaff) {
+    final ordersAsync = ref.watch(driverOrdersProvider(displayStaff.id));
+
+    double totalIncome = 0;
+    int totalOrders = 0;
+    int cancelledOrders = 0;
+
+    ordersAsync.whenData((orders) {
+      for (var order in orders) {
+        final driverProfile = order['driver_profile'] as Map<String, dynamic>?;
+        if (driverProfile != null && driverProfile['id'] == displayStaff.id) {
+          totalOrders++;
+          if (order['status'] == 'complete') {
+            totalIncome += double.tryParse(order['price']?.toString() ?? '0') ?? 0;
+          } else if (order['status'] == 'cancelled') {
+            cancelledOrders++;
+          }
+        }
+      }
+    });
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -194,7 +424,7 @@ class StaffDetailsScreen extends ConsumerWidget {
                 children: [
                   Icon(Icons.calendar_today_outlined, size: 14, color: AppTheme.textSecondary),
                   SizedBox(width: 6),
-                  Text('16–22 апр.', style: AppTheme.captionSecondary),
+                  Text('За 30 дней', style: AppTheme.captionSecondary),
                   SizedBox(width: 4),
                   Icon(Icons.close, size: 14, color: AppTheme.textSecondary),
                 ],
@@ -204,14 +434,14 @@ class StaffDetailsScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         Row(
-          children: const [
-            Expanded(child: _IndicatorCard(title: 'Доход в Про', value: '0 ₽')),
-            SizedBox(width: 8),
-            Expanded(child: _IndicatorCard(title: 'Заказы', value: '0')),
-            SizedBox(width: 8),
-            Expanded(child: _IndicatorCard(title: 'Отмененные', value: '0')),
-            SizedBox(width: 8),
-            Expanded(child: _IndicatorCard(title: 'Время на линии', value: '0 мин')),
+          children: [
+            Expanded(child: _IndicatorCard(title: 'Доход в Про', value: ordersAsync.isLoading ? '...' : '${totalIncome.toInt()} ₽')),
+            const SizedBox(width: 8),
+            Expanded(child: _IndicatorCard(title: 'Заказы', value: ordersAsync.isLoading ? '...' : '$totalOrders')),
+            const SizedBox(width: 8),
+            Expanded(child: _IndicatorCard(title: 'Отмененные', value: ordersAsync.isLoading ? '...' : '$cancelledOrders')),
+            const SizedBox(width: 8),
+            const Expanded(child: _IndicatorCard(title: 'Время на линии', value: '0 мин')),
           ],
         ),
       ],
@@ -255,6 +485,8 @@ class _StatCard extends StatelessWidget {
   final String value;
   final String? subtitle;
   final bool showBalanceActions;
+  final VoidCallback? onAddTap;
+  final VoidCallback? onRemoveTap;
   final bool isEditable;
   final double valueFontSize;
   final Color valueColor;
@@ -264,6 +496,8 @@ class _StatCard extends StatelessWidget {
     required this.value,
     this.subtitle,
     this.showBalanceActions = false,
+    this.onAddTap,
+    this.onRemoveTap,
     this.isEditable = false,
     this.valueFontSize = 20,
     this.valueColor = AppTheme.textPrimary,
@@ -309,10 +543,25 @@ class _StatCard extends StatelessWidget {
                   ),
                   if (showBalanceActions)
                     Row(
-                      children: const [
-                        Icon(Icons.remove_circle_outline, size: 22, color: AppTheme.textPrimary),
-                        SizedBox(width: 8),
-                        Icon(Icons.add_circle_outline, size: 22, color: AppTheme.textPrimary),
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onTap: onRemoveTap,
+                          behavior: HitTestBehavior.opaque,
+                          child: const Padding(
+                            padding: EdgeInsets.all(4.0),
+                            child: Icon(Icons.remove_circle_outline, size: 22, color: AppTheme.textPrimary),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: onAddTap,
+                          behavior: HitTestBehavior.opaque,
+                          child: const Padding(
+                            padding: EdgeInsets.all(4.0),
+                            child: Icon(Icons.add_circle_outline, size: 22, color: AppTheme.textPrimary),
+                          ),
+                        ),
                       ],
                     ),
                   if (isEditable)

@@ -1,6 +1,53 @@
 enum StaffStatus { free, busy, onOrder, offline, fired }
 
 class Staff {
+  Staff copyWith({
+    String? id,
+    String? name,
+    String? initials,
+    StaffStatus? status,
+    String? timeOnShift,
+    String? phoneNumber,
+    String? vehicleType,
+    String? avatarUrl,
+    String? balance,
+    String? email,
+    String? address,
+    String? taxNumber,
+    String? employmentType,
+    String? comment,
+    String? balanceLimit,
+    String? hireDate,
+    String? carId,
+    String? driverLicenseNumber,
+    String? driverLicenseIssueDate,
+    String? driverLicenseExpiryDate,
+    String? driverLicenseCountry,
+  }) {
+    return Staff(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      initials: initials ?? this.initials,
+      status: status ?? this.status,
+      timeOnShift: timeOnShift ?? this.timeOnShift,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      vehicleType: vehicleType ?? this.vehicleType,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      balance: balance ?? this.balance,
+      email: email ?? this.email,
+      address: address ?? this.address,
+      taxNumber: taxNumber ?? this.taxNumber,
+      employmentType: employmentType ?? this.employmentType,
+      comment: comment ?? this.comment,
+      balanceLimit: balanceLimit ?? this.balanceLimit,
+      hireDate: hireDate ?? this.hireDate,
+      carId: carId ?? this.carId,
+      driverLicenseNumber: driverLicenseNumber ?? this.driverLicenseNumber,
+      driverLicenseIssueDate: driverLicenseIssueDate ?? this.driverLicenseIssueDate,
+      driverLicenseExpiryDate: driverLicenseExpiryDate ?? this.driverLicenseExpiryDate,
+      driverLicenseCountry: driverLicenseCountry ?? this.driverLicenseCountry,
+    );
+  }
   final String id;
   final String name;
   final String initials;
@@ -17,6 +64,13 @@ class Staff {
   final String taxNumber;
   final String employmentType;
   final String comment;
+  final String balanceLimit;
+  final String hireDate;
+  final String carId;
+  final String driverLicenseNumber;
+  final String driverLicenseIssueDate;
+  final String driverLicenseExpiryDate;
+  final String driverLicenseCountry;
 
   // Кэшированные поля для быстрого поиска и сортировки, чтобы не грузить UI-поток
   final String searchName;
@@ -37,6 +91,13 @@ class Staff {
     this.taxNumber = '',
     this.employmentType = '',
     this.comment = '',
+    this.balanceLimit = '',
+    this.hireDate = '',
+    this.carId = '',
+    this.driverLicenseNumber = '',
+    this.driverLicenseIssueDate = '',
+    this.driverLicenseExpiryDate = '',
+    this.driverLicenseCountry = '',
   }) : searchName = name.toLowerCase(),
        searchPhone = phoneNumber.toLowerCase();
 
@@ -156,9 +217,21 @@ class Staff {
     final taxNumber = person['tax_identification_number'] ?? '';
     final employmentTypeStr = person['employment_type'] ?? '';
 
+    final driverLicense = person['driver_license'] ?? {};
+    final dlNumber = driverLicense['number'] ?? '';
+    final dlIssue = driverLicense['issue_date'] ?? '';
+    final dlExpiry = driverLicense['expiry_date'] ?? '';
+    final dlCountry = driverLicense['country'] ?? '';
+
     final profile = json['profile'] ?? {};
     final workStatusStr = profile['work_status'] ?? '';
     final comment = profile['comment'] ?? '';
+    final hireDate = profile['hire_date'] ?? '';
+
+    final account = json['account'] ?? {};
+    final balanceLimit = account['balance_limit'] ?? '';
+
+    final carId = json['car_id'] ?? '';
     
     // В v2 API нет 'current_status' (свободен/занят), есть только 'work_status' (working, fired, etc.)
     // Баланс приходит в другой ручке, поэтому здесь ставим заглушку.
@@ -184,6 +257,13 @@ class Staff {
       taxNumber: taxNumber,
       employmentType: employmentTypeStr,
       comment: comment,
+      balanceLimit: balanceLimit.toString(),
+      hireDate: hireDate,
+      carId: carId,
+      driverLicenseNumber: dlNumber,
+      driverLicenseIssueDate: dlIssue,
+      driverLicenseExpiryDate: dlExpiry,
+      driverLicenseCountry: dlCountry,
     );
   }
 }

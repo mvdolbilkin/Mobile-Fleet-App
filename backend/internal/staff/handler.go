@@ -24,6 +24,8 @@ func RegisterRoutes(r *gin.Engine) {
 	{
 		staffGroup.GET("/list", handler.GetStaffList)
 		staffGroup.GET("/profile", handler.GetStaffProfile)
+		staffGroup.GET("/orders", handler.GetDriverOrders)
+		staffGroup.GET("/car", handler.GetCarInfo)
 	}
 }
 
@@ -101,4 +103,57 @@ func (h *Handler) GetStaffProfile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, profile)
+}
+
+func (h *Handler) GetDriverOrders(c *gin.Context) {
+	driverID := c.Query("contractor_profile_id")
+	from := c.Query("from")
+	to := c.Query("to")
+
+	if driverID == "" || from == "" || to == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "отсутствуют необходимые параметры (contractor_profile_id, from, to)"})
+		return
+	}
+
+	apiKey := c.GetHeader("X-API-Key")
+	clientID := c.GetHeader("X-Client-ID")
+	parkID := c.GetHeader("X-Park-ID")
+
+	if apiKey == "" || clientID == "" || parkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
+		return
+	}
+
+	orders, err := h.service.GetDriverOrders(apiKey, clientID, parkID, driverID, from, to)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, orders)
+}
+
+func (h *Handler) GetCarInfo(c *gin.Context) {
+	carID := c.Query("car_id")
+	if carID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "отсутствует параметр car_id"})
+		return
+	}
+
+	apiKey := c.GetHeader("X-API-Key")
+	clientID := c.GetHeader("X-Client-ID")
+	parkID := c.GetHeader("X-Park-ID")
+
+	if apiKey == "" || clientID == "" || parkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
+		return
+	}
+
+	car, err := h.service.GetCar(apiKey, clientID, parkID, carID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, car)
 }

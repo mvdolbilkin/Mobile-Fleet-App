@@ -18,6 +18,37 @@ final staffProfileProvider = FutureProvider.family<Staff, String>((ref, profileI
   return await repository.fetchStaffProfile(profileId);
 });
 
+final driverOrdersProvider = FutureProvider.family<List<dynamic>, String>((ref, profileId) async {
+  final repository = ref.watch(staffRepositoryProvider);
+  
+  // Рассчитываем даты внутри провайдера, чтобы избежать бесконечного цикла обновлений UI.
+  // API Яндекса требует таймзону.
+  final now = DateTime.now();
+  final thirtyDaysAgo = now.subtract(const Duration(days: 30));
+  
+  // Форматируем с нулями и добавляем таймзону
+  String formatYandexDate(DateTime dt) {
+    return '${dt.toIso8601String().split('.')[0]}+03:00'; // Упрощенный формат для примера
+  }
+
+  final fromStr = formatYandexDate(thirtyDaysAgo);
+  final toStr = formatYandexDate(now);
+
+  final data = await repository.fetchDriverOrders(profileId, fromStr, toStr);
+  return data['orders'] as List<dynamic>? ?? [];
+});
+
+final carInfoProvider = FutureProvider.family<Map<String, dynamic>?, String>((ref, carId) async {
+  if (carId.isEmpty) return null;
+  final repository = ref.watch(staffRepositoryProvider);
+  final data = await repository.fetchCarInfo(carId);
+  final cars = data['cars'] as List<dynamic>? ?? [];
+  if (cars.isNotEmpty) {
+    return cars.first as Map<String, dynamic>;
+  }
+  return null;
+});
+
 class StaffRepository {
   final Dio _dio;
 
@@ -65,6 +96,36 @@ class StaffRepository {
       throw Exception('Пустой ответ от сервера');
     } catch (e) {
       throw Exception('Failed to load staff profile: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchDriverOrders(String profileId, String from, String to) async {
+    try {
+      final response = await _dio.get(
+        '/api/staff/orders',
+        queryParameters: {
+          'contractor_profile_id': profileId,
+          'from': from,
+          'to': to,
+        },
+      );
+      return response.data ?? {};
+    } catch (e) {
+      throw Exception('Failed to load driver orders: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchCarInfo(String carId) async {
+    try {
+      final response = await _dio.get(
+        '/api/staff/car',
+        queryParameters: {
+          'car_id': carId,
+        },
+      );
+      return response.data ?? {};
+    } catch (e) {
+      throw Exception('Failed to load car info: $e');
     }
   }
 }

@@ -120,3 +120,101 @@ func (s *Service) GetDriverProfile(apiKey string, clientID string, parkID string
 
 	return yandexResp, nil
 }
+
+func (s *Service) GetDriverOrders(apiKey string, clientID string, parkID string, driverID string, from string, to string) (interface{}, error) {
+	if apiKey == "" || clientID == "" || parkID == "" || driverID == "" || from == "" || to == "" {
+		return nil, fmt.Errorf("отсутствуют необходимые параметры")
+	}
+
+	url := "https://fleet-api.taxi.yandex.net/v1/parks/orders/list"
+
+	reqBody := OrdersRequest{
+		Limit: 500, // или больше, если нужно
+	}
+	reqBody.Query.Park.ID = parkID
+	reqBody.Query.Park.Order.BookedAt.From = from
+	reqBody.Query.Park.Order.BookedAt.To = to
+	// Removed contractor filtering here
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
+	}
+
+	req.Header.Set("X-Client-ID", clientID)
+	req.Header.Set("X-API-Key", apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("ошибка апи яндекса (код %d): %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	var yandexResp map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&yandexResp); err != nil {
+		return nil, fmt.Errorf("ошибка декодирования ответа: %w", err)
+	}
+
+	return yandexResp, nil
+}
+
+func (s *Service) GetCar(apiKey string, clientID string, parkID string, carID string) (interface{}, error) {
+	if apiKey == "" || clientID == "" || parkID == "" || carID == "" {
+		return nil, fmt.Errorf("отсутствуют необходимые параметры")
+	}
+
+	url := "https://fleet-api.taxi.yandex.net/v1/parks/cars/list"
+
+	reqBody := CarsRequest{}
+	reqBody.Query.Park.ID = parkID
+	reqBody.Query.Park.Car.ID = []string{carID}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
+	}
+
+	req.Header.Set("X-Client-ID", clientID)
+	req.Header.Set("X-API-Key", apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("ошибка апи яндекса (код %d): %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	var yandexResp map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&yandexResp); err != nil {
+		return nil, fmt.Errorf("ошибка декодирования ответа: %w", err)
+	}
+
+	return yandexResp, nil
+}
