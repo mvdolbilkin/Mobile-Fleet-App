@@ -101,6 +101,86 @@ class Staff {
   }) : searchName = name.toLowerCase(),
        searchPhone = phoneNumber.toLowerCase();
 
+  factory Staff.fromContractorJson(Map<String, dynamic> json) {
+    final id = json['id'] ?? '';
+    final fullName = json['full_name']?.toString() ?? 'Неизвестно';
+    final phoneVal = json['phone']?.toString() ?? '';
+    final balance = json['balance']?.toString() ?? '0';
+    final avatarUrl = json['avatar_url']?.toString() ?? '';
+    
+    // Статус водителя (offline, free, busy и т.д.)
+    final statusStr = json['status']?.toString() ?? 'offline';
+    StaffStatus status = StaffStatus.offline;
+    switch (statusStr) {
+      case 'free':
+        status = StaffStatus.free;
+        break;
+      case 'busy':
+        status = StaffStatus.busy;
+        break;
+      case 'in_order':
+      case 'on_order':
+        status = StaffStatus.onOrder;
+        break;
+      default:
+        status = StaffStatus.offline;
+        break;
+    }
+
+    String initials = '?';
+    if (fullName.isNotEmpty && fullName != 'Неизвестно') {
+      final nameParts = fullName.split(' ').where((part) => part.trim().isNotEmpty).toList();
+      if (nameParts.length >= 2) {
+        initials = '${nameParts[0][0]}${nameParts[1][0]}'.toUpperCase();
+      } else if (nameParts.isNotEmpty && nameParts[0].isNotEmpty) {
+        initials = nameParts[0][0].toUpperCase();
+      }
+    }
+
+    return Staff(
+      id: id,
+      name: fullName,
+      initials: initials,
+      status: status,
+      timeOnShift: '0 ч 0 мин',
+      phoneNumber: phoneVal,
+      vehicleType: 'Авто', // по умолчанию, или можно добавить логику
+      avatarUrl: avatarUrl,
+      balance: '$balance ₽',
+    );
+  }
+
+  factory Staff.fromUserJson(Map<String, dynamic> json) {
+    final id = json['user_id'] ?? '';
+    final nameVal = json['name']?.toString() ?? '';
+    final login = json['login']?.toString() ?? '';
+    final emailVal = json['email']?.toString() ?? '';
+    final phoneVal = json['phone']?.toString() ?? '';
+    final isEnabled = json['is_enabled'] == true;
+
+    final displayName = nameVal.isNotEmpty ? nameVal : (login.isNotEmpty ? login : 'Неизвестно');
+    
+    String initials = '?';
+    if (displayName.isNotEmpty && displayName != 'Неизвестно') {
+      initials = displayName[0].toUpperCase();
+    }
+
+    final status = isEnabled ? StaffStatus.offline : StaffStatus.fired; // Используем offline как дефолт для включенных
+
+    return Staff(
+      id: id,
+      name: displayName,
+      initials: initials,
+      status: status,
+      timeOnShift: '0 ч 0 мин',
+      phoneNumber: phoneVal,
+      email: emailVal,
+      vehicleType: 'Авто',
+      avatarUrl: '',
+      balance: '0 ₽',
+    );
+  }
+
   factory Staff.fromJson(Map<String, dynamic> json) {
     final profile = json['driver_profile'] ?? {};
     final firstName = profile['first_name'] ?? '';

@@ -1,5 +1,11 @@
 package staff
 
+type ContractorsListRequest struct {
+	Filter     map[string]interface{} `json:"filter"`
+	Limit      int                    `json:"limit"`
+	Projection []string               `json:"projection"`
+}
+
 type YandexAPIRequest struct {
 	Query struct {
 		Park struct {

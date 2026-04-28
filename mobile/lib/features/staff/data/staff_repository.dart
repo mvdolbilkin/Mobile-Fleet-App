@@ -66,13 +66,19 @@ class StaffRepository {
         );
 
         final data = response.data;
-        if (data != null && data['driver_profiles'] != null) {
-          final List<dynamic> profiles = data['driver_profiles'];
-          return profiles.map((json) => Staff.fromJson(json)).toList();
+        if (data != null && data is List) {
+          return data.map((json) => Staff.fromContractorJson(json)).toList();
+        } else if (data != null && data['contractors'] != null) {
+          final List<dynamic> profiles = data['contractors'];
+          return profiles.map((json) => Staff.fromContractorJson(json)).toList();
+        } else if (data != null && data['users'] != null) {
+          final List<dynamic> profiles = data['users'];
+          return profiles.map((json) => Staff.fromUserJson(json)).toList();
         }
         return [];
-      } catch (e) {
-        if (attempt == retries) {
+      } catch (e, stack) {
+        print('Error in fetchStaff: $e\n$stack');
+        if (attempt == retries || e is TypeError) {
           throw Exception('Failed to load staff: $e');
         }
       }

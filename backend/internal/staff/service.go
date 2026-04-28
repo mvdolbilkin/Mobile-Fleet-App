@@ -27,22 +27,21 @@ func NewService() *Service {
 	}
 }
 
-func (s *Service) GetDrivers(limit int, offset int, apiKey string, clientID string, parkID string) (interface{}, error) {
-	if apiKey == "" || clientID == "" || parkID == "" {
-		return nil, fmt.Errorf("отсутствуют необходимые учетные данные в заголовках")
+func (s *Service) GetDrivers(limit int, offset int, cookieHeader string, parkID string) (interface{}, error) {
+	if cookieHeader == "" && parkID == "" {
+		return nil, fmt.Errorf("отсутствуют необходимые учетные данные")
 	}
 
-	url := "https://fleet-api.taxi.yandex.net/v1/parks/driver-profiles/list"
+	url := "https://fleet.yandex.ru/api/fleet/contractor-profiles-manager/v2/contractors/list"
 
-	reqBody := YandexAPIRequest{
+	reqBody := ContractorsListRequest{
+		Filter: map[string]interface{}{},
 		Limit:  limit,
-		Offset: offset,
+		Projection: []string{
+			"full_name", "avatar_url", "name", "status", "id", "phone", "orders_count", "groups", "violations",
+			"attestation_issues", "balance", "balance_limit", "unblock_date", "photocheck_restrictions",
+		},
 	}
-	reqBody.Query.Park.ID = parkID
-	reqBody.Fields.DriverProfile = []string{"id", "first_name", "last_name", "middle_name", "phones", "work_status"}
-	reqBody.Fields.Car = []string{}
-	reqBody.Fields.Account = []string{"id", "balance_limit", "balance"}
-	reqBody.Fields.CurrentStatus = []string{"status"}
 
 	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {
@@ -57,9 +56,13 @@ func (s *Service) GetDrivers(limit int, offset int, apiKey string, clientID stri
 		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
 	}
 
-	// Используем ключи, переданные из мобильного приложения
-	req.Header.Set("X-Client-ID", clientID)
-	req.Header.Set("X-API-Key", apiKey)
+	// Используем Cookie для авторизации
+	if cookieHeader != "" {
+		req.Header.Set("Cookie", cookieHeader)
+	}
+	if parkID != "" {
+		req.Header.Set("X-Park-Id", parkID)
+	}
 	req.Header.Set("Accept-Language", "ru")
 	req.Header.Set("Content-Type", "application/json")
 
@@ -82,12 +85,12 @@ func (s *Service) GetDrivers(limit int, offset int, apiKey string, clientID stri
 	return yandexResp, nil
 }
 
-func (s *Service) GetDriverProfile(apiKey string, clientID string, parkID string, contractorProfileID string) (interface{}, error) {
-	if apiKey == "" || clientID == "" || parkID == "" || contractorProfileID == "" {
+func (s *Service) GetDriverProfile(cookieHeader string, parkID string, contractorProfileID string) (interface{}, error) {
+	if cookieHeader == "" || parkID == "" || contractorProfileID == "" {
 		return nil, fmt.Errorf("отсутствуют необходимые параметры")
 	}
 
-	url := fmt.Sprintf("https://fleet-api.taxi.yandex.net/v2/parks/contractors/driver-profile?contractor_profile_id=%s", contractorProfileID)
+	url := fmt.Sprintf("https://fleet.yandex.ru/api/fleet/parks/contractors/driver-profile?contractor_profile_id=%s", contractorProfileID) // Changed to fleet.yandex.ru, may need adjustment depending on correct internal Endpoint
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -97,8 +100,7 @@ func (s *Service) GetDriverProfile(apiKey string, clientID string, parkID string
 		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
 	}
 
-	req.Header.Set("X-Client-ID", clientID)
-	req.Header.Set("X-API-Key", apiKey)
+	req.Header.Set("Cookie", cookieHeader)
 	req.Header.Set("X-Park-ID", parkID)
 	req.Header.Set("Accept-Language", "ru")
 
@@ -121,12 +123,12 @@ func (s *Service) GetDriverProfile(apiKey string, clientID string, parkID string
 	return yandexResp, nil
 }
 
-func (s *Service) GetDriverOrders(apiKey string, clientID string, parkID string, driverID string, from string, to string) (interface{}, error) {
-	if apiKey == "" || clientID == "" || parkID == "" || driverID == "" || from == "" || to == "" {
+func (s *Service) GetDriverOrders(cookieHeader string, parkID string, driverID string, from string, to string) (interface{}, error) {
+	if cookieHeader == "" || parkID == "" || driverID == "" || from == "" || to == "" {
 		return nil, fmt.Errorf("отсутствуют необходимые параметры")
 	}
 
-	url := "https://fleet-api.taxi.yandex.net/v1/parks/orders/list"
+	url := "https://fleet.yandex.ru/api/fleet/parks/orders/list" // Changed to fleet.yandex.ru guessing the route
 
 	reqBody := OrdersRequest{
 		Limit: 500, // или больше, если нужно
@@ -149,8 +151,8 @@ func (s *Service) GetDriverOrders(apiKey string, clientID string, parkID string,
 		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
 	}
 
-	req.Header.Set("X-Client-ID", clientID)
-	req.Header.Set("X-API-Key", apiKey)
+	req.Header.Set("Cookie", cookieHeader)
+	req.Header.Set("X-Park-Id", parkID)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := s.httpClient.Do(req)
@@ -172,12 +174,12 @@ func (s *Service) GetDriverOrders(apiKey string, clientID string, parkID string,
 	return yandexResp, nil
 }
 
-func (s *Service) GetCar(apiKey string, clientID string, parkID string, carID string) (interface{}, error) {
-	if apiKey == "" || clientID == "" || parkID == "" || carID == "" {
+func (s *Service) GetCar(cookieHeader string, parkID string, carID string) (interface{}, error) {
+	if cookieHeader == "" || parkID == "" || carID == "" {
 		return nil, fmt.Errorf("отсутствуют необходимые параметры")
 	}
 
-	url := "https://fleet-api.taxi.yandex.net/v1/parks/cars/list"
+	url := "https://fleet.yandex.ru/api/fleet/parks/cars/list"
 
 	reqBody := CarsRequest{}
 	reqBody.Query.Park.ID = parkID
@@ -196,8 +198,8 @@ func (s *Service) GetCar(apiKey string, clientID string, parkID string, carID st
 		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
 	}
 
-	req.Header.Set("X-Client-ID", clientID)
-	req.Header.Set("X-API-Key", apiKey)
+	req.Header.Set("Cookie", cookieHeader)
+	req.Header.Set("X-Park-Id", parkID)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := s.httpClient.Do(req)
