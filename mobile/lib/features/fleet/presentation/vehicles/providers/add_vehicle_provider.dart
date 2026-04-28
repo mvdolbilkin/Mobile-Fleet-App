@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/fleet/data/vehicles_service.dart';
 import 'package:mobile/shared/api/dio_provider.dart';
 import 'package:mobile/shared/services/secure_storage_service.dart';
+import 'vehicles_provider.dart';
 
 class AddVehicleFormData {
   final int step;
@@ -28,6 +29,7 @@ class AddVehicleFormData {
   final bool isParkVehicle;
   final bool hasAirConditioner;
   final String callsign;
+  final String parkingAddress;
 
   // Флаг для отображения ошибок
   final bool showValidationErrors;
@@ -53,6 +55,7 @@ class AddVehicleFormData {
     this.isParkVehicle = true,
     this.hasAirConditioner = false,
     this.callsign = '',
+    this.parkingAddress = '',
     this.showValidationErrors = false,
   });
 
@@ -77,6 +80,7 @@ class AddVehicleFormData {
     bool? isParkVehicle,
     bool? hasAirConditioner,
     String? callsign,
+    String? parkingAddress,
     bool? showValidationErrors,
   }) {
     return AddVehicleFormData(
@@ -100,6 +104,7 @@ class AddVehicleFormData {
       isParkVehicle: isParkVehicle ?? this.isParkVehicle,
       hasAirConditioner: hasAirConditioner ?? this.hasAirConditioner,
       callsign: callsign ?? this.callsign,
+      parkingAddress: parkingAddress ?? this.parkingAddress,
       showValidationErrors: showValidationErrors ?? this.showValidationErrors,
     );
   }
@@ -256,21 +261,14 @@ class AddVehicleFormData {
     return true;
   }
 
-  // Преобразование в формат Yandex API
+  // Преобразование в формат Yandex API (vehicles-manager/v1/vehicles)
   Map<String, dynamic> toYandexApiJson() {
+    final List<String> amenities = [];
+    if (hasAirConditioner) {
+      amenities.add('conditioner');
+    }
+
     final Map<String, dynamic> payload = {
-      'park_profile': {
-        'status': 'working',
-        'fuel_type': _mapFuelType(fuelType),
-        'is_park_property': isParkVehicle,
-        'ownership_type': 'park', // Тип собственности: park или leasing
-        // Добавляем категорию cargo для грузовых автомобилей
-        if (isTruck) 'categories': ['cargo'],
-      },
-      'vehicle_licenses': {
-        'licence_plate_number': _transliteratePlateNumber(plateNumber),
-        'registration_certificate': _transliterateToLatin(sts),
-      },
       'vehicle_specifications': {
         'brand': brand,
         'model': model,
@@ -278,6 +276,18 @@ class AddVehicleFormData {
         'year': int.tryParse(year) ?? 0,
         'transmission': _mapTransmission(transmission),
         'vin': vin.toUpperCase(),
+      },
+      'vehicle_licenses': {
+        'licence_plate_number': _transliteratePlateNumber(plateNumber),
+        'registration_certificate': _transliterateToLatin(sts),
+        'registration_cert_issue_date': stsIssueDate.isNotEmpty ? _formatDateForApi(stsIssueDate) : '',
+      },
+      'park_profile': {
+        'status': 'working',
+        'amenities': amenities,
+        'fuel_type': _mapFuelType(fuelType),
+        'is_park_property': isParkVehicle,
+        'categories': isTruck ? ['cargo'] : ['express', 'econom', 'comfort', 'comfort_plus', 'minivan', 'intercity', 'business', 'ultimate', 'premium_van', 'personal_driver', 'vip', 'suv', 'premium_suv', 'envoy_ultima', 'maybach', 'standart', 'summit_b2b', 'transfer', 'wagon'],
       },
     };
 
@@ -290,15 +300,14 @@ class AddVehicleFormData {
       payload['vehicle_specifications']['body_number'] = bodyNumber;
     }
 
-    // Добавляем amenities если есть кондиционер
-    if (hasAirConditioner) {
-      payload['park_profile']['amenities'] = ['conditioner'];
+    if (parkingAddress.isNotEmpty) {
+      payload['park_profile']['office_id'] = parkingAddress;
     }
 
     // Добавляем параметры грузового отсека для грузовых автомобилей
     if (isTruck && length.isNotEmpty && height.isNotEmpty && width.isNotEmpty && capacity.isNotEmpty) {
       payload['cargo'] = {
-        'cargo_loaders': 0, // Обязательное поле, по умолчанию 0
+        'cargo_loaders': 0,
         'cargo_hold_dimensions': {
           'length': int.tryParse(length) ?? 0,
           'height': int.tryParse(height) ?? 0,
@@ -309,6 +318,17 @@ class AddVehicleFormData {
     }
 
     return payload;
+  }
+
+  // Конвертирует дату из DD.MM.YYYY в YYYY-MM-DD для API
+  String _formatDateForApi(String dateStr) {
+    try {
+      final parts = dateStr.split('.');
+      if (parts.length == 3) {
+        return '${parts[2]}-${parts[1].padLeft(2, '0')}-${parts[0].padLeft(2, '0')}';
+      }
+    } catch (e) {}
+    return dateStr;
   }
 
   String _mapFuelType(String fuelType) {
@@ -436,6 +456,7 @@ class AddVehicleFormNotifier extends Notifier<AddVehicleFormData> {
     String? width,
     String? capacity,
     String? callsign,
+    String? parkingAddress,
   }) {
     state = state.copyWith(
       sts: sts,
@@ -454,6 +475,7 @@ class AddVehicleFormNotifier extends Notifier<AddVehicleFormData> {
       width: width,
       capacity: capacity,
       callsign: callsign,
+      parkingAddress: parkingAddress,
     );
   }
 
@@ -501,6 +523,9 @@ class AddVehicleFormNotifier extends Notifier<AddVehicleFormData> {
       final payload = state.toYandexApiJson();
       await vehiclesService.createVehicle(payload);
       
+      // Инвалидируем кэш списка
+      ref.invalidate(vehiclesProvider);
+      
       reset();
       return null; // успех
     } catch (e) {
@@ -522,3 +547,20 @@ final addVehicleFormProvider =
     NotifierProvider<AddVehicleFormNotifier, AddVehicleFormData>(
       () => AddVehicleFormNotifier(),
     );
+
+// Провайдер для загрузки списка марок
+final brandsProvider = FutureProvider<List<String>>((ref) async {
+  final dio = ref.read(dioProvider);
+  final secureStorage = ref.read(secureStorageServiceProvider);
+  final service = VehiclesService(dio, secureStorage);
+  return service.getBrands();
+});
+
+// Провайдер для загрузки моделей по выбранной марке
+final modelsProvider = FutureProvider.family<List<String>, String>((ref, brand) async {
+  if (brand.isEmpty) return [];
+  final dio = ref.read(dioProvider);
+  final secureStorage = ref.read(secureStorageServiceProvider);
+  final service = VehiclesService(dio, secureStorage);
+  return service.getModels(brand);
+});

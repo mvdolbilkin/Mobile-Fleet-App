@@ -202,7 +202,9 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
         ),
       ),
       data: (details) {
-        final categories = details.parkProfile?.categories ?? widget.vehicle?.tariffs ?? [];
+        final vehicleId = widget.vehicle?.id ?? '';
+        final categoriesAsync = vehicleId.isNotEmpty ? ref.watch(vehicleCategoriesProvider(vehicleId)) : null;
+        final categories = categoriesAsync?.value ?? details.parkProfile?.categories ?? widget.vehicle?.tariffs ?? [];
         final tariffNames = TariffUtils.getTariffNames(categories);
 
         return Container(
@@ -227,10 +229,12 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
                 ],
               ),
               const SizedBox(height: 4),
-              Text(
-                tariffNames.isEmpty ? '—' : tariffNames,
-                style: const TextStyle(color: Colors.black87),
-              ),
+              categoriesAsync != null && categoriesAsync.isLoading
+                  ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text(
+                      tariffNames.isEmpty ? '—' : tariffNames,
+                      style: const TextStyle(color: Colors.black87),
+                    ),
             ],
           ),
         );
@@ -248,109 +252,13 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
         child: TariffEditBottomSheet(
           currentTariffs: currentTariffs,
           onSave: (selectedTariffs) async {
-            // Get current vehicle details to build the update payload
-            final vehicleDetailsAsync = ref.read(vehicleDetailsProvider(widget.vehicle!.id));
-            final details = await vehicleDetailsAsync.value;
-
-            if (details == null) {
-              throw Exception('Не удалось загрузить данные автомобиля');
-            }
-
-            // Build the update payload with all required fields
-            final payload = {
-              'park_profile': {
-                'categories': selectedTariffs,
-                // Include other required fields from current data
-                if (details.parkProfile?.callsign != null)
-                  'callsign': details.parkProfile!.callsign,
-                if (details.parkProfile?.fuelType != null)
-                  'fuel_type': details.parkProfile!.fuelType,
-                if (details.parkProfile?.status != null)
-                  'status': details.parkProfile!.status,
-                if (details.parkProfile?.amenities != null)
-                  'amenities': details.parkProfile!.amenities,
-                if (details.parkProfile?.comment != null)
-                  'comment': details.parkProfile!.comment,
-                if (details.parkProfile?.isParkProperty != null)
-                  'is_park_property': details.parkProfile!.isParkProperty,
-                if (details.parkProfile?.licenseOwnerId != null)
-                  'license_owner_id': details.parkProfile!.licenseOwnerId,
-                if (details.parkProfile?.ownershipType != null)
-                  'ownership_type': details.parkProfile!.ownershipType,
-                if (details.parkProfile?.leasingConditions != null)
-                  'leasing_conditions': {
-                    if (details.parkProfile!.leasingConditions!.company != null)
-                      'company': details.parkProfile!.leasingConditions!.company,
-                    if (details.parkProfile!.leasingConditions!.interestRate != null)
-                      'interest_rate': details.parkProfile!.leasingConditions!.interestRate,
-                    if (details.parkProfile!.leasingConditions!.monthlyPayment != null)
-                      'monthly_payment': details.parkProfile!.leasingConditions!.monthlyPayment,
-                    if (details.parkProfile!.leasingConditions!.startDate != null)
-                      'start_date': details.parkProfile!.leasingConditions!.startDate,
-                    if (details.parkProfile!.leasingConditions!.term != null)
-                      'term': details.parkProfile!.leasingConditions!.term,
-                  },
-              },
-              'vehicle_licenses': {
-                if (details.licenses?.licencePlateNumber != null)
-                  'licence_plate_number': details.licenses!.licencePlateNumber,
-                if (details.licenses?.licenceNumber != null)
-                  'licence_number': details.licenses!.licenceNumber,
-                if (details.licenses?.registrationCertificate != null)
-                  'registration_certificate': details.licenses!.registrationCertificate,
-              },
-              'vehicle_specifications': {
-                if (details.specifications?.brand != null)
-                  'brand': details.specifications!.brand,
-                if (details.specifications?.color != null)
-                  'color': details.specifications!.color,
-                if (details.specifications?.model != null)
-                  'model': details.specifications!.model,
-                if (details.specifications?.transmission != null)
-                  'transmission': details.specifications!.transmission,
-                if (details.specifications?.year != null)
-                  'year': details.specifications!.year,
-                if (details.specifications?.bodyNumber != null)
-                  'body_number': details.specifications!.bodyNumber,
-                if (details.specifications?.mileage != null)
-                  'mileage': details.specifications!.mileage,
-                if (details.specifications?.vin != null)
-                  'vin': details.specifications!.vin,
-              },
-              // Add cargo field only if it has data
-              if (details.cargo != null &&
-                  (details.cargo!.cargoLoaders != null ||
-                   details.cargo!.carryingCapacity != null ||
-                   details.cargo!.cargoHoldDimensions != null))
-                'cargo': {
-                  if (details.cargo!.cargoLoaders != null)
-                    'cargo_loaders': details.cargo!.cargoLoaders,
-                  if (details.cargo!.carryingCapacity != null)
-                    'carrying_capacity': details.cargo!.carryingCapacity,
-                  if (details.cargo!.cargoHoldDimensions != null)
-                    'cargo_hold_dimensions': {
-                      if (details.cargo!.cargoHoldDimensions!.height != null)
-                        'height': details.cargo!.cargoHoldDimensions!.height,
-                      if (details.cargo!.cargoHoldDimensions!.length != null)
-                        'length': details.cargo!.cargoHoldDimensions!.length,
-                      if (details.cargo!.cargoHoldDimensions!.width != null)
-                        'width': details.cargo!.cargoHoldDimensions!.width,
-                    },
-                },
-              // Add child_safety field only if it has data
-              if (details.childSafety != null && details.childSafety!.boosterCount != null)
-                'child_safety': {
-                  'booster_count': details.childSafety!.boosterCount,
-                },
-            };
-
-            // Call the update API
             final service = ref.read(vehiclesServiceProvider);
-            await service.updateVehicle(widget.vehicle!.id, payload);
+            await service.updateCategories(widget.vehicle!.id, selectedTariffs);
 
-            // Refresh the vehicle details
+            // Refresh categories and details
+            ref.invalidate(vehicleCategoriesProvider(widget.vehicle!.id));
             ref.invalidate(vehicleDetailsProvider(widget.vehicle!.id));
-        },
+          },
         ),
       ),
     );
@@ -617,7 +525,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
               'Детали',
               _buildDetailGrid([
                 {'СТС': licenses?.registrationCertificate ?? '—'}, {'Год выпуска': specs?.year?.toString() ?? '—'},
-                {'Дата выдачи СТС': '—'}, {'Номер кузова': specs?.bodyNumber ?? '—'},
+                {'Дата выдачи СТС': licenses?.registrationCertIssueDate ?? '—'}, {'Номер кузова': specs?.bodyNumber ?? '—'},
                 {'Госномер': licenses?.licencePlateNumber ?? widget.vehicle?.plateNumber ?? '—'}, {'Цвет': specs?.color ?? widget.vehicle?.color ?? '—'},
                 {'VIN': specs?.vin ?? '—'}, {'КПП': parseTransmission(specs?.transmission)},
                 {'Марка': specs?.brand ?? widget.vehicle?.brand ?? '—'}, {'Вид топлива': parseFuel(parkProfile?.fuelType)},

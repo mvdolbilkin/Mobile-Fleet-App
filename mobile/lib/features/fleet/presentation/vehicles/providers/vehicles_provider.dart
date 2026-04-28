@@ -40,3 +40,13 @@ final vehicleDetailsProvider = FutureProvider.autoDispose.family<VehicleDetails,
   final service = ref.watch(vehiclesServiceProvider);
   return service.getVehicleDetails(id);
 });
+
+final vehicleCategoriesProvider = FutureProvider.autoDispose.family<List<String>, String>((ref, vehicleId) async {
+  final service = ref.watch(vehiclesServiceProvider);
+  return service.getCategories(vehicleId);
+});
+
+final carCategoriesProvider = FutureProvider<Map<String, String>>((ref) async {
+  final service = ref.watch(vehiclesServiceProvider);
+  return service.getCarCategories();
+});

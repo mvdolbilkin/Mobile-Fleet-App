@@ -12,6 +12,7 @@ import 'widgets/add_vehicle_bottom_sheet.dart';
 import 'widgets/filters_bottom_sheet.dart';
 import 'vehicle_info_screen.dart';
 import 'providers/vehicles_provider.dart';
+import 'package:mobile/features/fleet/domain/vehicle.dart';
 
 class VehiclesScreen extends ConsumerStatefulWidget {
   const VehiclesScreen({super.key});
@@ -173,6 +174,12 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
       ),
       body: Column(
         children: [
+          // Загружаем категории до автомобилей
+          ref.watch(carCategoriesProvider).when(
+            data: (_) => const SizedBox.shrink(),
+            loading: () => const LinearProgressIndicator(minHeight: 2),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
           // Поиск и кнопка добавления
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),

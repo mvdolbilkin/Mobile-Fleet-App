@@ -5,6 +5,52 @@ import 'package:mobile/features/fleet/domain/vehicle.dart';
 import 'package:mobile/features/fleet/data/vehicles_service.dart';
 import '../providers/vehicles_provider.dart';
 
+// Маппинг id категории → enum VehicleCategory
+const Map<String, VehicleCategory> _categoryById = {
+  'econom': VehicleCategory.econom,
+  'comfort': VehicleCategory.comfort,
+  'comfort_plus': VehicleCategory.comfortPlus,
+  'business': VehicleCategory.business,
+  'minivan': VehicleCategory.minivan,
+  'vip': VehicleCategory.vip,
+  'wagon': VehicleCategory.wagon,
+  'pool': VehicleCategory.pool,
+  'start': VehicleCategory.start,
+  'standart': VehicleCategory.standart,
+  'ultimate': VehicleCategory.ultimate,
+  'maybach': VehicleCategory.maybach,
+  'promo': VehicleCategory.promo,
+  'premium_van': VehicleCategory.premiumVan,
+  'premium_suv': VehicleCategory.premiumSuv,
+  'suv': VehicleCategory.suv,
+  'personal_driver': VehicleCategory.personalDriver,
+  'express': VehicleCategory.express,
+  'cargo': VehicleCategory.cargo,
+};
+
+// Обратный маппинг enum → id
+const Map<VehicleCategory, String> _idByCategory = {
+  VehicleCategory.econom: 'econom',
+  VehicleCategory.comfort: 'comfort',
+  VehicleCategory.comfortPlus: 'comfort_plus',
+  VehicleCategory.business: 'business',
+  VehicleCategory.minivan: 'minivan',
+  VehicleCategory.vip: 'vip',
+  VehicleCategory.wagon: 'wagon',
+  VehicleCategory.pool: 'pool',
+  VehicleCategory.start: 'start',
+  VehicleCategory.standart: 'standart',
+  VehicleCategory.ultimate: 'ultimate',
+  VehicleCategory.maybach: 'maybach',
+  VehicleCategory.promo: 'promo',
+  VehicleCategory.premiumVan: 'premium_van',
+  VehicleCategory.premiumSuv: 'premium_suv',
+  VehicleCategory.suv: 'suv',
+  VehicleCategory.personalDriver: 'personal_driver',
+  VehicleCategory.express: 'express',
+  VehicleCategory.cargo: 'cargo',
+};
+
 class FiltersBottomSheet extends ConsumerStatefulWidget {
   const FiltersBottomSheet({super.key});
 
@@ -137,35 +183,7 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
                         }
                       },
                     ),
-                    _buildFilterSection<VehicleCategory>(
-                      title: 'Категории',
-                      items: VehicleCategory.values,
-                      selectedItems: _filter.categories ?? [],
-                      onChanged: (values) => setState(() => _filter = _filter.copyWith(categories: values)),
-                      labelBuilder: (cat) {
-                        switch (cat) {
-                          case VehicleCategory.econom: return 'Эконом';
-                          case VehicleCategory.comfort: return 'Комфорт';
-                          case VehicleCategory.comfortPlus: return 'Комфорт+';
-                          case VehicleCategory.business: return 'Бизнес';
-                          case VehicleCategory.minivan: return 'Минивен';
-                          case VehicleCategory.vip: return 'VIP';
-                          case VehicleCategory.wagon: return 'Универсальный';
-                          case VehicleCategory.pool: return 'Pool';
-                          case VehicleCategory.start: return 'Старт';
-                          case VehicleCategory.standart: return 'Стандарт';
-                          case VehicleCategory.ultimate: return 'Премьер';
-                          case VehicleCategory.maybach: return 'Elite';
-                          case VehicleCategory.promo: return 'Промо';
-                          case VehicleCategory.premiumVan: return 'Круиз';
-                          case VehicleCategory.premiumSuv: return 'Премиум Внедорожник';
-                          case VehicleCategory.suv: return 'Внедорожник';
-                          case VehicleCategory.personalDriver: return 'Персональный Водитель';
-                          case VehicleCategory.express: return 'Доставка';
-                          case VehicleCategory.cargo: return 'Грузовой';
-                        }
-                      },
-                    ),
+                    _buildCategoriesSection(),
                   ],
                 ),
               ),
@@ -188,6 +206,66 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildCategoriesSection() {
+    final categoriesAsync = ref.watch(carCategoriesProvider);
+    final selectedCategories = _filter.categories ?? [];
+
+    return categoriesAsync.when(
+      data: (categoryNames) {
+        final items = _categoryById.entries.toList()
+          ..removeWhere((e) => !categoryNames.containsKey(e.key));
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Категории', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: items.map((entry) {
+                final cat = entry.value;
+                final isSelected = selectedCategories.contains(cat);
+                return FilterChip(
+                  label: Text(categoryNames[entry.key] ?? entry.key),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    final newSelected = List<VehicleCategory>.from(selectedCategories);
+                    if (selected) {
+                      newSelected.add(cat);
+                    } else {
+                      newSelected.remove(cat);
+                    }
+                    setState(() => _filter = _filter.copyWith(categories: newSelected));
+                  },
+                  backgroundColor: AppTheme.controlsColor,
+                  selectedColor: Colors.black12,
+                  checkmarkColor: Colors.black,
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 24),
+          ],
+        );
+      },
+      loading: () => const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Категории', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          SizedBox(height: 8),
+          Center(child: CircularProgressIndicator()),
+          SizedBox(height: 24),
+        ],
+      ),
+      error: (_, __) => _buildFilterSection<VehicleCategory>(
+        title: 'Категории',
+        items: VehicleCategory.values,
+        selectedItems: selectedCategories,
+        onChanged: (values) => setState(() => _filter = _filter.copyWith(categories: values)),
+        labelBuilder: (cat) => _idByCategory[cat] ?? cat.name,
       ),
     );
   }

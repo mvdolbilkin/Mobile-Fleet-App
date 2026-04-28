@@ -4,6 +4,7 @@ import 'package:mobile/app/theme.dart';
 import 'package:mobile/shared/widgets/fading_button.dart';
 import 'package:mobile/shared/widgets/custom_selector_bottom_sheet.dart';
 import 'package:mobile/shared/widgets/custom_date_picker_bottom_sheet.dart';
+import 'package:mobile/shared/widgets/custom_switch.dart';
 import '../providers/add_vehicle_provider.dart';
 
 // Константы для выпадающих списков
@@ -50,33 +51,6 @@ class VehicleFormConstants {
     'Электричество',
   ];
 
-  // Популярные марки автомобилей
-  static const List<String> brands = [
-    'Audi',
-    'BMW',
-    'Chevrolet',
-    'Citroen',
-    'Daewoo',
-    'Fiat',
-    'Ford',
-    'Honda',
-    'Hyundai',
-    'Kia',
-    'Lada',
-    'Mazda',
-    'Mercedes-Benz',
-    'Mitsubishi',
-    'Nissan',
-    'Opel',
-    'Peugeot',
-    'Renault',
-    'Skoda',
-    'Subaru',
-    'Suzuki',
-    'Toyota',
-    'Volkswagen',
-    'Volvo',
-  ];
 }
 
 class AddVehicleBottomSheet extends ConsumerStatefulWidget {
@@ -218,11 +192,21 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
           fieldName: 'plateNumber',
         ),
         const SizedBox(height: 8),
-        _buildTextField(
+        _buildBrandDropdown(
           'Марка',
-          initialValue: formData.brand,
-          onChanged: (v) => notifier.updateField(brand: v),
+          value: formData.brand,
+          onChanged: (v) {
+            notifier.updateField(brand: v, model: '');
+          },
           fieldName: 'brand',
+        ),
+        const SizedBox(height: 8),
+        _buildModelDropdown(
+          'Модель',
+          brand: formData.brand,
+          value: formData.model,
+          onChanged: (v) => notifier.updateField(model: v),
+          fieldName: 'model',
         ),
         const SizedBox(height: 8),
         _buildDropdownField(
@@ -244,13 +228,6 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
           initialValue: formData.vin,
           onChanged: (v) => notifier.updateField(vin: v),
           fieldName: 'vin',
-        ),
-        const SizedBox(height: 8),
-        _buildTextField(
-          'Модель',
-          initialValue: formData.model,
-          onChanged: (v) => notifier.updateField(model: v),
-          fieldName: 'model',
         ),
         const SizedBox(height: 8),
         _buildTextField(
@@ -366,6 +343,13 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
           hintDesc: 'Необязательно                            0/500',
           initialValue: formData.callsign,
           onChanged: (v) => notifier.updateField(callsign: v),
+        ),
+        const SizedBox(height: 8),
+        _buildTextField(
+          'Адрес парковки',
+          hintDesc: 'Необязательно',
+          initialValue: formData.parkingAddress,
+          onChanged: (v) => notifier.updateField(parkingAddress: v),
         ),
       ],
     );
@@ -707,14 +691,179 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
             title,
             style: const TextStyle(fontSize: 16, color: AppTheme.textSecondary),
           ),
-          Switch(
+          CustomSwitch(
             value: value,
-            onChanged: onChanged,
-            activeColor: Colors.white,
-            activeTrackColor: AppTheme.statusGreen,
+            onChanged: onChanged ?? (_) {},
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBrandDropdown(
+    String hint, {
+    String? value,
+    ValueChanged<String?>? onChanged,
+    String? fieldName,
+  }) {
+    final formData = ref.watch(addVehicleFormProvider);
+    final showError = formData.showValidationErrors &&
+                      fieldName != null &&
+                      !formData.isFieldValid(fieldName);
+    final brandsAsync = ref.watch(brandsProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: () async {
+            if (brandsAsync.isLoading) return;
+            final items = brandsAsync.value ?? [];
+            if (items.isEmpty) return;
+            final selected = await CustomSelectorBottomSheet.show(
+              context: context,
+              title: hint,
+              items: items,
+              selectedValue: value,
+              showSearch: items.length > 10,
+            );
+            if (selected != null && onChanged != null) {
+              onChanged(selected);
+            }
+          },
+          child: Container(
+            height: 56,
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF2F2F2),
+              borderRadius: BorderRadius.circular(16),
+              border: showError
+                  ? Border.all(color: Colors.red, width: 1.5)
+                  : null,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    value != null && value.isNotEmpty ? value : hint,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: showError
+                          ? Colors.red.shade300
+                          : (value != null && value.isNotEmpty
+                              ? AppTheme.textPrimary
+                              : AppTheme.textSecondary),
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.keyboard_arrow_down,
+                  color: showError ? Colors.red.shade300 : AppTheme.textPrimary,
+                  size: 24,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (showError)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, left: 16, right: 16),
+            child: Text(
+              'Обязательное поле',
+              style: TextStyle(fontSize: 12, color: Colors.red.shade700),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildModelDropdown(
+    String hint, {
+    required String brand,
+    String? value,
+    ValueChanged<String?>? onChanged,
+    String? fieldName,
+  }) {
+    final formData = ref.watch(addVehicleFormProvider);
+    final showError = formData.showValidationErrors &&
+                      fieldName != null &&
+                      !formData.isFieldValid(fieldName);
+    final modelsAsync = brand.isNotEmpty ? ref.watch(modelsProvider(brand)) : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: () async {
+            if (modelsAsync?.isLoading ?? false) return;
+            final items = modelsAsync?.value ?? [];
+            if (items.isEmpty) return;
+            final selected = await CustomSelectorBottomSheet.show(
+              context: context,
+              title: hint,
+              items: items,
+              selectedValue: value,
+              showSearch: items.length > 10,
+            );
+            if (selected != null && onChanged != null) {
+              onChanged(selected);
+            }
+          },
+          child: Container(
+            height: 56,
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF2F2F2),
+              borderRadius: BorderRadius.circular(16),
+              border: showError
+                  ? Border.all(color: Colors.red, width: 1.5)
+                  : null,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: brand.isEmpty
+                      ? Text(
+                          hint,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: showError ? Colors.red.shade300 : AppTheme.textSecondary,
+                          ),
+                        )
+                      : Text(
+                          value != null && value.isNotEmpty ? value : hint,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: showError
+                                ? Colors.red.shade300
+                                : (value != null && value.isNotEmpty
+                                    ? AppTheme.textPrimary
+                                    : AppTheme.textSecondary),
+                          ),
+                        ),
+                ),
+                Icon(
+                  Icons.keyboard_arrow_down,
+                  color: showError ? Colors.red.shade300 : AppTheme.textPrimary,
+                  size: 24,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (showError)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, left: 16, right: 16),
+            child: Text(
+              'Обязательное поле',
+              style: TextStyle(fontSize: 12, color: Colors.red.shade700),
+            ),
+          ),
+      ],
     );
   }
 }
