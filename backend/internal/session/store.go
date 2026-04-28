@@ -1,8 +1,12 @@
 package session
 
 import (
-	"sync"
+	"context"
+	"encoding/json"
+	"fmt"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 // UserSession хранит данные сессии пользователя
@@ -18,17 +22,22 @@ type UserSession struct {
 	ExpiresAt  time.Time `json:"expires_at"`
 }
 
-// SessionStore хранит сессии в памяти
+// SessionStore хранит сессии в Redis
 type SessionStore struct {
-	sessions map[string]*UserSession
-	mu       sync.RWMutex
+	client *redis.Client
+	ctx    context.Context
 }
 
 var store *SessionStore
 
-func init() {
+func InitStore(addr string, password string, db int) {
 	store = &SessionStore{
-		sessions: make(map[string]*UserSession),
+		client: redis.NewClient(&redis.Options{
+			Addr:     addr,
+			Password: password,
+			DB:       db,
+		}),
+		ctx: context.Background(),
 	}
 }
 
@@ -37,43 +46,32 @@ func GetStore() *SessionStore {
 	return store
 }
 
-// Set сохраняет сессию
-func (s *SessionStore) Set(userID string, session *UserSession) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.sessions[userID] = session
+// Set сохраняет сессию с TTL
+func (s *SessionStore) Set(userID string, session *UserSession) error {
+	data, err := json.Marshal(session)
+	if err != nil {
+		return fmt.Errorf("failed to marshal session: %w", err)
+	}
+	key := fmt.Sprintf("session:%s", userID)
+	return s.client.Set(s.ctx, key, data, 24*time.Hour).Err()
 }
 
 // Get получает сессию по userID
 func (s *SessionStore) Get(userID string) (*UserSession, bool) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	session, exists := s.sessions[userID]
-	if !exists {
+	key := fmt.Sprintf("session:%s", userID)
+	data, err := s.client.Get(s.ctx, key).Result()
+	if err != nil {
 		return nil, false
 	}
-	// Проверяем не истекла ли сессия
-	if time.Now().After(session.ExpiresAt) {
+	var session UserSession
+	if err := json.Unmarshal([]byte(data), &session); err != nil {
 		return nil, false
 	}
-	return session, true
+	return &session, true
 }
 
 // Delete удаляет сессию
-func (s *SessionStore) Delete(userID string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	delete(s.sessions, userID)
-}
-
-// CleanExpired удаляет истекшие сессии
-func (s *SessionStore) CleanExpired() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	now := time.Now()
-	for userID, session := range s.sessions {
-		if now.After(session.ExpiresAt) {
-			delete(s.sessions, userID)
-		}
-	}
+func (s *SessionStore) Delete(userID string) error {
+	key := fmt.Sprintf("session:%s", userID)
+	return s.client.Del(s.ctx, key).Err()
 }

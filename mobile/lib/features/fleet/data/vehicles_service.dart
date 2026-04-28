@@ -61,53 +61,42 @@ class VehiclesService {
         throw Exception('Park ID is not available. Please login again.');
       }
 
-      // Формируем payload для Yandex API (через наш бэкенд-прокси)
-      final Map<String, dynamic> payload = {
-        "limit": 1000,
-        "offset": 0,
-        "query": <String, dynamic>{
-          "park": {
-            "id": parkId,
-            "car": _buildCarFilters(filter),
-          }
-        },
-        "fields": {
-          "car": [
-            "id",
-            "status",
-            "amenities",
-            "category",
-            "callsign",
-            "brand",
-            "model",
-            "year",
-            "color",
-            "number",
-            "registration_cert",
-            "vin",
-          ],
-        },
+      // Формируем payload для нового Yandex API
+      // https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/vehicles/list
+      final Map<String, dynamic> carQuery = {
+        "status": _mapStatuses(filter.statuses),
+        "categories": _mapCategories(filter.categories),
+        "owner": "park",
       };
 
-      if (filter.searchQuery != null && filter.searchQuery!.isNotEmpty) {
-        payload['query']['text'] = filter.searchQuery;
+      final vehicleTypes = _mapVehicleTypes(filter.types);
+      if (vehicleTypes.isNotEmpty) {
+        carQuery["vehicle_types"] = vehicleTypes;
       }
+
+      if (filter.searchQuery != null && filter.searchQuery!.isNotEmpty) {
+        carQuery["text"] = filter.searchQuery;
+      }
+
+      final Map<String, dynamic> payload = {
+        "query": {"car": carQuery},
+        "limit": 30,
+      };
 
       final response = await _dio.post('/api/vehicles/list', data: payload);
 
-      if (response.statusCode == 200 &&
-          response.data != null &&
-          response.data['cars'] != null) {
-        final List<dynamic> carsJson = response.data['cars'];
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data;
+        final List<dynamic>? carsJson = (data['cars'] ?? data['vehicles']) as List<dynamic>?;
+        if (carsJson == null) {
+          throw Exception('Unexpected response shape from server');
+        }
 
         var result = carsJson
             .map((e) => Vehicle.fromJson(e as Map<String, dynamic>))
             .toList();
 
-        // Локальная фильтрация для полей, которых нет в API Яндекса
-        if (filter.types != null && filter.types!.isNotEmpty) {
-          result = result.where((v) => filter.types!.contains(v.type)).toList();
-        }
+        // Локальная фильтрация для полей, которых нет в фильтре API
         if (filter.owners != null && filter.owners!.isNotEmpty) {
           result = result
               .where((v) => filter.owners!.contains(v.owner))
@@ -125,10 +114,88 @@ class VehiclesService {
       throw Exception('Failed to load vehicles from server');
     } catch (e) {
       print('Error fetching vehicles: $e');
-      // Временно возвращаем моковые данные или пустой список при ошибке?
-      // Лучше выбросить ошибку и обработать на UI, но оставим возврат пустого списка или Exception
       throw e;
     }
+  }
+
+  List<String> _mapVehicleTypes(List<VehicleType>? types) {
+    if (types == null || types.isEmpty) return const [];
+    return types.map((t) {
+      switch (t) {
+        case VehicleType.automobile:
+          return 'car';
+        case VehicleType.motorcycle:
+          return 'motorcycle';
+        case VehicleType.rickshaw:
+          return 'rickshaw';
+      }
+    }).toList();
+  }
+
+  List<String> _mapStatuses(List<VehicleStatus>? statuses) {
+    if (statuses == null || statuses.isEmpty) return const [];
+    return statuses.map((s) {
+      switch (s) {
+        case VehicleStatus.working:
+          return 'working';
+        case VehicleStatus.notWorking:
+          return 'not_working';
+        case VehicleStatus.service:
+          return 'repairing';
+        case VehicleStatus.noDriver:
+          return 'no_driver';
+        case VehicleStatus.preparation:
+          return 'pending';
+        case VehicleStatus.other:
+          return 'unknown';
+      }
+    }).toList();
+  }
+
+  List<String> _mapCategories(List<VehicleCategory>? categories) {
+    if (categories == null || categories.isEmpty) return const [];
+    return categories.map((c) {
+      switch (c) {
+        case VehicleCategory.econom:
+          return 'econom';
+        case VehicleCategory.comfort:
+          return 'comfort';
+        case VehicleCategory.comfortPlus:
+          return 'comfort_plus';
+        case VehicleCategory.business:
+          return 'business';
+        case VehicleCategory.minivan:
+          return 'minivan';
+        case VehicleCategory.vip:
+          return 'vip';
+        case VehicleCategory.wagon:
+          return 'wagon';
+        case VehicleCategory.pool:
+          return 'pool';
+        case VehicleCategory.start:
+          return 'start';
+        case VehicleCategory.standart:
+          return 'standart';
+        case VehicleCategory.ultimate:
+          return 'ultimate';
+        case VehicleCategory.maybach:
+          return 'maybach';
+        case VehicleCategory.promo:
+          return 'promo';
+        case VehicleCategory.premiumVan:
+          return 'premium_van';
+        case VehicleCategory.premiumSuv:
+          return 'premium_suv';
+        case VehicleCategory.suv:
+          return 'suv';
+        case VehicleCategory.personalDriver:
+          return 'personal_driver';
+        case VehicleCategory.express:
+          return 'express';
+        case VehicleCategory.cargo:
+          return 'cargo';
+      }
+    }).toList();
   }
 
   Future<VehicleDetails> getVehicleDetails(String vehicleId) async {

@@ -3,9 +3,11 @@ package main
 import (
 	"backend/internal/auth"
 	"backend/internal/expenses"
+	"backend/internal/session"
 	"backend/internal/staff"
 	"backend/internal/vehicles"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -13,6 +15,9 @@ import (
 
 func main() {
 	godotenv.Load()
+
+	// Initialize Redis session store
+	session.InitStore(os.Getenv("REDIS_ADDR"), "", 0)
 
 	r := gin.Default()
 
