@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/tariff_utils.dart';
+import '../providers/vehicles_provider.dart';
 import '../../../../../shared/widgets/custom_switch.dart';
 import '../../../../../shared/widgets/fading_button.dart';
 import '../../../../../app/theme.dart';
 
-class TariffEditBottomSheet extends StatefulWidget {
+class TariffEditBottomSheet extends ConsumerStatefulWidget {
   final List<String>? currentTariffs;
   final Function(List<String>) onSave;
 
@@ -15,10 +17,10 @@ class TariffEditBottomSheet extends StatefulWidget {
   });
 
   @override
-  State<TariffEditBottomSheet> createState() => _TariffEditBottomSheetState();
+  ConsumerState<TariffEditBottomSheet> createState() => _TariffEditBottomSheetState();
 }
 
-class _TariffEditBottomSheetState extends State<TariffEditBottomSheet> {
+class _TariffEditBottomSheetState extends ConsumerState<TariffEditBottomSheet> {
   late Map<String, bool> _tariffStates;
   bool _isLoading = false;
 
@@ -68,19 +70,24 @@ class _TariffEditBottomSheetState extends State<TariffEditBottomSheet> {
   }
 
   Map<String, String> _getAvailableTariffs() {
+    final categoryNamesMap = ref.watch(carCategoriesProvider).value ?? {};
     final isTruckVehicle = _getVehicleType() == 'Грузовой автомобиль';
 
+    String displayName(String key) => categoryNamesMap[key] ?? TariffUtils.tariffNames[key] ?? key;
+    
     if (isTruckVehicle) {
       // Для грузовых автомобилей доступны только cargo и express
       return {
-        'cargo': TariffUtils.tariffNames['cargo']!,
-        'express': TariffUtils.tariffNames['express']!,
+        'cargo': displayName('cargo'),
+        'express': displayName('express'),
       };
     }
 
     // Для легковых автомобилей все тарифы кроме cargo
     return Map.fromEntries(
-      TariffUtils.tariffNames.entries.where((entry) => entry.key != 'cargo'),
+      TariffUtils.tariffNames.entries
+          .where((entry) => entry.key != 'cargo')
+          .map((entry) => MapEntry(entry.key, displayName(entry.key))),
     );
   }
 

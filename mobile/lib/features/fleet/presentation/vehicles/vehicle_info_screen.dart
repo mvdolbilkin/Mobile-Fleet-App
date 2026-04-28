@@ -4,7 +4,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../app/theme.dart';
 import '../../domain/vehicle.dart';
 import '../../domain/vehicle_details.dart';
-import '../../domain/tariff_utils.dart';
 import 'providers/vehicles_provider.dart';
 import 'widgets/tariff_edit_bottom_sheet.dart';
 import 'widgets/edit_vehicle_bottom_sheet.dart';
@@ -220,15 +219,10 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
       ),
       data: (details) {
         final vehicleId = widget.vehicle?.id ?? '';
-        final categoriesAsync = vehicleId.isNotEmpty
-            ? ref.watch(vehicleCategoriesProvider(vehicleId))
-            : null;
-        final categories =
-            categoriesAsync?.value ??
-            details.parkProfile?.categories ??
-            widget.vehicle?.tariffs ??
-            [];
-        final tariffNames = TariffUtils.getTariffNames(categories);
+        final categoriesAsync = vehicleId.isNotEmpty ? ref.watch(vehicleCategoriesProvider(vehicleId)) : null;
+        final categories = categoriesAsync?.value ?? details.parkProfile?.categories ?? widget.vehicle?.tariffs ?? [];
+        final categoryNamesMap = ref.watch(carCategoriesProvider).value ?? {};
+        final tariffNames = categories.map((id) => categoryNamesMap[id] ?? id).join(', ');
 
         return Container(
           padding: const EdgeInsets.all(16),

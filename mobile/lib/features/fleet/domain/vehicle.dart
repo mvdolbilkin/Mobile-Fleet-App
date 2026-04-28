@@ -185,6 +185,26 @@ enum VehicleOwner { taxiPark, other, notSpecified }
 
 enum VehicleUsageRight { confirmed, notConfirmed }
 
+enum VehicleBrandingFilter {
+  confirmed,
+  none,
+}
+
+enum VehicleOsagoFilter {
+  restricted,
+  none,
+}
+
+enum VehicleOsagoCompensationFilter {
+  compensate,
+  none,
+}
+
+enum VehicleOtherParksFilter {
+  restricted,
+  none,
+}
+
 enum VehicleCategory {
   econom,
   comfort,
@@ -204,7 +224,38 @@ enum VehicleCategory {
   suv,
   personalDriver,
   express,
-  cargo,
+  cargo;
+
+  String get id => _idByCategory[this] ?? name;
+
+  static const Map<VehicleCategory, String> _idByCategory = {
+    VehicleCategory.econom: 'econom',
+    VehicleCategory.comfort: 'comfort',
+    VehicleCategory.comfortPlus: 'comfort_plus',
+    VehicleCategory.business: 'business',
+    VehicleCategory.minivan: 'minivan',
+    VehicleCategory.vip: 'vip',
+    VehicleCategory.wagon: 'wagon',
+    VehicleCategory.pool: 'pool',
+    VehicleCategory.start: 'start',
+    VehicleCategory.standart: 'standart',
+    VehicleCategory.ultimate: 'ultimate',
+    VehicleCategory.maybach: 'maybach',
+    VehicleCategory.promo: 'promo',
+    VehicleCategory.premiumVan: 'premium_van',
+    VehicleCategory.premiumSuv: 'premium_suv',
+    VehicleCategory.suv: 'suv',
+    VehicleCategory.personalDriver: 'personal_driver',
+    VehicleCategory.express: 'express',
+    VehicleCategory.cargo: 'cargo',
+  };
+
+  static VehicleCategory? fromId(String id) {
+    for (final entry in _idByCategory.entries) {
+      if (entry.value == id) return entry.key;
+    }
+    return null;
+  }
 }
 
 // Моковые данные

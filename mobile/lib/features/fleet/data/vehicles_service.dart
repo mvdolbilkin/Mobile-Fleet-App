@@ -11,6 +11,11 @@ class VehicleFilter {
   final List<VehicleUsageRight>? usageRights;
   final List<VehicleStatus>? statuses;
   final List<VehicleCategory>? categories;
+  final VehicleBrandingFilter? branding;
+  final VehicleOsagoFilter? osago;
+  final VehicleOsagoCompensationFilter? osagoCompensation;
+  final VehicleOtherParksFilter? otherParks;
+  final bool? archived;
 
   const VehicleFilter({
     this.searchQuery,
@@ -19,6 +24,11 @@ class VehicleFilter {
     this.usageRights,
     this.statuses,
     this.categories,
+    this.branding,
+    this.osago,
+    this.osagoCompensation,
+    this.otherParks,
+    this.archived,
   });
 
   VehicleFilter copyWith({
@@ -28,6 +38,16 @@ class VehicleFilter {
     List<VehicleUsageRight>? usageRights,
     List<VehicleStatus>? statuses,
     List<VehicleCategory>? categories,
+    VehicleBrandingFilter? branding,
+    VehicleOsagoFilter? osago,
+    VehicleOsagoCompensationFilter? osagoCompensation,
+    VehicleOtherParksFilter? otherParks,
+    bool? archived,
+    bool clearBranding = false,
+    bool clearOsago = false,
+    bool clearOsagoCompensation = false,
+    bool clearOtherParks = false,
+    bool clearArchived = false,
   }) {
     return VehicleFilter(
       searchQuery: searchQuery ?? this.searchQuery,
@@ -36,6 +56,11 @@ class VehicleFilter {
       usageRights: usageRights ?? this.usageRights,
       statuses: statuses ?? this.statuses,
       categories: categories ?? this.categories,
+      branding: clearBranding ? null : (branding ?? this.branding),
+      osago: clearOsago ? null : (osago ?? this.osago),
+      osagoCompensation: clearOsagoCompensation ? null : (osagoCompensation ?? this.osagoCompensation),
+      otherParks: clearOtherParks ? null : (otherParks ?? this.otherParks),
+      archived: clearArchived ? null : (archived ?? this.archived),
     );
   }
 
@@ -45,7 +70,12 @@ class VehicleFilter {
       (owners == null || owners!.isEmpty) &&
       (usageRights == null || usageRights!.isEmpty) &&
       (statuses == null || statuses!.isEmpty) &&
-      (categories == null || categories!.isEmpty);
+      (categories == null || categories!.isEmpty) &&
+      branding == null &&
+      osago == null &&
+      osagoCompensation == null &&
+      otherParks == null &&
+      (archived == null || archived == false);
 }
 
 class VehiclesService {

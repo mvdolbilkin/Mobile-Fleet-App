@@ -5,12 +5,14 @@ class SearchField extends StatelessWidget {
   final String hint;
   final ValueChanged<String>? onChanged;
   final TextEditingController? controller;
+  final Widget? suffixIcon;
 
   const SearchField({
     Key? key,
     required this.hint,
     this.onChanged,
     this.controller,
+    this.suffixIcon,
   }) : super(key: key);
 
   @override
@@ -28,7 +30,11 @@ class SearchField extends StatelessWidget {
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: AppTheme.searchHint,
-          prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
+          prefixIcon: Icon(
+            Icons.search,
+            color: AppTheme.textSecondary,
+          ),
+          suffixIcon: suffixIcon,
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),

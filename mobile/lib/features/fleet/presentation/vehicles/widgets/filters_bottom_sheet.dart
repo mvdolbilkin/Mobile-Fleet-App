@@ -5,52 +5,6 @@ import 'package:mobile/features/fleet/domain/vehicle.dart';
 import 'package:mobile/features/fleet/data/vehicles_service.dart';
 import '../providers/vehicles_provider.dart';
 
-// Маппинг id категории → enum VehicleCategory
-const Map<String, VehicleCategory> _categoryById = {
-  'econom': VehicleCategory.econom,
-  'comfort': VehicleCategory.comfort,
-  'comfort_plus': VehicleCategory.comfortPlus,
-  'business': VehicleCategory.business,
-  'minivan': VehicleCategory.minivan,
-  'vip': VehicleCategory.vip,
-  'wagon': VehicleCategory.wagon,
-  'pool': VehicleCategory.pool,
-  'start': VehicleCategory.start,
-  'standart': VehicleCategory.standart,
-  'ultimate': VehicleCategory.ultimate,
-  'maybach': VehicleCategory.maybach,
-  'promo': VehicleCategory.promo,
-  'premium_van': VehicleCategory.premiumVan,
-  'premium_suv': VehicleCategory.premiumSuv,
-  'suv': VehicleCategory.suv,
-  'personal_driver': VehicleCategory.personalDriver,
-  'express': VehicleCategory.express,
-  'cargo': VehicleCategory.cargo,
-};
-
-// Обратный маппинг enum → id
-const Map<VehicleCategory, String> _idByCategory = {
-  VehicleCategory.econom: 'econom',
-  VehicleCategory.comfort: 'comfort',
-  VehicleCategory.comfortPlus: 'comfort_plus',
-  VehicleCategory.business: 'business',
-  VehicleCategory.minivan: 'minivan',
-  VehicleCategory.vip: 'vip',
-  VehicleCategory.wagon: 'wagon',
-  VehicleCategory.pool: 'pool',
-  VehicleCategory.start: 'start',
-  VehicleCategory.standart: 'standart',
-  VehicleCategory.ultimate: 'ultimate',
-  VehicleCategory.maybach: 'maybach',
-  VehicleCategory.promo: 'promo',
-  VehicleCategory.premiumVan: 'premium_van',
-  VehicleCategory.premiumSuv: 'premium_suv',
-  VehicleCategory.suv: 'suv',
-  VehicleCategory.personalDriver: 'personal_driver',
-  VehicleCategory.express: 'express',
-  VehicleCategory.cargo: 'cargo',
-};
-
 class FiltersBottomSheet extends ConsumerStatefulWidget {
   const FiltersBottomSheet({super.key});
 
@@ -217,6 +171,55 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
                       },
                     ),
                     _buildCategoriesSection(),
+                    _buildRadioSection<VehicleBrandingFilter>(
+                      title: 'Брендинг',
+                      items: VehicleBrandingFilter.values,
+                      selected: _filter.branding,
+                      onChanged: (v) => setState(() => _filter = _filter.copyWith(branding: v, clearBranding: v == null)),
+                      labelBuilder: (v) {
+                        switch (v) {
+                          case VehicleBrandingFilter.confirmed: return 'Брендинг подтверждён';
+                          case VehicleBrandingFilter.none: return 'Без брендинга';
+                        }
+                      },
+                    ),
+                    _buildRadioSection<VehicleOsagoFilter>(
+                      title: 'Запрет на поездки без ОСАГО',
+                      items: VehicleOsagoFilter.values,
+                      selected: _filter.osago,
+                      onChanged: (v) => setState(() => _filter = _filter.copyWith(osago: v, clearOsago: v == null)),
+                      labelBuilder: (v) {
+                        switch (v) {
+                          case VehicleOsagoFilter.restricted: return 'Ограничить поездки без ОСАГО';
+                          case VehicleOsagoFilter.none: return 'Без ограничений';
+                        }
+                      },
+                    ),
+                    _buildRadioSection<VehicleOsagoCompensationFilter>(
+                      title: 'Компенсация ОСАГО исполнителю',
+                      items: VehicleOsagoCompensationFilter.values,
+                      selected: _filter.osagoCompensation,
+                      onChanged: (v) => setState(() => _filter = _filter.copyWith(osagoCompensation: v, clearOsagoCompensation: v == null)),
+                      labelBuilder: (v) {
+                        switch (v) {
+                          case VehicleOsagoCompensationFilter.compensate: return 'Компенсировать подневное ОСАГО исполнителю';
+                          case VehicleOsagoCompensationFilter.none: return 'Без компенсаций';
+                        }
+                      },
+                    ),
+                    _buildRadioSection<VehicleOtherParksFilter>(
+                      title: 'Запрет на поездки в других парках',
+                      items: VehicleOtherParksFilter.values,
+                      selected: _filter.otherParks,
+                      onChanged: (v) => setState(() => _filter = _filter.copyWith(otherParks: v, clearOtherParks: v == null)),
+                      labelBuilder: (v) {
+                        switch (v) {
+                          case VehicleOtherParksFilter.restricted: return 'Ограничить поездки в других парках';
+                          case VehicleOtherParksFilter.none: return 'Без ограничений';
+                        }
+                      },
+                    ),
+                    _buildArchiveSection(),
                   ],
                 ),
               ),
@@ -254,8 +257,11 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
 
     return categoriesAsync.when(
       data: (categoryNames) {
-        final items = _categoryById.entries.toList()
-          ..removeWhere((e) => !categoryNames.containsKey(e.key));
+        final items = categoryNames.entries
+            .map((e) => MapEntry(e.key, VehicleCategory.fromId(e.key)))
+            .where((e) => e.value != null)
+            .map((e) => MapEntry(e.key, e.value!))
+            .toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,9 +318,8 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
         title: 'Категории',
         items: VehicleCategory.values,
         selectedItems: selectedCategories,
-        onChanged: (values) =>
-            setState(() => _filter = _filter.copyWith(categories: values)),
-        labelBuilder: (cat) => _idByCategory[cat] ?? cat.name,
+        onChanged: (values) => setState(() => _filter = _filter.copyWith(categories: values)),
+        labelBuilder: (cat) => cat.id,
       ),
     );
   }
@@ -355,6 +360,60 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
               checkmarkColor: Colors.black,
             );
           }).toList(),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  Widget _buildRadioSection<T>({
+    required String title,
+    required List<T> items,
+    required T? selected,
+    required void Function(T?) onChanged,
+    required String Function(T) labelBuilder,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          children: items.map((item) {
+            final isSelected = selected == item;
+            return FilterChip(
+              label: Text(labelBuilder(item)),
+              selected: isSelected,
+              onSelected: (value) => onChanged(value ? item : null),
+              backgroundColor: AppTheme.controlsColor,
+              selectedColor: Colors.black12,
+              checkmarkColor: Colors.black,
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  Widget _buildArchiveSection() {
+    final isSelected = _filter.archived == true;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Прочее', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 8),
+        FilterChip(
+          label: const Text('Архив'),
+          selected: isSelected,
+          onSelected: (value) => setState(() => _filter = _filter.copyWith(
+            archived: value ? true : null,
+            clearArchived: !value,
+          )),
+          backgroundColor: AppTheme.controlsColor,
+          selectedColor: Colors.black12,
+          checkmarkColor: Colors.black,
         ),
         const SizedBox(height: 24),
       ],

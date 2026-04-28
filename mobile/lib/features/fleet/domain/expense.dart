@@ -5,7 +5,11 @@ class Expense {
   final String name;
   final ExpenseType type;
   final String amount;
+  final String? paidAt;
   final String createdByUserName;
+  final String? createdAt;
+  final String? editedByUserName;
+  final String? editedAt;
   final bool isDeleted;
 
   Expense({
@@ -15,7 +19,11 @@ class Expense {
     required this.name,
     required this.type,
     required this.amount,
+    this.paidAt,
     required this.createdByUserName,
+    this.createdAt,
+    this.editedByUserName,
+    this.editedAt,
     required this.isDeleted,
   });
 
@@ -66,7 +74,11 @@ class Expense {
       name: json['name'] as String? ?? '',
       type: type,
       amount: amount.toStringAsFixed(0),
+      paidAt: json['paid_at'] as String?,
       createdByUserName: json['created_by_user_name'] as String? ?? '',
+      createdAt: json['created_at'] as String?,
+      editedByUserName: json['edited_by_user_name'] as String?,
+      editedAt: json['edited_at'] as String?,
       isDeleted: json['is_deleted'] as bool? ?? false,
     );
   }

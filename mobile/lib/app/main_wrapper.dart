@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mobile/app/theme.dart';
+import 'package:mobile/features/fleet/domain/report_download.dart';
+import 'package:mobile/features/fleet/providers/report_downloads_provider.dart';
+import 'package:mobile/features/fleet/presentation/expenses/widgets/report_downloads_sheet.dart';
 
-class MainWrapper extends StatelessWidget {
+class MainWrapper extends ConsumerWidget {
   const MainWrapper({required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
@@ -43,7 +47,38 @@ class MainWrapper extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Global listener for report downloads
+    ref.listen<List<ReportDownload>>(
+      reportDownloadsProvider,
+      (previous, current) {
+        // Check for newly ready downloads
+        for (final download in current) {
+          final wasReady = previous?.any(
+                (p) => p.operationId == download.operationId &&
+                       p.status == ReportDownloadStatus.ready,
+              ) ?? false;
+
+          if (download.status == ReportDownloadStatus.ready && !wasReady) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Отчет "${download.displayName}" готов к скачиванию'),
+                backgroundColor: Colors.green,
+                action: SnackBarAction(
+                  label: 'Открыть',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    ReportDownloadsSheet.show(context);
+                  },
+                ),
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          }
+        }
+      },
+    );
+
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: SafeArea(

@@ -12,7 +12,6 @@ import 'widgets/add_vehicle_bottom_sheet.dart';
 import 'widgets/filters_bottom_sheet.dart';
 import 'vehicle_info_screen.dart';
 import 'providers/vehicles_provider.dart';
-import 'package:mobile/features/fleet/domain/vehicle.dart';
 
 class VehiclesScreen extends ConsumerStatefulWidget {
   const VehiclesScreen({super.key});
@@ -194,14 +193,12 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
       body: Column(
         children: [
           // Загружаем категории до автомобилей
-          ref
-              .watch(carCategoriesProvider)
-              .when(
-                data: (_) => const SizedBox.shrink(),
-                loading: () => const LinearProgressIndicator(minHeight: 2),
-                error: (_, __) => const SizedBox.shrink(),
-              ),
-          // Поиск и кнопка добавления
+          ref.watch(carCategoriesProvider).when(
+            data: (_) => const SizedBox.shrink(),
+            loading: () => const LinearProgressIndicator(minHeight: 2),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+          // Поиск, фильтры и кнопка добавления
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -215,6 +212,19 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
                           .read(vehiclesFilterProvider.notifier)
                           .updateSearch(value);
                     },
+                    suffixIcon: GestureDetector(
+                      onTap: () {
+                        FiltersBottomSheet.show(context);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Icon(
+                          Icons.tune,
+                          size: 22,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -227,48 +237,22 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
-
-          // Фильтры
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  // Кнопка фильтров
-                  GestureDetector(
-                    onTap: () {
-                      FiltersBottomSheet.show(context);
-                    },
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppTheme.controlsColor,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: AppTheme.borderColor,
-                          width: 1,
-                        ),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.tune,
-                          size: 20,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                    ),
+          const SizedBox(height: 8),
+          
+          // Активные фильтры
+          if (_buildActiveFilterChips().isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: _buildActiveFilterChips(),
                   ),
-                  const SizedBox(width: 8),
-
-                  // Активные фильтры (Отображение)
-                  ..._buildActiveFilterChips(),
-                ],
+                ),
               ),
             ),
-          ),
           const SizedBox(height: 8),
 
           // Кнопка "Сбросить все фильтры"
@@ -440,50 +424,123 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
 
   List<Widget> _buildActiveFilterChips() {
     final filter = ref.watch(vehiclesFilterProvider);
+    final categoryNames = ref.watch(carCategoriesProvider).value ?? {};
     final chips = <Widget>[];
 
-    if (filter.types != null && filter.types!.isNotEmpty) {
-      chips.add(
-        CustomFilterChip(
-          label: 'Тип ТС: ${filter.types!.length}',
-          isSelected: true,
-          onTap: () {
-            ref
-                .read(vehiclesFilterProvider.notifier)
-                .updateFilter(filter.copyWith(types: []));
-          },
-        ),
-      );
+    if (filter.searchQuery != null && filter.searchQuery!.isNotEmpty) {
+      chips.add(CustomFilterChip(
+        label: '"${filter.searchQuery}"',
+        isSelected: true,
+        onTap: () {
+          _searchController.clear();
+          ref.read(vehiclesFilterProvider.notifier).updateSearch('');
+        },
+      ));
       chips.add(const SizedBox(width: 8));
     }
 
+    if (filter.types != null && filter.types!.isNotEmpty) {
+      chips.add(CustomFilterChip(
+        label: 'Тип ТС: ${filter.types!.length}',
+        isSelected: true,
+        onTap: () {
+          ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(types: []));
+        },
+      ));
+      chips.add(const SizedBox(width: 8));
+    }
+    
     if (filter.owners != null && filter.owners!.isNotEmpty) {
-      chips.add(
-        CustomFilterChip(
-          label: 'Владелец: ${filter.owners!.length}',
-          isSelected: true,
-          onTap: () {
-            ref
-                .read(vehiclesFilterProvider.notifier)
-                .updateFilter(filter.copyWith(owners: []));
-          },
-        ),
-      );
+      chips.add(CustomFilterChip(
+        label: 'Владелец: ${filter.owners!.length}',
+        isSelected: true,
+        onTap: () {
+          ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(owners: []));
+        },
+      ));
+      chips.add(const SizedBox(width: 8));
+    }
+
+    if (filter.usageRights != null && filter.usageRights!.isNotEmpty) {
+      chips.add(CustomFilterChip(
+        label: 'Право: ${filter.usageRights!.length}',
+        isSelected: true,
+        onTap: () {
+          ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(usageRights: []));
+        },
+      ));
       chips.add(const SizedBox(width: 8));
     }
 
     if (filter.statuses != null && filter.statuses!.isNotEmpty) {
-      chips.add(
-        CustomFilterChip(
-          label: 'Статус: ${filter.statuses!.length}',
-          isSelected: true,
-          onTap: () {
-            ref
-                .read(vehiclesFilterProvider.notifier)
-                .updateFilter(filter.copyWith(statuses: []));
-          },
-        ),
-      );
+      chips.add(CustomFilterChip(
+        label: 'Статус: ${filter.statuses!.length}',
+        isSelected: true,
+        onTap: () {
+          ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(statuses: []));
+        },
+      ));
+      chips.add(const SizedBox(width: 8));
+    }
+
+    if (filter.categories != null && filter.categories!.isNotEmpty) {
+      final names = filter.categories!.map((c) => categoryNames[c.id] ?? c.name).join(', ');
+      chips.add(CustomFilterChip(
+        label: names,
+        isSelected: true,
+        onTap: () {
+          ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(categories: []));
+        },
+      ));
+      chips.add(const SizedBox(width: 8));
+    }
+
+    if (filter.branding != null) {
+      final label = filter.branding == VehicleBrandingFilter.confirmed ? 'Брендинг подтверждён' : 'Без брендинга';
+      chips.add(CustomFilterChip(
+        label: label,
+        isSelected: true,
+        onTap: () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(clearBranding: true)),
+      ));
+      chips.add(const SizedBox(width: 8));
+    }
+
+    if (filter.osago != null) {
+      final label = filter.osago == VehicleOsagoFilter.restricted ? 'Ограничить без ОСАГО' : 'Без ограничений (ОСАГО)';
+      chips.add(CustomFilterChip(
+        label: label,
+        isSelected: true,
+        onTap: () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(clearOsago: true)),
+      ));
+      chips.add(const SizedBox(width: 8));
+    }
+
+    if (filter.osagoCompensation != null) {
+      final label = filter.osagoCompensation == VehicleOsagoCompensationFilter.compensate ? 'Компенсировать ОСАГО' : 'Без компенсаций';
+      chips.add(CustomFilterChip(
+        label: label,
+        isSelected: true,
+        onTap: () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(clearOsagoCompensation: true)),
+      ));
+      chips.add(const SizedBox(width: 8));
+    }
+
+    if (filter.otherParks != null) {
+      final label = filter.otherParks == VehicleOtherParksFilter.restricted ? 'Ограничить другие парки' : 'Без ограничений (парки)';
+      chips.add(CustomFilterChip(
+        label: label,
+        isSelected: true,
+        onTap: () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(clearOtherParks: true)),
+      ));
+      chips.add(const SizedBox(width: 8));
+    }
+
+    if (filter.archived == true) {
+      chips.add(CustomFilterChip(
+        label: 'Архив',
+        isSelected: true,
+        onTap: () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(clearArchived: true)),
+      ));
       chips.add(const SizedBox(width: 8));
     }
 
