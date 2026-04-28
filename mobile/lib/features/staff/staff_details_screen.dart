@@ -1,10 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/app/theme.dart';
 import 'package:mobile/features/staff/data/staff_repository.dart';
 import 'package:mobile/features/staff/domain/staff.dart';
 import 'package:mobile/features/staff/widgets/status_badge.dart';
 import 'package:mobile/features/staff/widgets/transaction_bottom_sheet.dart';
+import 'package:mobile/features/staff/widgets/vehicle_selector_bottom_sheet.dart';
 import 'package:mobile/shared/widgets/fading_button.dart';
 import 'package:mobile/shared/widgets/info_block.dart';
 import 'package:mobile/shared/widgets/info_card.dart';
@@ -19,14 +20,15 @@ class StaffDetailsScreen extends ConsumerStatefulWidget {
   ConsumerState<StaffDetailsScreen> createState() => _StaffDetailsScreenState();
 }
 
-class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with SingleTickerProviderStateMixin {
+class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int _selectedPeriodDays = 30;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -38,15 +40,19 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(staffProfileProvider(widget.staff.id));
-    
+
     // Пока данные загружаются, используем базовые данные из списка (staff).
     // Если данные загрузились, объединяем их, сохраняя баланс и аватар из списка
-    final displayStaff = profileAsync.value?.copyWith(
-      balance: widget.staff.balance,
-      avatarUrl: widget.staff.avatarUrl,
-      timeOnShift: widget.staff.timeOnShift,
-      status: widget.staff.status != StaffStatus.offline ? widget.staff.status : profileAsync.value?.status,
-    ) ?? widget.staff;
+    final displayStaff =
+        profileAsync.value?.copyWith(
+          balance: widget.staff.balance,
+          avatarUrl: widget.staff.avatarUrl,
+          timeOnShift: widget.staff.timeOnShift,
+          status: widget.staff.status != StaffStatus.offline
+              ? widget.staff.status
+              : profileAsync.value?.status,
+        ) ??
+        widget.staff;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
@@ -69,6 +75,7 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
           tabs: const [
             Tab(text: 'Главное'),
             Tab(text: 'Детали'),
+            Tab(text: 'Автомобиль'),
           ],
         ),
       ),
@@ -79,6 +86,7 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
               children: [
                 _buildMainTab(displayStaff),
                 _buildDetailsTab(displayStaff),
+                _buildCarTab(displayStaff),
               ],
             ),
     );
@@ -111,53 +119,68 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
       error: (error, stack) => Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Text('Ошибка загрузки деталей: $error', style: const TextStyle(color: Colors.red)),
+          child: Text(
+            'Ошибка загрузки деталей: $error',
+            style: const TextStyle(color: Colors.red),
+          ),
         ),
       ),
       data: (details) {
         // Extract data from API response - data is inside "driver" object
         final driver = details['driver'] as Map<String, dynamic>?;
-        final driverProfile = driver?['driver_profile'] as Map<String, dynamic>?;
+        final driverProfile =
+            driver?['driver_profile'] as Map<String, dynamic>?;
         final accounts = driver?['accounts'] as List<dynamic>?;
         final car = driver?['car'] as Map<String, dynamic>?;
-        final currentStatus = driver?['current_status'] as Map<String, dynamic>?;
+        final currentStatus =
+            driver?['current_status'] as Map<String, dynamic>?;
 
         // Parse name from driver_profile
         final firstName = driverProfile?['first_name'] as String? ?? '—';
         final lastName = driverProfile?['last_name'] as String? ?? '—';
         final middleName = driverProfile?['middle_name'] as String? ?? '—';
-        
+
         // Driver license info
         final licenseInfo = driverProfile?['license'] as Map<String, dynamic>?;
         final licenseNumber = licenseInfo?['number'] as String? ?? '—';
         final licenseCountry = licenseInfo?['country'] as String? ?? '—';
         final licenseIssueDate = licenseInfo?['issue_date'] as String? ?? '—';
-        final licenseExpiryDate = licenseInfo?['expiration_date'] as String? ?? '—';
+        final licenseExpiryDate =
+            licenseInfo?['expiration_date'] as String? ?? '—';
 
         // Work conditions
         final workRule = driverProfile?['work_rule_id'] as String? ?? '—';
         final balanceLimit = accounts?.isNotEmpty == true
-            ? (accounts!.first as Map<String, dynamic>)['balance_limit']?.toString() ?? '—'
+            ? (accounts!.first as Map<String, dynamic>)['balance_limit']
+                      ?.toString() ??
+                  '—'
             : '—';
         final hireDate = driverProfile?['hire_date'] as String? ?? '—';
         final carId = car?['id'] as String? ?? '—';
-        final employmentType = driverProfile?['employment_type'] as String? ?? '—';
+        final employmentType =
+            driverProfile?['employment_type'] as String? ?? '—';
         final providers = driverProfile?['providers'] as List<dynamic>?;
         final providersStr = providers?.join(', ') ?? 'Да';
-        final balanceDenyOnlycard = driverProfile?['balance_deny_onlycard'] as bool? ?? false;
+        final balanceDenyOnlycard =
+            driverProfile?['balance_deny_onlycard'] as bool? ?? false;
 
         // Personal data
         final phones = driverProfile?['phones'] as List<dynamic>?;
-        final phone = phones?.isNotEmpty == true ? phones!.first as String? ?? '—' : '—';
+        final phone = phones?.isNotEmpty == true
+            ? phones!.first as String? ?? '—'
+            : '—';
         final email = driverProfile?['email'] as String? ?? '—';
         final address = driverProfile?['address'] as String? ?? '—';
         final deaf = driverProfile?['deaf'] as bool? ?? false;
         final comment = driverProfile?['comment'] as String? ?? '';
-        final taxNumber = driverProfile?['tax_identification_number'] as String? ?? '—';
-        final paymentServiceId = driverProfile?['payment_service_id'] as String? ?? '—';
+        final taxNumber =
+            driverProfile?['tax_identification_number'] as String? ?? '—';
+        final paymentServiceId =
+            driverProfile?['payment_service_id'] as String? ?? '—';
 
         // Work status
-        final workStatus = driverProfile?['work_status'] as String? ?? 'working';
+        final workStatus =
+            driverProfile?['work_status'] as String? ?? 'working';
         final statusText = workStatus == 'fired' ? 'Уволен' : 'Работает';
 
         return ListView(
@@ -167,36 +190,54 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
               'Детали',
               'Некоторые поля недоступны для редактирования, для внесения изменений обратитесь в поддержку',
               _buildDetailGrid([
-                {'Фамилия': lastName}, {'Водительский стаж с': '— (MOCK)'},
-                {'Имя': firstName}, {'Серия и номер ВУ': licenseNumber},
-                {'Отчество': middleName}, {'Страна выдачи ВУ': licenseCountry.toUpperCase()},
-                {'Телефон': phone}, {'Дата выдачи ВУ': licenseIssueDate},
-                {'Адрес': address}, {'Действует до': licenseExpiryDate},
-                {'Статус': statusText}, {'Слабослышащий водитель': deaf ? 'Да' : 'Нет'},
+                {'Фамилия': lastName},
+                {'Водительский стаж с': '— (MOCK)'},
+                {'Имя': firstName},
+                {'Серия и номер ВУ': licenseNumber},
+                {'Отчество': middleName},
+                {'Страна выдачи ВУ': licenseCountry.toUpperCase()},
+                {'Телефон': phone},
+                {'Дата выдачи ВУ': licenseIssueDate},
+                {'Адрес': address},
+                {'Действует до': licenseExpiryDate},
+                {'Статус': statusText},
+                {'Слабослышащий водитель': deaf ? 'Да' : 'Нет'},
               ]),
               onEdit: () {},
             ),
             _buildDetailSection(
               'Комментарий',
               '',
-              Text(comment.isNotEmpty ? comment : 'Нет комментария', style: const TextStyle(fontSize: 15)),
+              Text(
+                comment.isNotEmpty ? comment : 'Нет комментария',
+                style: const TextStyle(fontSize: 15),
+              ),
               onEdit: () {},
             ),
             _buildDetailSection(
               'Условия работы',
               '',
               _buildDetailGrid([
-                {'Условия работы': employmentType}, {'Заказы от платформы': providersStr},
-                {'Лимит по счету': balanceLimit}, {'Запрещать принимать безналичные заказы': balanceDenyOnlycard ? 'Да' : 'Нет'},
-                {'Дата принятия': hireDate}, {'Автомобиль ID': carId},
+                {'Условия работы': employmentType},
+                {'Заказы от платформы': providersStr},
+                {'Лимит по счету': balanceLimit},
+                {
+                  'Запрещать принимать безналичные заказы': balanceDenyOnlycard
+                      ? 'Да'
+                      : 'Нет',
+                },
+                {'Дата принятия': hireDate},
+                {'Автомобиль ID': carId},
               ]),
             ),
             _buildDetailSection(
               'Личные данные',
               '',
               _buildDetailGrid([
-                {'Доверенный контакт': '— (MOCK)'}, {'Дата рождения': '— (MOCK)'},
-                {'Email': email}, {'ID для платежа': paymentServiceId},
+                {'Доверенный контакт': '— (MOCK)'},
+                {'Дата рождения': '— (MOCK)'},
+                {'Email': email},
+                {'ID для платежа': paymentServiceId},
                 {'Отзыв о водителе': '— (MOCK)'},
               ]),
             ),
@@ -204,11 +245,16 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
               'Паспортные данные',
               '',
               _buildDetailGrid([
-                {'Статус проверки паспорта': '— (MOCK)'}, {'Номер и серия': '— (MOCK)'},
-                {'Вид паспорта': '— (MOCK)'}, {'Почтовый индекс': '— (MOCK)'},
-                {'Страна': '— (MOCK)'}, {'Дата выдачи': '— (MOCK)'},
-                {'Кем выдан': '— (MOCK)'}, {'Действует до': '— (MOCK)'},
-                {'Адрес регистрации': '— (MOCK)'}, {'ОГРН': '— (MOCK)'},
+                {'Статус проверки паспорта': '— (MOCK)'},
+                {'Номер и серия': '— (MOCK)'},
+                {'Вид паспорта': '— (MOCK)'},
+                {'Почтовый индекс': '— (MOCK)'},
+                {'Страна': '— (MOCK)'},
+                {'Дата выдачи': '— (MOCK)'},
+                {'Кем выдан': '— (MOCK)'},
+                {'Действует до': '— (MOCK)'},
+                {'Адрес регистрации': '— (MOCK)'},
+                {'ОГРН': '— (MOCK)'},
                 {'ИНН': taxNumber},
               ]),
             ),
@@ -216,7 +262,8 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
               'Банковские реквизиты',
               '',
               _buildDetailGrid([
-                {'БИК': '— (MOCK)'}, {'Корреспондентский счет': '— (MOCK)'},
+                {'БИК': '— (MOCK)'},
+                {'Корреспондентский счет': '— (MOCK)'},
                 {'Расчетный счет': '— (MOCK)'},
               ]),
               showDivider: false,
@@ -227,7 +274,318 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
     );
   }
 
-  Widget _buildDetailSection(String title, String subtitle, Widget content, {bool showDivider = true, VoidCallback? onEdit}) {
+  Widget _buildCarTab(Staff displayStaff) {
+    if (displayStaff.carId.isEmpty) {
+      return const Center(child: Text('Автомобиль не привязан'));
+    }
+
+    final carAsync = ref.watch(carInfoProvider(displayStaff.carId));
+
+    return carAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            'Ошибка загрузки данных автомобиля: $error',
+            style: const TextStyle(color: Colors.red),
+          ),
+        ),
+      ),
+      data: (data) {
+        if (data == null) {
+          return const Center(child: Text('Данные автомобиля не найдены'));
+        }
+
+        final car = data['car'] as Map<String, dynamic>?;
+        if (car == null)
+          return const Center(child: Text('Нет информации об автомобиле'));
+
+        final brand = car['brand'] as String? ?? '';
+        final model = car['model'] as String? ?? '';
+        final number = car['number'] as String? ?? '';
+        final year = car['year']?.toString() ?? '—';
+        final transmission = car['transmission'] == 'mechanical'
+            ? 'Механика'
+            : (car['transmission'] == 'auto' ? 'Автомат' : '—');
+        final isParkVehicle = car['vehicle_owner_type'] == 'park';
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Переключатель Парковый / Частный
+            Container(
+              decoration: BoxDecoration(
+                color: AppTheme.controlsColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isParkVehicle
+                            ? AppTheme.cardColor
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: isParkVehicle
+                            ? Border.all(color: AppTheme.borderColor)
+                            : null,
+                        boxShadow: isParkVehicle
+                            ? [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'Парковый',
+                        style: TextStyle(
+                          color: isParkVehicle
+                              ? AppTheme.textPrimary
+                              : AppTheme.textSecondary,
+                          fontWeight: isParkVehicle
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: !isParkVehicle
+                            ? AppTheme.cardColor
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: !isParkVehicle
+                            ? Border.all(color: AppTheme.borderColor)
+                            : null,
+                        boxShadow: !isParkVehicle
+                            ? [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'Частный',
+                        style: TextStyle(
+                          color: !isParkVehicle
+                              ? AppTheme.textPrimary
+                              : AppTheme.textSecondary,
+                          fontWeight: !isParkVehicle
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Основная карточка авто
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color:
+                    AppTheme.controlsColor, // Цвет карточки авто из скриншота
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '$number $brand ${model}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 20),
+                            onPressed: () {},
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                          const SizedBox(width: 16),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, size: 20),
+                            onPressed: () {},
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 48),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_today,
+                        size: 16,
+                        color: Colors.black87,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(year, style: const TextStyle(fontSize: 15)),
+                      const SizedBox(width: 16),
+                      const Icon(
+                        Icons.settings,
+                        size: 16,
+                        color: Colors.black87,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(transmission, style: const TextStyle(fontSize: 15)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Списания
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.cardColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.borderColor),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Периодические списания',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.payments_outlined,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Списание за аренду',
+                        style: TextStyle(color: Colors.grey, fontSize: 15),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.account_balance_wallet_outlined,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Списание за депозит',
+                        style: TextStyle(color: Colors.grey, fontSize: 15),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Ограничить поездки без ОСАГО
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.controlsColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Ограничить поездки без ОСАГО',
+                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Доступно после подтверждения\nправа использования в карточке\nавтомобиля',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Ограничить поездки в других парках
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.controlsColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Ограничить поездки в других\nпарках',
+                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Доступно после подтверждения\nправа использования в карточке\nавтомобиля',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailSection(
+    String title,
+    String subtitle,
+    Widget content, {
+    bool showDivider = true,
+    VoidCallback? onEdit,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       child: Column(
@@ -240,11 +598,23 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     if (subtitle.isNotEmpty) ...[
                       const SizedBox(height: 4),
-                      Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                    ]
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -271,17 +641,29 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
   Widget _buildDetailGrid(List<Map<String, String>> items) {
     List<Widget> rows = [];
     for (int i = 0; i < items.length; i += 2) {
-      rows.add(Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: _buildDetailItem(items[i].keys.first, items[i].values.first)),
-          const SizedBox(width: 16),
-          if (i + 1 < items.length)
-            Expanded(child: _buildDetailItem(items[i + 1].keys.first, items[i + 1].values.first))
-          else
-            const Expanded(child: SizedBox()),
-        ],
-      ));
+      rows.add(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildDetailItem(
+                items[i].keys.first,
+                items[i].values.first,
+              ),
+            ),
+            const SizedBox(width: 16),
+            if (i + 1 < items.length)
+              Expanded(
+                child: _buildDetailItem(
+                  items[i + 1].keys.first,
+                  items[i + 1].values.first,
+                ),
+              )
+            else
+              const Expanded(child: SizedBox()),
+          ],
+        ),
+      );
       if (i + 2 < items.length) {
         rows.add(const SizedBox(height: 16));
       }
@@ -307,9 +689,18 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
       icon: CircleAvatar(
         radius: 36,
         backgroundColor: AppTheme.controlsColor,
-        backgroundImage: displayStaff.avatarUrl.isNotEmpty ? NetworkImage(displayStaff.avatarUrl) : null,
+        backgroundImage: displayStaff.avatarUrl.isNotEmpty
+            ? NetworkImage(displayStaff.avatarUrl)
+            : null,
         child: displayStaff.avatarUrl.isEmpty
-            ? Text(displayStaff.initials, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: AppTheme.textSecondary))
+            ? Text(
+                displayStaff.initials,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textSecondary,
+                ),
+              )
             : null,
       ),
       child: Column(
@@ -322,9 +713,15 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
             children: [
               StatusBadge(status: displayStaff.status),
               if (displayStaff.employmentType.isNotEmpty)
-                CustomBadge(type: BadgeType.working, text: displayStaff.employmentType),
+                CustomBadge(
+                  type: BadgeType.working,
+                  text: displayStaff.employmentType,
+                ),
               if (displayStaff.vehicleType.isNotEmpty)
-                 CustomBadge(type: BadgeType.preparation, text: 'Парковый автомобиль'),
+                CustomBadge(
+                  type: BadgeType.preparation,
+                  text: 'Парковый автомобиль',
+                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -334,9 +731,19 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
               Expanded(
                 child: Column(
                   children: [
-                    InfoBlock(title: 'ТЕЛЕФОН', value: displayStaff.phoneNumber, icon: Icons.phone_outlined),
+                    InfoBlock(
+                      title: 'ТЕЛЕФОН',
+                      value: displayStaff.phoneNumber,
+                      icon: Icons.phone_outlined,
+                    ),
                     const SizedBox(height: 8),
-                    InfoBlock(title: 'EMAIL', value: displayStaff.email.isNotEmpty ? displayStaff.email : 'Не указан', icon: Icons.email_outlined),
+                    InfoBlock(
+                      title: 'EMAIL',
+                      value: displayStaff.email.isNotEmpty
+                          ? displayStaff.email
+                          : 'Не указан',
+                      icon: Icons.email_outlined,
+                    ),
                   ],
                 ),
               ),
@@ -344,9 +751,19 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
               Expanded(
                 child: Column(
                   children: [
-                    InfoBlock(title: 'ID', value: displayStaff.id, icon: Icons.badge_outlined),
+                    InfoBlock(
+                      title: 'ID',
+                      value: displayStaff.id,
+                      icon: Icons.badge_outlined,
+                    ),
                     const SizedBox(height: 8),
-                    InfoBlock(title: 'ИНН', value: displayStaff.taxNumber.isNotEmpty ? displayStaff.taxNumber : 'Не указан', icon: Icons.receipt_long_outlined),
+                    InfoBlock(
+                      title: 'ИНН',
+                      value: displayStaff.taxNumber.isNotEmpty
+                          ? displayStaff.taxNumber
+                          : 'Не указан',
+                      icon: Icons.receipt_long_outlined,
+                    ),
                   ],
                 ),
               ),
@@ -362,11 +779,23 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _ActionButton(icon: Icons.chat_bubble_outline, label: 'Написать', onTap: () {}),
+          _ActionButton(
+            icon: Icons.chat_bubble_outline,
+            label: 'Написать',
+            onTap: () {},
+          ),
           const SizedBox(width: 8),
-          _ActionButton(icon: Icons.work_outline, label: 'Сменить тип занятости', onTap: () {}),
+          _ActionButton(
+            icon: Icons.work_outline,
+            label: 'Сменить тип занятости',
+            onTap: () {},
+          ),
           const SizedBox(width: 8),
-          _ActionButton(icon: Icons.history, label: 'История изменений', onTap: () {}),
+          _ActionButton(
+            icon: Icons.history,
+            label: 'История изменений',
+            onTap: () {},
+          ),
         ],
       ),
     );
@@ -374,11 +803,14 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
 
   Widget _buildDetailsGrid(BuildContext context, Staff displayStaff) {
     final carAsync = ref.watch(carInfoProvider(displayStaff.carId));
-    final carTitle = carAsync.value != null 
-        ? '${carAsync.value!['brand']} ${carAsync.value!['model']}' 
-        : (displayStaff.vehicleType.isNotEmpty ? displayStaff.vehicleType : 'Парковый автомобиль');
-    final carValue = carAsync.value != null 
-        ? '${carAsync.value!['callsign']}\nГод: ${carAsync.value!['year']}' 
+    final carData = carAsync.value?['car'] as Map<String, dynamic>?;
+    final carTitle = carData != null
+        ? '${carData['brand']} ${carData['model']}'
+        : (displayStaff.vehicleType.isNotEmpty
+              ? displayStaff.vehicleType
+              : 'Парковый автомобиль');
+    final carValue = carData != null
+        ? '${carData['callsign']}\nГод: ${carData['year']}'
         : 'Ограничить поездки без ОСАГО\nОграничить поездки в других парках';
 
     return Column(
@@ -387,19 +819,27 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
           children: [
             Expanded(
               child: _StatCard(
-                title: 'Баланс', 
-                value: displayStaff.balance, 
+                title: 'Баланс',
+                value: displayStaff.balance,
                 showBalanceActions: true,
                 onAddTap: () {
-                  TransactionBottomSheet.show(context: context, staff: displayStaff);
+                  TransactionBottomSheet.show(
+                    context: context,
+                    staff: displayStaff,
+                  );
                 },
                 onRemoveTap: () {
-                  TransactionBottomSheet.show(context: context, staff: displayStaff);
+                  TransactionBottomSheet.show(
+                    context: context,
+                    staff: displayStaff,
+                  );
                 },
               ),
             ),
             const SizedBox(width: 12),
-            const Expanded(child: _StatCard(title: 'Бонусы', value: 'Нет активных бонусов')),
+            const Expanded(
+              child: _StatCard(title: 'Бонусы', value: 'Нет активных бонусов'),
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -409,9 +849,11 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
             Expanded(
               child: _StatCard(
                 title: 'Комментарий',
-                value: displayStaff.comment.isNotEmpty ? displayStaff.comment : 'Нет комментария',
+                value: displayStaff.comment.isNotEmpty
+                    ? displayStaff.comment
+                    : 'Нет комментария',
                 subtitle: 'Заметка об исполнителе',
-                isEditable: true,
+                isEditable: false,
               ),
             ),
             const SizedBox(width: 12),
@@ -421,6 +863,18 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
                 value: carAsync.isLoading ? '' : carValue,
                 subtitle: 'Детали авто',
                 isEditable: true,
+                onEditTap: () {
+                  print('🚗 Edit button tapped for vehicle card');
+                  VehicleSelectorBottomSheet.show(
+                    context: context,
+                    onVehicleSelected: (vehicle) {
+                      // TODO: Implement vehicle assignment API call
+                      print('Selected vehicle: ${vehicle['id']}');
+                      // Refresh the car info after selection
+                      ref.invalidate(carInfoProvider(displayStaff.carId));
+                    },
+                  );
+                },
                 valueFontSize: 13,
                 valueColor: AppTheme.textSecondary,
               ),
@@ -432,7 +886,11 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
   }
 
   Widget _buildIndicatorsSection(Staff displayStaff) {
-    final ordersAsync = ref.watch(driverOrdersProvider(DriverOrdersParams(displayStaff.id, _selectedPeriodDays)));
+    final ordersAsync = ref.watch(
+      driverOrdersProvider(
+        DriverOrdersParams(displayStaff.id, _selectedPeriodDays),
+      ),
+    );
 
     double totalIncome = 0;
     int totalOrders = 0;
@@ -464,7 +922,10 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
             GestureDetector(
               onTap: _showPeriodSelector,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppTheme.cardColor,
                   borderRadius: BorderRadius.circular(16),
@@ -472,11 +933,19 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.calendar_today_outlined, size: 14, color: AppTheme.textSecondary),
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 14,
+                      color: AppTheme.textSecondary,
+                    ),
                     const SizedBox(width: 6),
                     Text(_getPeriodLabel(), style: AppTheme.captionSecondary),
                     const SizedBox(width: 4),
-                    const Icon(Icons.expand_more, size: 14, color: AppTheme.textSecondary),
+                    const Icon(
+                      Icons.expand_more,
+                      size: 14,
+                      color: AppTheme.textSecondary,
+                    ),
                   ],
                 ),
               ),
@@ -486,13 +955,36 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: _IndicatorCard(title: 'Доход в Про', value: ordersAsync.isLoading ? '...' : '${totalIncome.toInt()} ₽')),
+            Expanded(
+              child: _IndicatorCard(
+                title: 'Доход в Про',
+                value: ordersAsync.isLoading
+                    ? '...'
+                    : '${totalIncome.toInt()} ₽',
+              ),
+            ),
             const SizedBox(width: 8),
-            Expanded(child: _IndicatorCard(title: 'Заказы', value: ordersAsync.isLoading ? '...' : '$totalOrders')),
+            Expanded(
+              child: _IndicatorCard(
+                title: 'Заказы',
+                value: ordersAsync.isLoading ? '...' : '$totalOrders',
+              ),
+            ),
             const SizedBox(width: 8),
-            Expanded(child: _IndicatorCard(title: 'Отмененные', value: ordersAsync.isLoading ? '...' : '$cancelledOrders')),
+            Expanded(
+              child: _IndicatorCard(
+                title: 'Отмененные',
+                value: ordersAsync.isLoading ? '...' : '$cancelledOrders',
+              ),
+            ),
             const SizedBox(width: 8),
-            Expanded(child: _IndicatorCard(title: 'Время на линии', value: '${(workTimeSeconds / 3600).floor()} ч\n${((workTimeSeconds % 3600) / 60).floor()} мин')),
+            Expanded(
+              child: _IndicatorCard(
+                title: 'Время на линии',
+                value:
+                    '${(workTimeSeconds / 3600).floor()} ч\n${((workTimeSeconds % 3600) / 60).floor()} мин',
+              ),
+            ),
           ],
         ),
       ],
@@ -596,7 +1088,11 @@ class _ActionButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  const _ActionButton({required this.icon, required this.label, required this.onTap});
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -614,7 +1110,14 @@ class _ActionButton extends StatelessWidget {
           children: [
             Icon(icon, size: 18, color: const Color(0xFF34C759)),
             const SizedBox(width: 8),
-            Text(label, style: const TextStyle(fontFamily: 'Yandex Sans Text', fontSize: 14, fontWeight: FontWeight.w500)),
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Yandex Sans Text',
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
         ),
       ),
@@ -630,6 +1133,7 @@ class _StatCard extends StatelessWidget {
   final VoidCallback? onAddTap;
   final VoidCallback? onRemoveTap;
   final bool isEditable;
+  final VoidCallback? onEditTap;
   final double valueFontSize;
   final Color valueColor;
 
@@ -641,6 +1145,7 @@ class _StatCard extends StatelessWidget {
     this.onAddTap,
     this.onRemoveTap,
     this.isEditable = false,
+    this.onEditTap,
     this.valueFontSize = 20,
     this.valueColor = AppTheme.textPrimary,
   });
@@ -679,7 +1184,11 @@ class _StatCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(Icons.chevron_right, size: 16, color: AppTheme.textSecondary),
+                        const Icon(
+                          Icons.chevron_right,
+                          size: 16,
+                          color: AppTheme.textSecondary,
+                        ),
                       ],
                     ),
                   ),
@@ -692,7 +1201,11 @@ class _StatCard extends StatelessWidget {
                           behavior: HitTestBehavior.opaque,
                           child: const Padding(
                             padding: EdgeInsets.all(4.0),
-                            child: Icon(Icons.remove_circle_outline, size: 22, color: AppTheme.textPrimary),
+                            child: Icon(
+                              Icons.remove_circle_outline,
+                              size: 22,
+                              color: AppTheme.textPrimary,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 4),
@@ -701,13 +1214,31 @@ class _StatCard extends StatelessWidget {
                           behavior: HitTestBehavior.opaque,
                           child: const Padding(
                             padding: EdgeInsets.all(4.0),
-                            child: Icon(Icons.add_circle_outline, size: 22, color: AppTheme.textPrimary),
+                            child: Icon(
+                              Icons.add_circle_outline,
+                              size: 22,
+                              color: AppTheme.textPrimary,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   if (isEditable)
-                    const Icon(Icons.edit_outlined, size: 20, color: AppTheme.textSecondary),
+                    GestureDetector(
+                      onTap: () {
+                        print('📝 Edit icon tapped in _StatCard');
+                        onEditTap?.call();
+                      },
+                      behavior: HitTestBehavior.opaque,
+                      child: const Padding(
+                        padding: EdgeInsets.all(4.0),
+                        child: Icon(
+                          Icons.edit_outlined,
+                          size: 20,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ),
                 ],
               ),
               if (subtitle != null) ...[
@@ -767,7 +1298,11 @@ class _IndicatorCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Icon(Icons.chevron_right, size: 14, color: AppTheme.textSecondary),
+              const Icon(
+                Icons.chevron_right,
+                size: 14,
+                color: AppTheme.textSecondary,
+              ),
             ],
           ),
           Text(
@@ -783,5 +1318,3 @@ class _IndicatorCard extends StatelessWidget {
     );
   }
 }
-
-

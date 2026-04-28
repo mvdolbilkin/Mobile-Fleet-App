@@ -34,13 +34,9 @@ class AuthService {
 
       final response = await _dio.post(
         '$baseUrl/api/auth/login',
-        data: {
-          'clid': clid,
-          'api_key': apiKey,
-          'park_id': parkId,
-        },
+        data: {'clid': clid, 'api_key': apiKey, 'park_id': parkId},
       );
-      
+
       if (response.statusCode == 200 && response.data['success'] == true) {
         // Сохраняем ключи при успешном входе
         await _secureStorage.saveYandexCredentials(
@@ -63,8 +59,10 @@ class AuthService {
     final sessionId = await _secureStorage.getYandexSessionId();
     final sessionId2 = await _secureStorage.getYandexSessionId2();
 
-    if (sessionId != null && sessionId.isNotEmpty &&
-        sessionId2 != null && sessionId2.isNotEmpty) {
+    if (sessionId != null &&
+        sessionId.isNotEmpty &&
+        sessionId2 != null &&
+        sessionId2.isNotEmpty) {
       // Есть cookies - авторизация через WebView
       return true;
     }
@@ -74,17 +72,19 @@ class AuthService {
     final apiKey = await _secureStorage.getApiKey();
     final parkId = await _secureStorage.getParkId();
 
-    if (clid != null && clid.isNotEmpty &&
-        apiKey != null && apiKey.isNotEmpty &&
-        parkId != null && parkId.isNotEmpty) {
-      
+    if (clid != null &&
+        clid.isNotEmpty &&
+        apiKey != null &&
+        apiKey.isNotEmpty &&
+        parkId != null &&
+        parkId.isNotEmpty) {
       final success = await login(clid: clid, apiKey: apiKey, parkId: parkId);
       if (!success) {
         await _secureStorage.deleteYandexCredentials();
       }
       return success;
     }
-    
+
     return false;
   }
 
@@ -117,7 +117,7 @@ class AuthService {
     // Удаляем сохраненные credentials и cookies из secure storage
     await _secureStorage.deleteYandexCredentials();
     await _secureStorage.deleteYandexCookies();
-    
+
     // Очищаем cookies из WebView для полного выхода из Yandex аккаунта
     try {
       final cookieManager = CookieManager.instance();

@@ -18,10 +18,12 @@ class StatusList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: items
-          .map((item) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: _StatusRow(item: item),
-              ))
+          .map(
+            (item) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: _StatusRow(item: item),
+            ),
+          )
           .toList(),
     );
   }
@@ -40,10 +42,7 @@ class _StatusRow extends StatelessWidget {
         Container(
           width: 12,
           height: 12,
-          decoration: BoxDecoration(
-            color: item.color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: item.color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 8),
         Text(

@@ -13,15 +13,12 @@ import 'package:mobile/features/auth/yandex_webview_login_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
-  
+
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: '/login', // Change to '/login' later remind me
     routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/api-setup',
         builder: (context, state) => const ApiSetupScreen(),

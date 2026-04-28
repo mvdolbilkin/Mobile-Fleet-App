@@ -66,7 +66,11 @@ class _YandexWebViewLoginScreenState
                   color: Colors.blue.shade50,
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.blue.shade700,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -126,7 +130,7 @@ class _YandexWebViewLoginScreenState
                         _currentUrl = url.toString();
                       });
                       ref.read(loggerProvider).i('URL updated: $url');
-                      
+
                       // Проверяем cookies при изменении URL
                       if (url.toString().contains('fleet.yandex.ru') &&
                           !url.toString().contains('/passport') &&
@@ -191,7 +195,7 @@ class _YandexWebViewLoginScreenState
 
       for (final cookie in cookies) {
         ref.read(loggerProvider).d('Cookie: ${cookie.name} = ${cookie.value}');
-        
+
         switch (cookie.name) {
           case 'Session_id':
             sessionId = cookie.value;
@@ -219,10 +223,12 @@ class _YandexWebViewLoginScreenState
         parkId = _extractParkIdFromUrl(url);
       }
 
-      ref.read(loggerProvider).i(
-        'Extracted: park_id=$parkId, yandex_login=$yandexLogin, '
-        'Session_id=${sessionId != null}, sessionid2=${sessionId2 != null}',
-      );
+      ref
+          .read(loggerProvider)
+          .i(
+            'Extracted: park_id=$parkId, yandex_login=$yandexLogin, '
+            'Session_id=${sessionId != null}, sessionid2=${sessionId2 != null}',
+          );
 
       // Проверяем наличие всех необходимых данных
       if (parkId != null &&
@@ -290,13 +296,15 @@ class _YandexWebViewLoginScreenState
           }
         }
       } else {
-        ref.read(loggerProvider).w(
-          'Waiting for login... Missing: '
-          '${parkId == null ? "park_id " : ""}'
-          '${yandexLogin == null ? "yandex_login " : ""}'
-          '${sessionId == null ? "Session_id " : ""}'
-          '${sessionId2 == null ? "sessionid2 " : ""}',
-        );
+        ref
+            .read(loggerProvider)
+            .w(
+              'Waiting for login... Missing: '
+              '${parkId == null ? "park_id " : ""}'
+              '${yandexLogin == null ? "yandex_login " : ""}'
+              '${sessionId == null ? "Session_id " : ""}'
+              '${sessionId2 == null ? "sessionid2 " : ""}',
+            );
         setState(() {
           _isProcessing = false;
         });
@@ -312,13 +320,13 @@ class _YandexWebViewLoginScreenState
   String? _extractParkIdFromUrl(String url) {
     try {
       final uri = Uri.parse(url);
-      
+
       // Проверяем query параметр park_id
       final queryParkId = uri.queryParameters['park_id'];
       if (queryParkId != null && queryParkId.isNotEmpty) {
         return queryParkId;
       }
-      
+
       // Проверяем путь вида /parks/{park_id}/...
       final pathSegments = uri.pathSegments;
       if (pathSegments.length >= 2 && pathSegments[0] == 'parks') {

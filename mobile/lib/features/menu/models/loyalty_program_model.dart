@@ -2,10 +2,7 @@ class LoyaltyProgramData {
   final List<Goal> goals;
   final ParkInfo parkInfo;
 
-  LoyaltyProgramData({
-    required this.goals,
-    required this.parkInfo,
-  });
+  LoyaltyProgramData({required this.goals, required this.parkInfo});
 
   factory LoyaltyProgramData.fromJson(Map<String, dynamic> json) {
     return LoyaltyProgramData(
@@ -41,15 +38,27 @@ class Goal {
       title: json['title'],
       status: json['status'],
       period: Period.fromJson(json['period']),
-      rewards: (json['rewards'] as List).map((r) => Reward.fromJson(r)).toList(),
+      rewards: (json['rewards'] as List)
+          .map((r) => Reward.fromJson(r))
+          .toList(),
     );
   }
 
   String get periodText {
     final start = DateTime.parse(period.start);
     final months = [
-      'январе', 'феврале', 'марте', 'апреле', 'мае', 'июне',
-      'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре'
+      'январе',
+      'феврале',
+      'марте',
+      'апреле',
+      'мае',
+      'июне',
+      'июле',
+      'августе',
+      'сентябре',
+      'октябре',
+      'ноябре',
+      'декабре',
     ];
     return 'Прогресс в ${months[start.month - 1]}';
   }
@@ -60,11 +69,7 @@ class Period {
   final String finish;
   final String type;
 
-  Period({
-    required this.start,
-    required this.finish,
-    required this.type,
-  });
+  Period({required this.start, required this.finish, required this.type});
 
   factory Period.fromJson(Map<String, dynamic> json) {
     return Period(
@@ -100,7 +105,9 @@ class Reward {
       subtitle: json['subtitle'],
       isCompleted: json['is_completed'],
       loyaltyStatus: json['loyalty_status'],
-      items: (json['items'] as List).map((i) => RewardItem.fromJson(i)).toList(),
+      items: (json['items'] as List)
+          .map((i) => RewardItem.fromJson(i))
+          .toList(),
       kpisToComplete: json['kpis_to_complete'],
       keyPerformanceIndicators: (json['key_performance_indicators'] as List)
           .map((k) => KPI.fromJson(k))
@@ -131,16 +138,10 @@ class RewardItem {
   final String type;
   final String value;
 
-  RewardItem({
-    required this.type,
-    required this.value,
-  });
+  RewardItem({required this.type, required this.value});
 
   factory RewardItem.fromJson(Map<String, dynamic> json) {
-    return RewardItem(
-      type: json['type'],
-      value: json['value'],
-    );
+    return RewardItem(type: json['type'], value: json['value']);
   }
 }
 
@@ -199,8 +200,6 @@ class ParkInfo {
   ParkInfo({required this.loyaltyStatus});
 
   factory ParkInfo.fromJson(Map<String, dynamic> json) {
-    return ParkInfo(
-      loyaltyStatus: json['loyalty_status'],
-    );
+    return ParkInfo(loyaltyStatus: json['loyalty_status']);
   }
 }

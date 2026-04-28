@@ -69,7 +69,7 @@ class EditVehicleFormData {
     // categories содержит список категорий/тарифов конкретного автомобиля
     // Если есть категория 'cargo', значит это грузовой автомобиль
     final isTruck = profile?.categories?.contains('cargo') ?? false;
-    
+
     return EditVehicleFormData(
       vehicleId: vehicleId,
       originalDetails: details,
@@ -259,17 +259,22 @@ class EditVehicleFormData {
       'fuel_type': _mapFuelType(fuelType),
       'vehicle_owner_type': 'park',
       'amenities': hasAirConditioner ? ['conditioner'] : <String>[],
-      'office_id': officeId.isNotEmpty ? officeId : (originalDetails.parkProfile?.officeId ?? ''),
+      'office_id': officeId.isNotEmpty
+          ? officeId
+          : (originalDetails.parkProfile?.officeId ?? ''),
       'is_readonly': originalDetails.parkProfile?.isReadonly ?? false,
-      'is_created_by_contractor': originalDetails.parkProfile?.isCreatedByContractor ?? false,
+      'is_created_by_contractor':
+          originalDetails.parkProfile?.isCreatedByContractor ?? false,
       'rental': originalDetails.parkProfile?.rental ?? false,
       'is_cargo_frauder': originalDetails.parkProfile?.isCargoFrauder ?? false,
     };
 
     if (stsIssueDate.isNotEmpty) {
       payload['registration_cert_issue_date'] = _formatDateForApi(stsIssueDate);
-    } else if (originalDetails.licenses?.registrationCertIssueDate != null && originalDetails.licenses!.registrationCertIssueDate!.isNotEmpty) {
-      payload['registration_cert_issue_date'] = originalDetails.licenses!.registrationCertIssueDate!;
+    } else if (originalDetails.licenses?.registrationCertIssueDate != null &&
+        originalDetails.licenses!.registrationCertIssueDate!.isNotEmpty) {
+      payload['registration_cert_issue_date'] =
+          originalDetails.licenses!.registrationCertIssueDate!;
     }
 
     if (bodyNumber.isNotEmpty) {
@@ -544,5 +549,5 @@ class EditVehicleFormNotifier extends Notifier<EditVehicleFormData?> {
 
 final editVehicleFormProvider =
     NotifierProvider<EditVehicleFormNotifier, EditVehicleFormData?>(
-  () => EditVehicleFormNotifier(),
-);
+      () => EditVehicleFormNotifier(),
+    );

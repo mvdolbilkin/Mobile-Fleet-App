@@ -24,8 +24,7 @@ class CarsChart extends StatelessWidget {
             bottom:
                 25, // Start from the '0' line (approx text height + padding)
             left: 0,
-            right:
-                50, // Leave space for right-side labels
+            right: 50, // Leave space for right-side labels
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -35,7 +34,9 @@ class CarsChart extends StatelessWidget {
                   height: 140, // Visual approximation for > 2000
                   decoration: const BoxDecoration(
                     color: AppTheme.statusGreen,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(4),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -44,7 +45,9 @@ class CarsChart extends StatelessWidget {
                   height: 6, // Visual approximation for ~67
                   decoration: const BoxDecoration(
                     color: AppTheme.statusOrange,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(4),
+                    ),
                   ),
                 ),
               ],

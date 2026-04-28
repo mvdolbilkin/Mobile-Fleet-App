@@ -228,6 +228,45 @@ json.NewDecoder(resp.Body).Decode(&result)
 return result, nil
 }
 
+func (s *Service) GetVehicleSuggestions(cookieHeader string, parkID string, limit int) (interface{}, error) {
+	url := fmt.Sprintf("https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/cars/suggest?is_rental=true&limit=%d", limit)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
+	}
+
+	req.Header.Set("Accept-Language", "ru")
+	if cookieHeader != "" {
+		req.Header.Set("Cookie", cookieHeader)
+	}
+	if parkID != "" {
+		req.Header.Set("X-Park-ID", parkID)
+	}
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка чтения ответа: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
+	}
+
+	var result interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
+	}
+
+	return result, nil
+}
+
 func (s *Service) CreateTransaction(cookieHeader string, parkID string, transaction TransactionRequest) (interface{}, error) {
 	url := "https://fleet.yandex.ru/api/fleet/fleet-external-business-events/v2/parks/driver-profiles/transactions"
 

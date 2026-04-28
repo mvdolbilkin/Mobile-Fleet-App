@@ -29,7 +29,7 @@ class Expense {
     } else if (amountValue is String) {
       amount = double.tryParse(amountValue) ?? 0;
     }
-    
+
     // Парсим дату
     final dateStr = json['date'] as String? ?? '';
     DateTime? parsedDate;
@@ -38,7 +38,8 @@ class Expense {
     } catch (e) {
       parsedDate = DateTime.now();
     }
-    final formattedDate = '${parsedDate.year}-${parsedDate.month.toString().padLeft(2, '0')}-${parsedDate.day.toString().padLeft(2, '0')}';
+    final formattedDate =
+        '${parsedDate.year}-${parsedDate.month.toString().padLeft(2, '0')}-${parsedDate.day.toString().padLeft(2, '0')}';
 
     // Парсим объект автомобиля
     final carJson = json['car'] as Map<String, dynamic>? ?? {};

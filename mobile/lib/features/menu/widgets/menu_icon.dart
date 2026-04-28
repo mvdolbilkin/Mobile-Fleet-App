@@ -15,11 +15,7 @@ class MenuIcon extends StatelessWidget {
       //   color: Colors.black,
       //   borderRadius: BorderRadius.circular(10),
       // ),
-      child: SvgPicture.asset(
-        assetPath,
-        width: 32,
-        height: 32,
-      ),
+      child: SvgPicture.asset(assetPath, width: 32, height: 32),
     );
   }
 }

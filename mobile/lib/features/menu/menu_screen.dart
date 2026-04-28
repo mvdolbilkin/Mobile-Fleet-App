@@ -24,9 +24,7 @@ class MenuScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
-            ),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Выйти'),
           ),
         ],
@@ -36,7 +34,7 @@ class MenuScreen extends ConsumerWidget {
     if (confirmed == true && context.mounted) {
       final authService = ref.read(authServiceProvider);
       await authService.logout();
-      
+
       if (context.mounted) {
         context.go('/login');
       }
@@ -96,9 +94,7 @@ class MenuScreen extends ConsumerWidget {
                           children: [
                             Text(
                               'Выйти из аккаунта',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
+                              style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(
                                     fontWeight: FontWeight.bold,
                                     color: Colors.red,
@@ -107,9 +103,7 @@ class MenuScreen extends ConsumerWidget {
                             const SizedBox(height: 4),
                             Text(
                               'Удалить сессию и ключи',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
+                              style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
                                     color: Colors.red.withOpacity(0.7),
                                   ),

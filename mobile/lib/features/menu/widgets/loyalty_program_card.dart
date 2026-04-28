@@ -24,7 +24,9 @@ class LoyaltyProgramCard extends ConsumerWidget {
         return InfoCard(
           title: goal.title,
           subtitle: goal.periodText,
-          icon: const MenuIcon(assetPath: 'assets/images/menu_loyalty_program.svg'),
+          icon: const MenuIcon(
+            assetPath: 'assets/images/menu_loyalty_program.svg',
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -35,7 +37,9 @@ class LoyaltyProgramCard extends ConsumerWidget {
       },
       loading: () => InfoCard(
         title: 'Программа лояльности',
-        icon: const MenuIcon(assetPath: 'assets/images/menu_loyalty_program.svg'),
+        icon: const MenuIcon(
+          assetPath: 'assets/images/menu_loyalty_program.svg',
+        ),
         child: const Center(
           child: Padding(
             padding: EdgeInsets.all(32.0),
@@ -45,7 +49,9 @@ class LoyaltyProgramCard extends ConsumerWidget {
       ),
       error: (error, stack) => InfoCard(
         title: 'Программа лояльности',
-        icon: const MenuIcon(assetPath: 'assets/images/menu_loyalty_program.svg'),
+        icon: const MenuIcon(
+          assetPath: 'assets/images/menu_loyalty_program.svg',
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -68,11 +74,7 @@ class LoyaltyProgramCard extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _LevelHeader(
-          icon: SvgPicture.asset(
-            reward.iconAsset,
-            width: 24,
-            height: 24,
-          ),
+          icon: SvgPicture.asset(reward.iconAsset, width: 24, height: 24),
           text: reward.title,
           isLocked: !reward.isCompleted,
         ),
@@ -98,25 +100,29 @@ class LoyaltyProgramCard extends ConsumerWidget {
               spacing: 8,
               runSpacing: 8,
               children: reward.benefitItems
-                  .map((item) => _BenefitBadge(
-                        text: item.value,
-                        assetPath: 'assets/images/menu_loyalty_lock.svg',
-                      ))
+                  .map(
+                    (item) => _BenefitBadge(
+                      text: item.value,
+                      assetPath: 'assets/images/menu_loyalty_lock.svg',
+                    ),
+                  )
                   .toList(),
             ),
           ),
         ],
         if (reward.keyPerformanceIndicators.isNotEmpty) ...[
           const SizedBox(height: 12),
-          ...reward.keyPerformanceIndicators.map((kpi) => Padding(
-                padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
-                child: _RequirementRow(
-                  text: kpi.title,
-                  state: kpi.isCompleted
-                      ? _RequirementState.completed
-                      : _RequirementState.failed,
-                ),
-              )),
+          ...reward.keyPerformanceIndicators.map(
+            (kpi) => Padding(
+              padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+              child: _RequirementRow(
+                text: kpi.title,
+                state: kpi.isCompleted
+                    ? _RequirementState.completed
+                    : _RequirementState.failed,
+              ),
+            ),
+          ),
         ],
         const SizedBox(height: 16),
       ],
@@ -159,10 +165,7 @@ class _BenefitBadge extends StatelessWidget {
   final String text;
   final String assetPath;
 
-  const _BenefitBadge({
-    required this.text,
-    required this.assetPath,
-  });
+  const _BenefitBadge({required this.text, required this.assetPath});
 
   @override
   Widget build(BuildContext context) {
@@ -180,7 +183,10 @@ class _BenefitBadge extends StatelessWidget {
             height: 12,
             child: SvgPicture.asset(
               assetPath,
-              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              colorFilter: const ColorFilter.mode(
+                Colors.white,
+                BlendMode.srcIn,
+              ),
             ),
           ),
           const SizedBox(width: 4),
@@ -205,10 +211,7 @@ class _RequirementRow extends StatelessWidget {
   final String text;
   final _RequirementState state;
 
-  const _RequirementRow({
-    required this.text,
-    required this.state,
-  });
+  const _RequirementRow({required this.text, required this.state});
 
   @override
   Widget build(BuildContext context) {
@@ -228,11 +231,7 @@ class _RequirementRow extends StatelessWidget {
 
     return Row(
       children: [
-        SizedBox(
-          width: 20,
-          height: 20,
-          child: SvgPicture.asset(assetPath),
-        ),
+        SizedBox(width: 20, height: 20, child: SvgPicture.asset(assetPath)),
         const SizedBox(width: 8),
         Expanded(
           child: Text(

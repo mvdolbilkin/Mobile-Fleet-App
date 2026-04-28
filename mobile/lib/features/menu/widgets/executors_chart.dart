@@ -14,7 +14,9 @@ class ExecutorsChart extends StatelessWidget {
           Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List.generate(
-                4, (index) => Container(height: 1, color: AppTheme.borderColor)),
+              4,
+              (index) => Container(height: 1, color: AppTheme.borderColor),
+            ),
           ),
           // Bar
           Align(

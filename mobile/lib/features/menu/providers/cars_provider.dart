@@ -9,11 +9,11 @@ String _formatDate(DateTime date) {
 // Provider for cars data
 final carsDataProvider = FutureProvider<CarsData>((ref) async {
   final menuService = ref.watch(menuServiceProvider);
-  
+
   // Default to last 7 days
   final now = DateTime.now();
   final weekAgo = now.subtract(const Duration(days: 7));
-  
+
   return await menuService.getCarsWidget(
     dateFrom: _formatDate(weekAgo),
     dateTo: _formatDate(now),

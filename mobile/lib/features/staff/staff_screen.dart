@@ -150,7 +150,8 @@ class _StaffScreenState extends ConsumerState<StaffScreen> {
                           onTap: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (context) => StaffDetailsScreen(staff: staff),
+                                builder: (context) =>
+                                    StaffDetailsScreen(staff: staff),
                               ),
                             );
                           },

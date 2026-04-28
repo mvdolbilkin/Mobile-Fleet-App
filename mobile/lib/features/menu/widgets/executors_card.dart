@@ -60,10 +60,7 @@ class ExecutorsCard extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const Expanded(
-                  flex: 2,
-                  child: ExecutorsChart(),
-                ),
+                const Expanded(flex: 2, child: ExecutorsChart()),
               ],
             ),
             const SizedBox(height: 24),
@@ -107,7 +104,8 @@ class ExecutorsCard extends ConsumerWidget {
                   child: InfoBlock(
                     title: 'Отток',
                     value: '${data.churn.current}',
-                    subtitle: '${data.churn.diff.formattedValue} ${data.churn.diff.arrow}',
+                    subtitle:
+                        '${data.churn.diff.formattedValue} ${data.churn.diff.arrow}',
                     subtitleColor: data.churn.diff.value <= 0
                         ? AppTheme.statusGreen
                         : AppTheme.statusRed,

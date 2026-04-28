@@ -54,10 +54,7 @@ class MetricWithDiff {
   final int current;
   final Diff diff;
 
-  MetricWithDiff({
-    required this.current,
-    required this.diff,
-  });
+  MetricWithDiff({required this.current, required this.diff});
 
   factory MetricWithDiff.fromJson(Map<String, dynamic> json) {
     return MetricWithDiff(
@@ -71,16 +68,10 @@ class Diff {
   final double value;
   final bool isPercent;
 
-  Diff({
-    required this.value,
-    required this.isPercent,
-  });
+  Diff({required this.value, required this.isPercent});
 
   factory Diff.fromJson(Map<String, dynamic> json) {
-    return Diff(
-      value: json['value'].toDouble(),
-      isPercent: json['is_percent'],
-    );
+    return Diff(value: json['value'].toDouble(), isPercent: json['is_percent']);
   }
 
   String get formattedValue {
@@ -104,9 +95,7 @@ class AvgTimeOnline {
   AvgTimeOnline({required this.current});
 
   factory AvgTimeOnline.fromJson(Map<String, dynamic> json) {
-    return AvgTimeOnline(
-      current: json['current'],
-    );
+    return AvgTimeOnline(current: json['current']);
   }
 
   String get formatted {
@@ -120,10 +109,7 @@ class Conversion {
   final ConversionMetric oneTrip;
   final ConversionMetric nTrips;
 
-  Conversion({
-    required this.oneTrip,
-    required this.nTrips,
-  });
+  Conversion({required this.oneTrip, required this.nTrips});
 
   factory Conversion.fromJson(Map<String, dynamic> json) {
     return Conversion(
@@ -157,10 +143,7 @@ class RatingInfo {
   final String rating;
   final RatingCategory ratingCategory;
 
-  RatingInfo({
-    required this.rating,
-    required this.ratingCategory,
-  });
+  RatingInfo({required this.rating, required this.ratingCategory});
 
   factory RatingInfo.fromJson(Map<String, dynamic> json) {
     return RatingInfo(
@@ -174,10 +157,7 @@ class RatingCategory {
   final String categoryCode;
   final String text;
 
-  RatingCategory({
-    required this.categoryCode,
-    required this.text,
-  });
+  RatingCategory({required this.categoryCode, required this.text});
 
   factory RatingCategory.fromJson(Map<String, dynamic> json) {
     return RatingCategory(

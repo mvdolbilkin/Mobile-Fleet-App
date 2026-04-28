@@ -43,11 +43,14 @@ class Staff {
       hireDate: hireDate ?? this.hireDate,
       carId: carId ?? this.carId,
       driverLicenseNumber: driverLicenseNumber ?? this.driverLicenseNumber,
-      driverLicenseIssueDate: driverLicenseIssueDate ?? this.driverLicenseIssueDate,
-      driverLicenseExpiryDate: driverLicenseExpiryDate ?? this.driverLicenseExpiryDate,
+      driverLicenseIssueDate:
+          driverLicenseIssueDate ?? this.driverLicenseIssueDate,
+      driverLicenseExpiryDate:
+          driverLicenseExpiryDate ?? this.driverLicenseExpiryDate,
       driverLicenseCountry: driverLicenseCountry ?? this.driverLicenseCountry,
     );
   }
+
   final String id;
   final String name;
   final String initials;
@@ -107,7 +110,7 @@ class Staff {
     final phoneVal = json['phone']?.toString() ?? '';
     final balance = json['balance']?.toString() ?? '0';
     final avatarUrl = json['avatar_url']?.toString() ?? '';
-    
+
     // Статус водителя (offline, free, busy и т.д.)
     final statusStr = json['status']?.toString() ?? 'offline';
     StaffStatus status = StaffStatus.offline;
@@ -129,7 +132,10 @@ class Staff {
 
     String initials = '?';
     if (fullName.isNotEmpty && fullName != 'Неизвестно') {
-      final nameParts = fullName.split(' ').where((part) => part.trim().isNotEmpty).toList();
+      final nameParts = fullName
+          .split(' ')
+          .where((part) => part.trim().isNotEmpty)
+          .toList();
       if (nameParts.length >= 2) {
         initials = '${nameParts[0][0]}${nameParts[1][0]}'.toUpperCase();
       } else if (nameParts.isNotEmpty && nameParts[0].isNotEmpty) {
@@ -158,14 +164,18 @@ class Staff {
     final phoneVal = json['phone']?.toString() ?? '';
     final isEnabled = json['is_enabled'] == true;
 
-    final displayName = nameVal.isNotEmpty ? nameVal : (login.isNotEmpty ? login : 'Неизвестно');
-    
+    final displayName = nameVal.isNotEmpty
+        ? nameVal
+        : (login.isNotEmpty ? login : 'Неизвестно');
+
     String initials = '?';
     if (displayName.isNotEmpty && displayName != 'Неизвестно') {
       initials = displayName[0].toUpperCase();
     }
 
-    final status = isEnabled ? StaffStatus.offline : StaffStatus.fired; // Используем offline как дефолт для включенных
+    final status = isEnabled
+        ? StaffStatus.offline
+        : StaffStatus.fired; // Используем offline как дефолт для включенных
 
     return Staff(
       id: id,
@@ -281,10 +291,14 @@ class Staff {
     final firstName = fullName['first_name'] ?? '';
     final lastName = fullName['last_name'] ?? '';
     final middleName = fullName['middle_name'] ?? '';
-    
-    final nameParts = [lastName, firstName, middleName].where((e) => e.toString().isNotEmpty).toList();
+
+    final nameParts = [
+      lastName,
+      firstName,
+      middleName,
+    ].where((e) => e.toString().isNotEmpty).toList();
     final name = nameParts.join(' ');
-    
+
     String initials = '';
     if (lastName.toString().isNotEmpty) initials += lastName.toString()[0];
     if (firstName.toString().isNotEmpty) initials += firstName.toString()[0];
@@ -312,12 +326,13 @@ class Staff {
     final balanceLimit = account['balance_limit'] ?? '';
 
     final carId = json['car_id'] ?? '';
-    
+
     // В v2 API нет 'current_status' (свободен/занят), есть только 'work_status' (working, fired, etc.)
     // Баланс приходит в другой ручке, поэтому здесь ставим заглушку.
     StaffStatus status = StaffStatus.offline;
     if (workStatusStr == 'working') {
-      status = StaffStatus.free; // Считаем, что если работает, то свободен (заглушка)
+      status = StaffStatus
+          .free; // Считаем, что если работает, то свободен (заглушка)
     } else if (workStatusStr == 'fired') {
       status = StaffStatus.fired;
     }
@@ -353,10 +368,14 @@ class Staff {
     final firstName = fullName['first_name'] ?? '';
     final lastName = fullName['last_name'] ?? '';
     final middleName = fullName['middle_name'] ?? '';
-    
-    final nameParts = [lastName, firstName, middleName].where((e) => e.toString().isNotEmpty).toList();
+
+    final nameParts = [
+      lastName,
+      firstName,
+      middleName,
+    ].where((e) => e.toString().isNotEmpty).toList();
     final name = nameParts.join(' ');
-    
+
     String initials = '';
     if (lastName.toString().isNotEmpty) initials += lastName.toString()[0];
     if (firstName.toString().isNotEmpty) initials += firstName.toString()[0];
@@ -365,18 +384,18 @@ class Staff {
     final taxNumber = json['tax_identification_number'] ?? '';
     final employmentTypeStr = json['employment_type'] ?? '';
     final comment = json['comment'] ?? '';
-    
+
     final balance = json['balance'] ?? {};
     final balanceValue = balance['value'] ?? '0';
     final balanceCurrency = balance['currency'] ?? 'RUB';
     final balanceLimit = balance['limit'] ?? '';
-    
+
     final car = json['car'] ?? {};
     final carId = car['id'] ?? '';
-    
+
     final workStatusStr = json['work_status'] ?? '';
     final currentStatusStr = json['current_status'] ?? '';
-    
+
     // Определяем статус
     StaffStatus status = StaffStatus.offline;
     if (currentStatusStr == 'online') {

@@ -49,13 +49,13 @@ class InfoCard extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.w500,
-                              fontFamily: 'Yandex Sans Text', 
+                              fontFamily: 'Yandex Sans Text',
                               color: AppTheme.textPrimary,
                               letterSpacing: -0.5,
                             ),
                           ),
                           if (subtitle != null)
-                             Text(
+                            Text(
                               subtitle!,
                               style: const TextStyle(
                                 fontSize: 16,

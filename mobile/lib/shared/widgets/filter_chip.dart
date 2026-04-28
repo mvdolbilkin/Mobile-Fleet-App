@@ -24,10 +24,7 @@ class CustomFilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected ? AppTheme.controlsColor : AppTheme.cardColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: AppTheme.borderColor,
-            width: 1,
-          ),
+          border: Border.all(color: AppTheme.borderColor, width: 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -43,10 +40,7 @@ class CustomFilterChip extends StatelessWidget {
               ),
               SizedBox(width: 6),
             ],
-            Text(
-              label,
-              style: AppTheme.filterChip,
-            ),
+            Text(label, style: AppTheme.filterChip),
             if (isSelected) ...[
               SizedBox(width: 6),
               Icon(Icons.close, size: 16, color: AppTheme.textSecondary),

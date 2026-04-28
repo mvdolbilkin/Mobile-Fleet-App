@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:mobile/features/staff/domain/staff.dart';
 
 class StatusBadge extends StatelessWidget {
@@ -48,15 +48,15 @@ class StatusBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (showIcon) ...[
-             Icon(Icons.lock_outline, size: 10, color: textColor),
-             const SizedBox(width: 4),
+            Icon(Icons.lock_outline, size: 10, color: textColor),
+            const SizedBox(width: 4),
           ],
           Text(
             text,
             style: TextStyle(
               fontFamily: 'Yandex Sans Text',
               fontSize: 11,
-              height: 12/11,
+              height: 12 / 11,
               color: textColor,
               letterSpacing: 0.11,
               fontWeight: FontWeight.w500,

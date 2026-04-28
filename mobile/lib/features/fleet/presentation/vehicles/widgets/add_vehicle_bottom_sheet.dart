@@ -50,7 +50,6 @@ class VehicleFormConstants {
     'Пропан',
     'Электричество',
   ];
-
 }
 
 class AddVehicleBottomSheet extends ConsumerStatefulWidget {
@@ -80,7 +79,9 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
     final formData = ref.watch(addVehicleFormProvider);
 
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -95,7 +96,10 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
             _buildHeader(formData),
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 child: formData.step == 1
                     ? _buildStep1(formData)
                     : _buildStep2(formData),
@@ -379,7 +383,7 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
               notifier.showValidationErrors();
               return; // Не отправляем запрос и не закрываем modal
             }
-            
+
             // Save logic to API
             final error = await notifier.submit();
             if (mounted) {
@@ -470,7 +474,9 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
     String? fieldName,
   }) {
     final formData = ref.watch(addVehicleFormProvider);
-    final errorMessage = fieldName != null ? formData.getFieldError(fieldName) : null;
+    final errorMessage = fieldName != null
+        ? formData.getFieldError(fieldName)
+        : null;
     final showError = errorMessage != null;
 
     return Column(
@@ -528,9 +534,10 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
     List<String>? items,
   }) {
     final formData = ref.watch(addVehicleFormProvider);
-    final showError = formData.showValidationErrors &&
-                      fieldName != null &&
-                      !formData.isFieldValid(fieldName);
+    final showError =
+        formData.showValidationErrors &&
+        fieldName != null &&
+        !formData.isFieldValid(fieldName);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -572,8 +579,8 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
                       color: showError
                           ? Colors.red.shade300
                           : (value != null && value.isNotEmpty
-                              ? AppTheme.textPrimary
-                              : AppTheme.textSecondary),
+                                ? AppTheme.textPrimary
+                                : AppTheme.textSecondary),
                     ),
                   ),
                 ),
@@ -691,10 +698,7 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
             title,
             style: const TextStyle(fontSize: 16, color: AppTheme.textSecondary),
           ),
-          CustomSwitch(
-            value: value,
-            onChanged: onChanged ?? (_) {},
-          ),
+          CustomSwitch(value: value, onChanged: onChanged ?? (_) {}),
         ],
       ),
     );
@@ -707,9 +711,10 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
     String? fieldName,
   }) {
     final formData = ref.watch(addVehicleFormProvider);
-    final showError = formData.showValidationErrors &&
-                      fieldName != null &&
-                      !formData.isFieldValid(fieldName);
+    final showError =
+        formData.showValidationErrors &&
+        fieldName != null &&
+        !formData.isFieldValid(fieldName);
     final brandsAsync = ref.watch(brandsProvider);
 
     return Column(
@@ -753,8 +758,8 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
                       color: showError
                           ? Colors.red.shade300
                           : (value != null && value.isNotEmpty
-                              ? AppTheme.textPrimary
-                              : AppTheme.textSecondary),
+                                ? AppTheme.textPrimary
+                                : AppTheme.textSecondary),
                     ),
                   ),
                 ),
@@ -787,10 +792,13 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
     String? fieldName,
   }) {
     final formData = ref.watch(addVehicleFormProvider);
-    final showError = formData.showValidationErrors &&
-                      fieldName != null &&
-                      !formData.isFieldValid(fieldName);
-    final modelsAsync = brand.isNotEmpty ? ref.watch(modelsProvider(brand)) : null;
+    final showError =
+        formData.showValidationErrors &&
+        fieldName != null &&
+        !formData.isFieldValid(fieldName);
+    final modelsAsync = brand.isNotEmpty
+        ? ref.watch(modelsProvider(brand))
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -831,7 +839,9 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
                           hint,
                           style: TextStyle(
                             fontSize: 16,
-                            color: showError ? Colors.red.shade300 : AppTheme.textSecondary,
+                            color: showError
+                                ? Colors.red.shade300
+                                : AppTheme.textSecondary,
                           ),
                         )
                       : Text(
@@ -841,8 +851,8 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
                             color: showError
                                 ? Colors.red.shade300
                                 : (value != null && value.isNotEmpty
-                                    ? AppTheme.textPrimary
-                                    : AppTheme.textSecondary),
+                                      ? AppTheme.textPrimary
+                                      : AppTheme.textSecondary),
                           ),
                         ),
                 ),

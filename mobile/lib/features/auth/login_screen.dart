@@ -24,7 +24,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _checkAuth() async {
     final authService = ref.read(authServiceProvider);
     final isLoggedIn = await authService.checkAuthAndLogin();
-    
+
     if (mounted) {
       if (isLoggedIn) {
         context.go('/fleet');
@@ -41,9 +41,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (_isCheckingAuth) {
       return const Scaffold(
         backgroundColor: Color.fromARGB(255, 245, 244, 242),
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -64,7 +62,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   height: 50,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    color: Colors.transparent, 
+                    color: Colors.transparent,
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
@@ -97,7 +95,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Center(
                 child: ElevatedButton(
                   onPressed: () {
-                     context.push('/yandex-login');
+                    context.push('/yandex-login');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color.fromARGB(255, 252, 224, 0),
@@ -127,10 +125,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   },
                   child: const Text(
                     'Войти через API ключи',
-                    style: TextStyle(
-                      color: Colors.black54,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.black54, fontSize: 14),
                   ),
                 ),
               ),

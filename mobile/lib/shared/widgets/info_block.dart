@@ -86,7 +86,7 @@ class InfoBlock extends StatelessWidget {
                     fontFamily: 'Yandex Sans Text',
                   ),
                 ),
-              ]
+              ],
             ],
           ),
         ],

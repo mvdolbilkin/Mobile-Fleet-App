@@ -14,10 +14,7 @@ class ExpensesRepository {
   final Dio dio;
   final dynamic logger;
 
-  ExpensesRepository({
-    required this.dio,
-    required this.logger,
-  });
+  ExpensesRepository({required this.dio, required this.logger});
 
   /// Получить список расходов через backend proxy
   Future<Map<String, dynamic>> getCostsList({
@@ -28,7 +25,7 @@ class ExpensesRepository {
   }) async {
     try {
       logger.i('Fetching costs list for park: $parkId');
-      
+
       final response = await dio.post(
         '/api/expenses/costs/list',
         data: {
@@ -38,11 +35,7 @@ class ExpensesRepository {
             'date_to': dateTo.toIso8601String().split('T')[0],
           },
         },
-        options: Options(
-          headers: {
-            'X-Park-ID': parkId,
-          },
-        ),
+        options: Options(headers: {'X-Park-ID': parkId}),
       );
 
       logger.i('Costs list response: ${response.statusCode}');

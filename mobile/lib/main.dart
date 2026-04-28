@@ -4,14 +4,9 @@ import 'package:mobile/app/theme.dart';
 import 'app/router.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-
 void main() async {
   await dotenv.load(fileName: ".env");
-  runApp(
-    const ProviderScope(
-      child: MyApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends ConsumerWidget {

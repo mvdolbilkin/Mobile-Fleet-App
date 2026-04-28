@@ -18,10 +18,7 @@ class MenuService {
     try {
       final response = await _dio.post(
         '/api/menu/contractors',
-        data: {
-          'date_from': dateFrom,
-          'date_to': dateTo,
-        },
+        data: {'date_from': dateFrom, 'date_to': dateTo},
       );
 
       return ContractorsData.fromJson(response.data);
@@ -37,10 +34,7 @@ class MenuService {
     try {
       final response = await _dio.post(
         '/api/menu/cars',
-        data: {
-          'date_from': dateFrom,
-          'date_to': dateTo,
-        },
+        data: {'date_from': dateFrom, 'date_to': dateTo},
       );
 
       return CarsData.fromJson(response.data);

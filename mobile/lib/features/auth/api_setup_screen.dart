@@ -15,7 +15,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
   final _clidController = TextEditingController();
   final _apiKeyController = TextEditingController();
   final _parkIdController = TextEditingController();
-  
+
   bool _isLoading = false;
   String? _error;
 
@@ -45,11 +45,9 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
     });
 
     try {
-      final success = await ref.read(authServiceProvider).login(
-        clid: clid,
-        apiKey: apiKey,
-        parkId: parkId,
-      );
+      final success = await ref
+          .read(authServiceProvider)
+          .login(clid: clid, apiKey: apiKey, parkId: parkId);
 
       if (success) {
         if (mounted) {
@@ -81,7 +79,10 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppTheme.textPrimary),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: AppTheme.textPrimary,
+          ),
           onPressed: () => context.pop(),
         ),
         backgroundColor: Colors.transparent,
@@ -108,7 +109,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
                       style: AppTheme.bodyText,
                     ),
                     const SizedBox(height: 32),
-                    
+
                     _buildTextField(
                       controller: _clidController,
                       label: 'Clid',
@@ -127,7 +128,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
                       hint: 'Введите ID парка',
                     ),
 
-                     if (_error != null) ...[
+                    if (_error != null) ...[
                       const SizedBox(height: 16),
                       Text(
                         _error!,
@@ -135,9 +136,9 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
                         textAlign: TextAlign.center,
                       ),
                     ],
-                    
+
                     const Spacer(),
-                    
+
                     ElevatedButton(
                       onPressed: _isLoading ? null : _handleLogin,
                       style: ElevatedButton.styleFrom(
@@ -154,13 +155,13 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
                           fontFamily: 'Yandex Sans Text',
                         ),
                       ),
-                       child: _isLoading 
-                        ? const SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Продолжить'),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Продолжить'),
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -202,7 +203,10 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
               hintText: hint,
               hintStyle: AppTheme.searchHint,
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
             ),
             style: AppTheme.bodyText,
           ),

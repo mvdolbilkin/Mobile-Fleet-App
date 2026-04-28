@@ -29,8 +29,9 @@ class _AnimatedIconButtonState extends State<AnimatedIconButton> {
 
   @override
   Widget build(BuildContext context) {
-    final pressedColor = widget.pressedColor ?? 
-        Color.lerp(widget.color, Colors.black, 0.2) ?? 
+    final pressedColor =
+        widget.pressedColor ??
+        Color.lerp(widget.color, Colors.black, 0.2) ??
         widget.color;
 
     return GestureDetector(
@@ -46,9 +47,7 @@ class _AnimatedIconButtonState extends State<AnimatedIconButton> {
           color: _isPressed ? pressedColor : widget.color,
           borderRadius: BorderRadius.circular(widget.borderRadius),
         ),
-        child: Center(
-          child: widget.icon,
-        ),
+        child: Center(child: widget.icon),
       ),
     );
   }
