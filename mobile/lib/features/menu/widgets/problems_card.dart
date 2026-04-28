@@ -1,59 +1,73 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mobile/app/theme.dart';
+import 'package:mobile/features/menu/models/problems_model.dart';
+import 'package:mobile/features/menu/providers/problems_provider.dart';
 import 'package:mobile/shared/widgets/info_card.dart';
 import 'package:mobile/features/menu/widgets/menu_icon.dart';
 
-class ProblemsCard extends StatelessWidget {
+class ProblemsCard extends ConsumerWidget {
   const ProblemsCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return InfoCard(
-      title: 'Проблемы 7',
-      // Red icon with exclamation mark
-      icon: const MenuIcon(assetPath: 'assets/images/menu_problems.svg'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: const [
-          _ProblemRow(
-            badgeContent: _IconBadgeContent(iconAsset: 'assets/images/menu_problems_down.svg'), // Placeholder for arrow down
-            text: 'Низкая конверсия в 1 поездку',
+  Widget build(BuildContext context, WidgetRef ref) {
+    final problemsAsync = ref.watch(problemsDataProvider);
+
+    return problemsAsync.when(
+      data: (data) => InfoCard(
+        title: 'Проблемы ${data.total}',
+        icon: const MenuIcon(assetPath: 'assets/images/menu_problems.svg'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (int i = 0; i < data.badges.length; i++) ...[
+              _ProblemRow(badge: data.badges[i]),
+              if (i < data.badges.length - 1) const SizedBox(height: 12),
+            ],
+          ],
+        ),
+      ),
+      loading: () => InfoCard(
+        title: 'Проблемы',
+        icon: const MenuIcon(assetPath: 'assets/images/menu_problems.svg'),
+        child: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(32.0),
+            child: CircularProgressIndicator(),
           ),
-          SizedBox(height: 12),
-          _ProblemRow(
-            badgeContent: _IconBadgeContent(iconAsset: 'assets/images/menu_problems_down.svg'),
-            text: 'Низкая конверсия в 50 поездок',
+        ),
+      ),
+      error: (error, stack) => InfoCard(
+        title: 'Проблемы',
+        icon: const MenuIcon(assetPath: 'assets/images/menu_problems.svg'),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 48),
+              const SizedBox(height: 8),
+              Text(
+                'Ошибка загрузки данных',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ],
           ),
-          SizedBox(height: 12),
-          _ProblemRow(
-            badgeContent: _TextBadgeContent(text: '108'),
-            text: 'Имеют проблемы с фотоконтролем',
-          ),
-          SizedBox(height: 12),
-          _ProblemRow(
-            badgeContent: _TextBadgeContent(text: '43'),
-            text: 'Проверки фото термосумки не пройдены',
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
 class _ProblemRow extends StatelessWidget {
-  final Widget badgeContent;
-  final String text;
+  final ProblemBadge badge;
 
-  const _ProblemRow({
-    required this.badgeContent,
-    required this.text,
-  });
+  const _ProblemRow({required this.badge});
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start, // Align top if text wraps
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           width: 36,
@@ -63,56 +77,44 @@ class _ProblemRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(6),
           ),
           alignment: Alignment.center,
-          child: badgeContent,
+          child: _buildBadgeContent(),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
-            text,
+            badge.text,
             style: const TextStyle(
               fontSize: 16,
               color: AppTheme.textPrimary,
               fontFamily: 'Yandex Sans Text',
-              height: 1.2, 
+              height: 1.2,
             ),
           ),
         ),
       ],
     );
   }
-}
 
-class _TextBadgeContent extends StatelessWidget {
-  final String text;
-
-  const _TextBadgeContent({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-        fontFamily: 'Yandex Sans Text',
-      ),
-    );
-  }
-}
-
-class _IconBadgeContent extends StatelessWidget {
-  final String iconAsset;
-
-  const _IconBadgeContent({required this.iconAsset});
-
-  @override
-  Widget build(BuildContext context) {
-    return SvgPicture.asset(
-      iconAsset,
-      width: 14,
-      height: 14,
-      colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-    );
+  Widget _buildBadgeContent() {
+    if (badge.icon.hasValue) {
+      return Text(
+        '${badge.icon.value}',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          fontFamily: 'Yandex Sans Text',
+        ),
+      );
+    } else if (badge.icon.hasPicture) {
+      // For picture icons like "ArrowDownRoundFill", use the down arrow asset
+      return SvgPicture.asset(
+        'assets/images/menu_problems_down.svg',
+        width: 14,
+        height: 14,
+        colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+      );
+    }
+    return const SizedBox.shrink();
   }
 }

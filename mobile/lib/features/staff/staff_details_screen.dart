@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/app/theme.dart';
 import 'package:mobile/features/staff/data/staff_repository.dart';
@@ -21,6 +21,7 @@ class StaffDetailsScreen extends ConsumerStatefulWidget {
 
 class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  int _selectedPeriodDays = 30;
 
   @override
   void initState() {
@@ -103,73 +104,126 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
   }
 
   Widget _buildDetailsTab(Staff displayStaff) {
-    final nameParts = displayStaff.name.split(' ');
-    final lastName = nameParts.isNotEmpty ? nameParts[0] : '—';
-    final firstName = nameParts.length > 1 ? nameParts[1] : '—';
-    final middleName = nameParts.length > 2 ? nameParts.sublist(2).join(' ') : '—';
+    final detailsAsync = ref.watch(driverDetailsProvider(displayStaff.id));
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildDetailSection(
-          'Детали',
-          'Некоторые поля недоступны для редактирования, для внесения изменений обратитесь в поддержку',
-          _buildDetailGrid([
-            {'Фамилия': lastName}, {'Водительский стаж с': displayStaff.driverLicenseIssueDate.isNotEmpty ? displayStaff.driverLicenseIssueDate : '—'},
-            {'Имя': firstName}, {'Серия и номер ВУ': displayStaff.driverLicenseNumber.isNotEmpty ? displayStaff.driverLicenseNumber : '—'},
-            {'Отчество': middleName}, {'Страна выдачи ВУ': displayStaff.driverLicenseCountry.isNotEmpty ? displayStaff.driverLicenseCountry.toUpperCase() : '—'},
-            {'Телефон': displayStaff.phoneNumber.isNotEmpty ? displayStaff.phoneNumber : '—'}, {'Дата выдачи ВУ': displayStaff.driverLicenseIssueDate.isNotEmpty ? displayStaff.driverLicenseIssueDate : '—'},
-            {'Адрес': displayStaff.address.isNotEmpty ? displayStaff.address : '—'}, {'Действует до': displayStaff.driverLicenseExpiryDate.isNotEmpty ? displayStaff.driverLicenseExpiryDate : '—'},
-            {'Статус': displayStaff.status == StaffStatus.fired ? 'Уволен' : 'Работает'}, {'Слабослышащий водитель': 'Нет'},
-          ]),
-          onEdit: () {},
+    return detailsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text('Ошибка загрузки деталей: $error', style: const TextStyle(color: Colors.red)),
         ),
-        _buildDetailSection(
-          'Комментарий',
-          '',
-          Text(displayStaff.comment.isNotEmpty ? displayStaff.comment : 'Нет комментария', style: const TextStyle(fontSize: 15)),
-          onEdit: () {},
-        ),
-        _buildDetailSection(
-          'Условия работы',
-          '',
-          _buildDetailGrid([
-            {'Условия работы': displayStaff.employmentType.isNotEmpty ? displayStaff.employmentType : '—'}, {'Заказы от платформы': 'Да'},
-            {'Лимит по счету': displayStaff.balanceLimit.isNotEmpty ? displayStaff.balanceLimit : '—'}, {'Запрещать принимать безналичные заказы': 'Нет'},
-            {'Дата принятия': displayStaff.hireDate.isNotEmpty ? displayStaff.hireDate : '—'}, {'Автомобиль ID': displayStaff.carId.isNotEmpty ? displayStaff.carId : '—'},
-          ]),
-        ),
-        _buildDetailSection(
-          'Личные данные',
-          '',
-          _buildDetailGrid([
-            {'Доверенный контакт': '—'}, {'Дата рождения': '—'},
-            {'Email': displayStaff.email.isNotEmpty ? displayStaff.email : '—'}, {'ID для платежа': displayStaff.id},
-            {'Отзыв о водителе': '—'},
-          ]),
-        ),
-        _buildDetailSection(
-          'Паспортные данные',
-          '',
-          _buildDetailGrid([
-            {'Статус проверки паспорта': 'Не пройдено'}, {'Номер и серия': '—'},
-            {'Вид паспорта': 'Не указано'}, {'Почтовый индекс': '—'},
-            {'Страна': 'Не указано'}, {'Дата выдачи': '—'},
-            {'Кем выдан': '—'}, {'Действует до': '—'},
-            {'Адрес регистрации': '—'}, {'ОГРН': '—'},
-            {'ИНН': displayStaff.taxNumber.isNotEmpty ? displayStaff.taxNumber : '—'},
-          ]),
-        ),
-        _buildDetailSection(
-          'Банковские реквизиты',
-          '',
-          _buildDetailGrid([
-            {'БИК': '—'}, {'Корреспондентский счет': '—'},
-            {'Расчетный счет': '—'},
-          ]),
-          showDivider: false,
-        ),
-      ],
+      ),
+      data: (details) {
+        // Extract data from API response - data is inside "driver" object
+        final driver = details['driver'] as Map<String, dynamic>?;
+        final driverProfile = driver?['driver_profile'] as Map<String, dynamic>?;
+        final accounts = driver?['accounts'] as List<dynamic>?;
+        final car = driver?['car'] as Map<String, dynamic>?;
+        final currentStatus = driver?['current_status'] as Map<String, dynamic>?;
+
+        // Parse name from driver_profile
+        final firstName = driverProfile?['first_name'] as String? ?? '—';
+        final lastName = driverProfile?['last_name'] as String? ?? '—';
+        final middleName = driverProfile?['middle_name'] as String? ?? '—';
+        
+        // Driver license info
+        final licenseInfo = driverProfile?['license'] as Map<String, dynamic>?;
+        final licenseNumber = licenseInfo?['number'] as String? ?? '—';
+        final licenseCountry = licenseInfo?['country'] as String? ?? '—';
+        final licenseIssueDate = licenseInfo?['issue_date'] as String? ?? '—';
+        final licenseExpiryDate = licenseInfo?['expiration_date'] as String? ?? '—';
+
+        // Work conditions
+        final workRule = driverProfile?['work_rule_id'] as String? ?? '—';
+        final balanceLimit = accounts?.isNotEmpty == true
+            ? (accounts!.first as Map<String, dynamic>)['balance_limit']?.toString() ?? '—'
+            : '—';
+        final hireDate = driverProfile?['hire_date'] as String? ?? '—';
+        final carId = car?['id'] as String? ?? '—';
+        final employmentType = driverProfile?['employment_type'] as String? ?? '—';
+        final providers = driverProfile?['providers'] as List<dynamic>?;
+        final providersStr = providers?.join(', ') ?? 'Да';
+        final balanceDenyOnlycard = driverProfile?['balance_deny_onlycard'] as bool? ?? false;
+
+        // Personal data
+        final phones = driverProfile?['phones'] as List<dynamic>?;
+        final phone = phones?.isNotEmpty == true ? phones!.first as String? ?? '—' : '—';
+        final email = driverProfile?['email'] as String? ?? '—';
+        final address = driverProfile?['address'] as String? ?? '—';
+        final deaf = driverProfile?['deaf'] as bool? ?? false;
+        final comment = driverProfile?['comment'] as String? ?? '';
+        final taxNumber = driverProfile?['tax_identification_number'] as String? ?? '—';
+        final paymentServiceId = driverProfile?['payment_service_id'] as String? ?? '—';
+
+        // Work status
+        final workStatus = driverProfile?['work_status'] as String? ?? 'working';
+        final statusText = workStatus == 'fired' ? 'Уволен' : 'Работает';
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildDetailSection(
+              'Детали',
+              'Некоторые поля недоступны для редактирования, для внесения изменений обратитесь в поддержку',
+              _buildDetailGrid([
+                {'Фамилия': lastName}, {'Водительский стаж с': '— (MOCK)'},
+                {'Имя': firstName}, {'Серия и номер ВУ': licenseNumber},
+                {'Отчество': middleName}, {'Страна выдачи ВУ': licenseCountry.toUpperCase()},
+                {'Телефон': phone}, {'Дата выдачи ВУ': licenseIssueDate},
+                {'Адрес': address}, {'Действует до': licenseExpiryDate},
+                {'Статус': statusText}, {'Слабослышащий водитель': deaf ? 'Да' : 'Нет'},
+              ]),
+              onEdit: () {},
+            ),
+            _buildDetailSection(
+              'Комментарий',
+              '',
+              Text(comment.isNotEmpty ? comment : 'Нет комментария', style: const TextStyle(fontSize: 15)),
+              onEdit: () {},
+            ),
+            _buildDetailSection(
+              'Условия работы',
+              '',
+              _buildDetailGrid([
+                {'Условия работы': employmentType}, {'Заказы от платформы': providersStr},
+                {'Лимит по счету': balanceLimit}, {'Запрещать принимать безналичные заказы': balanceDenyOnlycard ? 'Да' : 'Нет'},
+                {'Дата принятия': hireDate}, {'Автомобиль ID': carId},
+              ]),
+            ),
+            _buildDetailSection(
+              'Личные данные',
+              '',
+              _buildDetailGrid([
+                {'Доверенный контакт': '— (MOCK)'}, {'Дата рождения': '— (MOCK)'},
+                {'Email': email}, {'ID для платежа': paymentServiceId},
+                {'Отзыв о водителе': '— (MOCK)'},
+              ]),
+            ),
+            _buildDetailSection(
+              'Паспортные данные',
+              '',
+              _buildDetailGrid([
+                {'Статус проверки паспорта': '— (MOCK)'}, {'Номер и серия': '— (MOCK)'},
+                {'Вид паспорта': '— (MOCK)'}, {'Почтовый индекс': '— (MOCK)'},
+                {'Страна': '— (MOCK)'}, {'Дата выдачи': '— (MOCK)'},
+                {'Кем выдан': '— (MOCK)'}, {'Действует до': '— (MOCK)'},
+                {'Адрес регистрации': '— (MOCK)'}, {'ОГРН': '— (MOCK)'},
+                {'ИНН': taxNumber},
+              ]),
+            ),
+            _buildDetailSection(
+              'Банковские реквизиты',
+              '',
+              _buildDetailGrid([
+                {'БИК': '— (MOCK)'}, {'Корреспондентский счет': '— (MOCK)'},
+                {'Расчетный счет': '— (MOCK)'},
+              ]),
+              showDivider: false,
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -378,24 +432,18 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
   }
 
   Widget _buildIndicatorsSection(Staff displayStaff) {
-    final ordersAsync = ref.watch(driverOrdersProvider(displayStaff.id));
+    final ordersAsync = ref.watch(driverOrdersProvider(DriverOrdersParams(displayStaff.id, _selectedPeriodDays)));
 
     double totalIncome = 0;
     int totalOrders = 0;
     int cancelledOrders = 0;
+    double workTimeSeconds = 0;
 
-    ordersAsync.whenData((orders) {
-      for (var order in orders) {
-        final driverProfile = order['driver_profile'] as Map<String, dynamic>?;
-        if (driverProfile != null && driverProfile['id'] == displayStaff.id) {
-          totalOrders++;
-          if (order['status'] == 'complete') {
-            totalIncome += double.tryParse(order['price']?.toString() ?? '0') ?? 0;
-          } else if (order['status'] == 'cancelled') {
-            cancelledOrders++;
-          }
-        }
-      }
+    ordersAsync.whenData((data) {
+      totalOrders = (data['orders_count'] as num?)?.toInt() ?? 0;
+      cancelledOrders = (data['cancelled_orders_count'] as num?)?.toInt() ?? 0;
+      totalIncome = (data['income'] as num?)?.toDouble() ?? 0.0;
+      workTimeSeconds = (data['work_time_seconds'] as num?)?.toDouble() ?? 0.0;
     });
 
     return Column(
@@ -413,21 +461,24 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
               ),
             ),
             const SizedBox(width: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppTheme.cardColor,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.calendar_today_outlined, size: 14, color: AppTheme.textSecondary),
-                  SizedBox(width: 6),
-                  Text('За 30 дней', style: AppTheme.captionSecondary),
-                  SizedBox(width: 4),
-                  Icon(Icons.close, size: 14, color: AppTheme.textSecondary),
-                ],
+            GestureDetector(
+              onTap: _showPeriodSelector,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.calendar_today_outlined, size: 14, color: AppTheme.textSecondary),
+                    const SizedBox(width: 6),
+                    Text(_getPeriodLabel(), style: AppTheme.captionSecondary),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.expand_more, size: 14, color: AppTheme.textSecondary),
+                  ],
+                ),
               ),
             ),
           ],
@@ -441,10 +492,101 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen> with Si
             const SizedBox(width: 8),
             Expanded(child: _IndicatorCard(title: 'Отмененные', value: ordersAsync.isLoading ? '...' : '$cancelledOrders')),
             const SizedBox(width: 8),
-            const Expanded(child: _IndicatorCard(title: 'Время на линии', value: '0 мин')),
+            Expanded(child: _IndicatorCard(title: 'Время на линии', value: '${(workTimeSeconds / 3600).floor()} ч\n${((workTimeSeconds % 3600) / 60).floor()} мин')),
           ],
         ),
       ],
+    );
+  }
+
+  String _getPeriodLabel() {
+    switch (_selectedPeriodDays) {
+      case 7:
+        return 'За 7 дней';
+      case 14:
+        return 'За 14 дней';
+      case 30:
+        return 'За 30 дней';
+      case 90:
+        return 'За 90 дней';
+      default:
+        return 'За $_selectedPeriodDays дней';
+    }
+  }
+
+  void _showPeriodSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Выберите период',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'Yandex Sans Text',
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildPeriodOption(7, 'За 7 дней'),
+            _buildPeriodOption(14, 'За 14 дней'),
+            _buildPeriodOption(30, 'За 30 дней'),
+            _buildPeriodOption(90, 'За 90 дней'),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPeriodOption(int days, String label) {
+    final isSelected = _selectedPeriodDays == days;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedPeriodDays = days;
+        });
+        Navigator.pop(context);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.cardColor : Colors.transparent,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  fontFamily: 'Yandex Sans Text',
+                ),
+              ),
+            ),
+            if (isSelected)
+              const Icon(Icons.check, color: Color(0xFF34C759), size: 24),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -641,3 +783,5 @@ class _IndicatorCard extends StatelessWidget {
     );
   }
 }
+
+

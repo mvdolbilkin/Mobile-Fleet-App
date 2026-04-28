@@ -346,4 +346,73 @@ class Staff {
       driverLicenseCountry: dlCountry,
     );
   }
+
+  // Парсинг из нового API: /v1/contractor-profile/contractor-data
+  factory Staff.fromContractorDataJson(Map<String, dynamic> json) {
+    final fullName = json['full_name'] ?? {};
+    final firstName = fullName['first_name'] ?? '';
+    final lastName = fullName['last_name'] ?? '';
+    final middleName = fullName['middle_name'] ?? '';
+    
+    final nameParts = [lastName, firstName, middleName].where((e) => e.toString().isNotEmpty).toList();
+    final name = nameParts.join(' ');
+    
+    String initials = '';
+    if (lastName.toString().isNotEmpty) initials += lastName.toString()[0];
+    if (firstName.toString().isNotEmpty) initials += firstName.toString()[0];
+
+    final phone = json['phone'] ?? '';
+    final taxNumber = json['tax_identification_number'] ?? '';
+    final employmentTypeStr = json['employment_type'] ?? '';
+    final comment = json['comment'] ?? '';
+    
+    final balance = json['balance'] ?? {};
+    final balanceValue = balance['value'] ?? '0';
+    final balanceCurrency = balance['currency'] ?? 'RUB';
+    final balanceLimit = balance['limit'] ?? '';
+    
+    final car = json['car'] ?? {};
+    final carId = car['id'] ?? '';
+    
+    final workStatusStr = json['work_status'] ?? '';
+    final currentStatusStr = json['current_status'] ?? '';
+    
+    // Определяем статус
+    StaffStatus status = StaffStatus.offline;
+    if (currentStatusStr == 'online') {
+      status = StaffStatus.free;
+    } else if (currentStatusStr == 'busy') {
+      status = StaffStatus.busy;
+    } else if (currentStatusStr == 'in_order') {
+      status = StaffStatus.onOrder;
+    } else if (workStatusStr == 'fired') {
+      status = StaffStatus.fired;
+    }
+
+    return Staff(
+      id: json['id'] ?? '',
+      name: name.isEmpty ? 'Неизвестно' : name,
+      initials: initials.isEmpty ? '?' : initials,
+      status: status,
+      timeOnShift: '0 ч 0 мин',
+      phoneNumber: phone,
+      vehicleType: car['brand'] != null && car['model'] != null
+          ? '${car['brand']} ${car['model']}'
+          : 'Авто',
+      avatarUrl: '',
+      balance: '$balanceValue $balanceCurrency',
+      email: '',
+      address: '',
+      taxNumber: taxNumber,
+      employmentType: employmentTypeStr,
+      comment: comment,
+      balanceLimit: balanceLimit.toString(),
+      hireDate: '',
+      carId: carId,
+      driverLicenseNumber: json['license_number'] ?? '',
+      driverLicenseIssueDate: '',
+      driverLicenseExpiryDate: '',
+      driverLicenseCountry: '',
+    );
+  }
 }
