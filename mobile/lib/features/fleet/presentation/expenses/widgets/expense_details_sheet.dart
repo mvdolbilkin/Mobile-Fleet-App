@@ -23,7 +23,10 @@ String _formatIsoDate(String? iso) {
   }
 }
 
-Future<bool?> showExpenseDetailsSheet(BuildContext context, Expense expense) {
+Future<bool?> showExpenseDetailsSheet(
+  BuildContext context, 
+  Expense expense,
+) {
   return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
@@ -31,13 +34,18 @@ Future<bool?> showExpenseDetailsSheet(BuildContext context, Expense expense) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (context) => _ExpenseDetailsSheet(expense: expense),
+    builder: (context) => _ExpenseDetailsSheet(
+      expense: expense,
+    ),
   );
 }
 
 class _ExpenseDetailsSheet extends ConsumerStatefulWidget {
   final Expense expense;
-  const _ExpenseDetailsSheet({required this.expense});
+
+  const _ExpenseDetailsSheet({
+    required this.expense,
+  });
 
   @override
   ConsumerState<_ExpenseDetailsSheet> createState() => _ExpenseDetailsSheetState();
@@ -97,8 +105,6 @@ class _ExpenseDetailsSheetState extends ConsumerState<_ExpenseDetailsSheet> {
                     final e = _detail ?? widget.expense;
                     final result = await showAddExpenseSheet(
                       context,
-                      costTypes: [],
-                      cars: [],
                       expense: e,
                     );
                     if (result == true && mounted) {

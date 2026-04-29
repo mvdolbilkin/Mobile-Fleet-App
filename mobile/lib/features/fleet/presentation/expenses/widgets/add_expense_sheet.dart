@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mobile/app/theme.dart';
 import 'package:mobile/features/fleet/data/expenses_repository.dart';
 import 'package:mobile/features/fleet/domain/expense.dart';
+import 'package:mobile/features/fleet/providers/expenses_suggestions_provider.dart';
 import 'package:mobile/shared/services/secure_storage_service.dart';
 import 'package:mobile/shared/widgets/custom_selector_bottom_sheet.dart';
 import 'package:mobile/shared/widgets/fading_button.dart';
@@ -22,8 +23,6 @@ const _svgCar = '''
 
 Future<bool?> showAddExpenseSheet(
   BuildContext context, {
-  List<Map<String, dynamic>> costTypes = const [],
-  List<Map<String, dynamic>> cars = const [],
   Expense? expense,
 }) {
   return showModalBottomSheet<bool>(
@@ -34,21 +33,15 @@ Future<bool?> showAddExpenseSheet(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
     builder: (context) => _AddExpenseSheet(
-      costTypes: costTypes,
-      cars: cars,
       expense: expense,
     ),
   );
 }
 
 class _AddExpenseSheet extends ConsumerStatefulWidget {
-  final List<Map<String, dynamic>> costTypes;
-  final List<Map<String, dynamic>> cars;
   final Expense? expense;
 
   const _AddExpenseSheet({
-    required this.costTypes,
-    required this.cars,
     this.expense,
   });
 
@@ -98,8 +91,8 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
     super.dispose();
   }
 
-  Future<void> _pickCar() async {
-    final labels = widget.cars.map((c) {
+  Future<void> _pickCar(List<Map<String, dynamic>> cars) async {
+    final labels = cars.map((c) {
       final number = c['number'] as String? ?? '';
       final brand = c['brand'] as String? ?? '';
       final model = c['model'] as String? ?? '';
@@ -116,7 +109,7 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
     if (selected != null) {
       final idx = labels.indexOf(selected);
       setState(() {
-        _selectedCarId = widget.cars[idx]['id'] as String?;
+        _selectedCarId = cars[idx]['id'] as String?;
         _selectedCarLabel = selected;
       });
     }
@@ -169,8 +162,8 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
     }
   }
 
-  Future<void> _pickType() async {
-    final labels = widget.costTypes.map((t) => t['name'] as String? ?? t['id'] as String).toList();
+  Future<void> _pickType(List<Map<String, dynamic>> costTypes) async {
+    final labels = costTypes.map((t) => t['name'] as String? ?? t['id'] as String).toList();
 
     final selected = await CustomSelectorBottomSheet.show(
       context: context,
@@ -178,12 +171,13 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
       items: labels,
       selectedValue: _selectedTypeLabel,
       showSearch: false,
+      activeColor: AppTheme.buttonColor, // Желтый цвет
     );
 
     if (selected != null) {
       final idx = labels.indexOf(selected);
       setState(() {
-        _selectedTypeId = widget.costTypes[idx]['id'] as String?;
+        _selectedTypeId = costTypes[idx]['id'] as String?;
         _selectedTypeLabel = selected;
       });
     }
@@ -243,15 +237,16 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
   Widget _buildSelectorField({
     required String label,
     required bool isPlaceholder,
-    required VoidCallback onTap,
+    VoidCallback? onTap,
     String? leadingIcon,
     required bool showError,
+    bool isLoading = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         GestureDetector(
-          onTap: onTap,
+          onTap: isLoading ? null : onTap,
           child: Container(
             height: 56,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -285,10 +280,17 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
                     ),
                   ),
                 ),
-                Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: showError ? Colors.red.shade300 : AppTheme.textSecondary,
-                ),
+                if (isLoading)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: showError ? Colors.red.shade300 : AppTheme.textSecondary,
+                  ),
               ],
             ),
           ),
@@ -365,6 +367,9 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final carsAsync = ref.watch(suggestCarsProvider);
+    final typesAsync = ref.watch(costTypesProvider);
+
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
@@ -408,16 +413,22 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
                     _buildSelectorField(
                       label: _selectedCarLabel ?? 'Автомобиль',
                       isPlaceholder: _selectedCarLabel == null,
-                      onTap: _pickCar,
+                      onTap: () {
+                        if (carsAsync.hasValue) _pickCar(carsAsync.value!);
+                      },
                       leadingIcon: _svgCar,
                       showError: _showValidationErrors && !_isCarValid,
+                      isLoading: carsAsync.isLoading,
                     ),
                     const SizedBox(height: 12),
                     _buildSelectorField(
                       label: _selectedTypeLabel ?? 'Тип расхода',
                       isPlaceholder: _selectedTypeLabel == null,
-                      onTap: _pickType,
+                      onTap: () {
+                        if (typesAsync.hasValue) _pickType(typesAsync.value!);
+                      },
                       showError: _showValidationErrors && !_isTypeValid,
+                      isLoading: typesAsync.isLoading,
                     ),
                     const SizedBox(height: 12),
                     _buildNameField(),

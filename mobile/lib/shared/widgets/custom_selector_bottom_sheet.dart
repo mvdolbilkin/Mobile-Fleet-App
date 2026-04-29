@@ -6,6 +6,7 @@ class CustomSelectorBottomSheet extends StatefulWidget {
   final List<String> items;
   final String? selectedValue;
   final bool showSearch;
+  final Color? activeColor;
 
   const CustomSelectorBottomSheet({
     Key? key,
@@ -13,6 +14,7 @@ class CustomSelectorBottomSheet extends StatefulWidget {
     required this.items,
     this.selectedValue,
     this.showSearch = true,
+    this.activeColor,
   }) : super(key: key);
 
   static Future<String?> show({
@@ -21,6 +23,7 @@ class CustomSelectorBottomSheet extends StatefulWidget {
     required List<String> items,
     String? selectedValue,
     bool showSearch = true,
+    Color? activeColor,
   }) {
     return showModalBottomSheet<String>(
       context: context,
@@ -31,6 +34,7 @@ class CustomSelectorBottomSheet extends StatefulWidget {
         items: items,
         selectedValue: selectedValue,
         showSearch: showSearch,
+        activeColor: activeColor,
       ),
     );
   }
@@ -151,6 +155,8 @@ class _CustomSelectorBottomSheetState extends State<CustomSelectorBottomSheet> {
                     itemBuilder: (context, index) {
                       final item = _filteredItems[index];
                       final isSelected = item == widget.selectedValue;
+                      final highlightColor = widget.activeColor ?? AppTheme.primaryColor;
+                      final isCustomColor = widget.activeColor != null;
 
                       return InkWell(
                         onTap: () => Navigator.pop(context, item),
@@ -161,7 +167,7 @@ class _CustomSelectorBottomSheetState extends State<CustomSelectorBottomSheet> {
                           ),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? AppTheme.primaryColor.withOpacity(0.1)
+                                ? (isCustomColor ? highlightColor.withOpacity(0.5) : highlightColor.withOpacity(0.1))
                                 : Colors.transparent,
                             border: const Border(
                               bottom: BorderSide(
@@ -178,8 +184,8 @@ class _CustomSelectorBottomSheetState extends State<CustomSelectorBottomSheet> {
                                   item,
                                   style: TextStyle(
                                     fontSize: 16,
-                                    color: isSelected
-                                        ? AppTheme.primaryColor
+                                    color: isSelected && !isCustomColor
+                                        ? highlightColor
                                         : AppTheme.textPrimary,
                                     fontWeight: isSelected
                                         ? FontWeight.w600
@@ -188,9 +194,9 @@ class _CustomSelectorBottomSheetState extends State<CustomSelectorBottomSheet> {
                                 ),
                               ),
                               if (isSelected)
-                                const Icon(
+                                Icon(
                                   Icons.check,
-                                  color: AppTheme.primaryColor,
+                                  color: isCustomColor ? AppTheme.textPrimary : highlightColor,
                                   size: 24,
                                 ),
                             ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/features/fleet/presentation/vehicles/vehicles_screen.dart';
 import 'package:mobile/features/fleet/presentation/expenses/expenses_screen.dart';
+import 'package:mobile/features/fleet/presentation/rents_calendar/rents_calendar_screen.dart';
 import 'package:mobile/shared/widgets/fading_button.dart';
 
 class FleetScreen extends StatelessWidget {
@@ -81,7 +82,12 @@ class FleetScreen extends StatelessWidget {
             title: 'Календарь списаний',
             icon: Icons.calendar_today_rounded,
             iconColor: const Color(0xFF34C759),
-            onTap: () {},
+            onTap: () {
+              Navigator.of(
+                context,
+                rootNavigator: true,
+              ).push(MaterialPageRoute(builder: (_) => const RentsCalendarScreen()));
+            },
           ),
           const SizedBox(height: 8),
           AnimatedMenuRow(

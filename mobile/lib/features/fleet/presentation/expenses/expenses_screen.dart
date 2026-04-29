@@ -9,6 +9,7 @@ import 'package:mobile/features/fleet/presentation/expenses/widgets/add_expense_
 import 'package:mobile/features/fleet/presentation/expenses/widgets/expense_details_sheet.dart';
 import 'package:mobile/features/fleet/presentation/expenses/widgets/expenses_filter_bottom_sheet.dart';
 import 'package:mobile/features/fleet/presentation/expenses/widgets/report_downloads_sheet.dart';
+import 'package:mobile/features/fleet/providers/expenses_suggestions_provider.dart';
 import 'package:mobile/features/fleet/providers/report_downloads_provider.dart';
 import 'package:mobile/shared/widgets/custom_date_range_picker_bottom_sheet.dart';
 import 'package:mobile/shared/widgets/animated_icon_button.dart';
@@ -38,8 +39,6 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
   bool _isLoading = false;
   String? _error;
   List<Expense> _expenses = [];
-  List<Map<String, dynamic>> _costTypes = [];
-  List<Map<String, dynamic>> _cars = [];
   ExpensesFilter _filter = ExpensesFilter.defaultFilter;
   String _searchText = '';
   Timer? _debounce;
@@ -48,7 +47,6 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
   void initState() {
     super.initState();
     _loadExpenses();
-    _loadSuggestions();
   }
 
   @override
@@ -74,24 +72,6 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
       '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 
   String _formatDateRange() => '${_fmt(_filter.dateFrom)} – ${_fmt(_filter.dateTo)}';
-
-  Future<void> _loadSuggestions() async {
-    try {
-      final parkId = await ref.read(secureStorageServiceProvider).getParkId();
-      if (parkId == null) return;
-      final repository = ref.read(expensesRepositoryProvider);
-      final results = await Future.wait([
-        repository.getAvailableCostTypes(parkId: parkId),
-        repository.getSuggestCars(parkId: parkId),
-      ]);
-      if (mounted) {
-        setState(() {
-          _costTypes = results[0];
-          _cars = results[1];
-        });
-      }
-    } catch (_) {}
-  }
 
   Future<void> _loadExpenses() async {
     setState(() {
@@ -153,6 +133,11 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Поддерживаем провайдеры кэшированными (живыми), пока открыт этот экран.
+    // При выходе с экрана (pop) они автоматически очистятся из-за .autoDispose
+    ref.watch(costTypesProvider);
+    ref.watch(suggestCarsProvider);
+
     final downloads = ref.watch(reportDownloadsProvider);
     final activeCount = downloads.where((d) => d.isActive || d.canDownload).length;
 
@@ -225,8 +210,6 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                     onTap: () async {
                       final result = await showAddExpenseSheet(
                         context,
-                        costTypes: _costTypes,
-                        cars: _cars,
                       );
                       if (result == true && mounted) {
                         _loadExpenses();
@@ -403,7 +386,10 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                               final expense = _expenses[index];
                               return GestureDetector(
                                 onTap: () async {
-                                  final result = await showExpenseDetailsSheet(context, expense);
+                                  final result = await showExpenseDetailsSheet(
+                                    context, 
+                                    expense,
+                                  );
                                   if (result == true && mounted) {
                                     _loadExpenses();
                                   }

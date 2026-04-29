@@ -6,6 +6,8 @@ class SearchField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final TextEditingController? controller;
   final Widget? suffixIcon;
+  final double borderRadius;
+  final double height;
 
   const SearchField({
     Key? key,
@@ -13,15 +15,17 @@ class SearchField extends StatelessWidget {
     this.onChanged,
     this.controller,
     this.suffixIcon,
+    this.borderRadius = 12.0,
+    this.height = 52.0,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 52,
+      height: height,
       decoration: BoxDecoration(
         color: AppTheme.controlsColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: TextField(
         controller: controller,
@@ -36,7 +40,8 @@ class SearchField extends StatelessWidget {
           ),
           suffixIcon: suffixIcon,
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: (height - 20) / 2),
+          isDense: true,
         ),
       ),
     );
