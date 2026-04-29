@@ -46,9 +46,9 @@ class _TariffEditBottomSheetState extends ConsumerState<TariffEditBottomSheet> {
           .where((entry) => entry.value)
           .map((entry) => entry.key)
           .toList();
-      
+
       await widget.onSave(selectedTariffs);
-      
+
       // Если успешно - закрываем sheet
       if (mounted) {
         Navigator.of(context).pop();
@@ -82,7 +82,7 @@ class _TariffEditBottomSheetState extends ConsumerState<TariffEditBottomSheet> {
         'express': displayName('express'),
       };
     }
-    
+
     // Для легковых автомобилей все тарифы кроме cargo
     return Map.fromEntries(
       TariffUtils.tariffNames.entries
@@ -128,10 +128,7 @@ class _TariffEditBottomSheetState extends ConsumerState<TariffEditBottomSheet> {
                 const SizedBox(height: 8),
                 Text(
                   'Тип ТС: ${_getVehicleType()}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -158,13 +155,15 @@ class _TariffEditBottomSheetState extends ConsumerState<TariffEditBottomSheet> {
   }
 
   Widget _buildTariffItem(String key, String name) {
-    final iconPath = TariffUtils.tariffIcons[key] ?? 'assets/images/TariffEditSheet/fallback-9U2fbpSe.png';
-    
+    final iconPath =
+        TariffUtils.tariffIcons[key] ??
+        'assets/images/TariffEditSheet/fallback-9U2fbpSe.png';
+
     // Проверяем, является ли это тариф 'cargo' для грузового автомобиля
     final isCargoTariff = key == 'cargo';
     final isTruckVehicle = _getVehicleType() == 'Грузовой автомобиль';
     final isDisabled = isCargoTariff && isTruckVehicle;
-    
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 1, 16, 1),
       child: Column(
@@ -235,16 +234,16 @@ class _TariffEditBottomSheetState extends ConsumerState<TariffEditBottomSheet> {
         16,
         16 + MediaQuery.of(context).padding.bottom,
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-      ),
+      decoration: const BoxDecoration(color: Colors.white),
       child: FadingButton(
         onTap: _isLoading ? null : _handleSave,
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            color: _isLoading ? AppTheme.buttonColor.withOpacity(0.6) : AppTheme.buttonColor,
+            color: _isLoading
+                ? AppTheme.buttonColor.withOpacity(0.6)
+                : AppTheme.buttonColor,
             borderRadius: BorderRadius.circular(12),
           ),
           child: SizedBox(

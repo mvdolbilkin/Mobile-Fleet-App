@@ -54,16 +54,10 @@ class CarStatusDetail {
   final String name;
   final int count;
 
-  CarStatusDetail({
-    required this.name,
-    required this.count,
-  });
+  CarStatusDetail({required this.name, required this.count});
 
   factory CarStatusDetail.fromJson(Map<String, dynamic> json) {
-    return CarStatusDetail(
-      name: json['name'],
-      count: json['count'],
-    );
+    return CarStatusDetail(name: json['name'], count: json['count']);
   }
 }
 
@@ -73,9 +67,7 @@ class SimpleMetric {
   SimpleMetric({required this.current});
 
   factory SimpleMetric.fromJson(Map<String, dynamic> json) {
-    return SimpleMetric(
-      current: json['current'],
-    );
+    return SimpleMetric(current: json['current']);
   }
 
   String get formatted {
@@ -87,10 +79,7 @@ class MetricWithDiff {
   final int current;
   final DiffValue diff;
 
-  MetricWithDiff({
-    required this.current,
-    required this.diff,
-  });
+  MetricWithDiff({required this.current, required this.diff});
 
   factory MetricWithDiff.fromJson(Map<String, dynamic> json) {
     return MetricWithDiff(
@@ -108,10 +97,7 @@ class DiffValue {
   final double value;
   final bool isPercent;
 
-  DiffValue({
-    required this.value,
-    required this.isPercent,
-  });
+  DiffValue({required this.value, required this.isPercent});
 
   factory DiffValue.fromJson(Map<String, dynamic> json) {
     return DiffValue(

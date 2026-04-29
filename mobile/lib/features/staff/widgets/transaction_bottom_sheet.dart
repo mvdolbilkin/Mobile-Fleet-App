@@ -26,10 +26,12 @@ class TransactionBottomSheet extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<TransactionBottomSheet> createState() => _TransactionBottomSheetState();
+  ConsumerState<TransactionBottomSheet> createState() =>
+      _TransactionBottomSheetState();
 }
 
-class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet> {
+class _TransactionBottomSheetState
+    extends ConsumerState<TransactionBottomSheet> {
   bool _isDeposit = true; // true = Пополнения, false = Списания
   String _selectedCategory = 'Бонус';
   String? _selectedCategoryId;
@@ -39,7 +41,8 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
   final TextEditingController _feeAmountController = TextEditingController();
   final TextEditingController _conditionController = TextEditingController();
   final TextEditingController _commentController = TextEditingController();
-  final TextEditingController _childDriverIdController = TextEditingController();
+  final TextEditingController _childDriverIdController =
+      TextEditingController();
   final TextEditingController _vehicleIdController = TextEditingController();
   final TextEditingController _parkFeeController = TextEditingController();
   final TextEditingController _fuelValueController = TextEditingController();
@@ -48,21 +51,21 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
 
   // Deposit category IDs that should appear in "Пополнения" tab
   final Set<String> _depositCategoryIds = {
-    'partner_service_external_event_topup',      // Пополнение
-    'partner_service_external_event_bonus',      // Бонус
-    'partner_service_external_event_referal',    // Реферальная программа
-    'partner_service_external_event_other',      // Прочие переводы
+    'partner_service_external_event_topup', // Пополнение
+    'partner_service_external_event_bonus', // Бонус
+    'partner_service_external_event_referal', // Реферальная программа
+    'partner_service_external_event_other', // Прочие переводы
   };
 
   // Withdrawal category IDs that should appear in "Списания" tab
   final Set<String> _withdrawalCategoryIds = {
-    'partner_service_external_event_payout',     // Выплата
-    'partner_service_external_event_rent',       // Аренда
-    'partner_service_external_event_deposit',    // Депозит
-    'partner_service_external_event_fine',       // Штраф
-    'partner_service_external_event_insurance',  // Страховка
-    'partner_service_external_event_damage',     // Ущерб
-    'partner_service_external_event_fuel',       // Топливо
+    'partner_service_external_event_payout', // Выплата
+    'partner_service_external_event_rent', // Аренда
+    'partner_service_external_event_deposit', // Депозит
+    'partner_service_external_event_fine', // Штраф
+    'partner_service_external_event_insurance', // Страховка
+    'partner_service_external_event_damage', // Ущерб
+    'partner_service_external_event_fuel', // Топливо
   };
 
   @override
@@ -83,9 +86,12 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
   // Helper method to get the kind from category_id
   String _getKindFromCategoryId() {
     if (_selectedCategoryId == null) return '';
-    
+
     if (_selectedCategoryId!.startsWith('partner_service_external_event_')) {
-      return _selectedCategoryId!.replaceFirst('partner_service_external_event_', '');
+      return _selectedCategoryId!.replaceFirst(
+        'partner_service_external_event_',
+        '',
+      );
     }
     return _selectedCategoryId!;
   }
@@ -94,7 +100,7 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
   Widget build(BuildContext context) {
     // We adjust for the keyboard
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
-    
+
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.9,
@@ -107,7 +113,10 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
           _buildHeader(),
           Flexible(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -150,7 +159,11 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
           ),
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
-            child: const Icon(Icons.close, color: AppTheme.textPrimary, size: 24),
+            child: const Icon(
+              Icons.close,
+              color: AppTheme.textPrimary,
+              size: 24,
+            ),
           ),
         ],
       ),
@@ -177,8 +190,14 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  widget.staff.initials.isNotEmpty ? widget.staff.initials[0] : '1',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
+                  widget.staff.initials.isNotEmpty
+                      ? widget.staff.initials[0]
+                      : '1',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textSecondary,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -188,12 +207,19 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
                   children: [
                     Text(
                       widget.staff.name,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Баланс: ${widget.staff.balance} • Лимит: 5 ₽',
-                      style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.textPrimary,
+                      ),
                     ),
                   ],
                 ),
@@ -204,17 +230,11 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
           Row(
             children: [
               Expanded(
-                child: _OutlinedButton(
-                  text: 'В профиль',
-                  onTap: () {},
-                ),
+                child: _OutlinedButton(text: 'В профиль', onTap: () {}),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _OutlinedButton(
-                  text: 'Выбрать другого',
-                  onTap: () {},
-                ),
+                child: _OutlinedButton(text: 'Выбрать другого', onTap: () {}),
               ),
             ],
           ),
@@ -247,7 +267,12 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
                   color: !_isDeposit ? Colors.white : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: !_isDeposit
-                      ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)]
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                          ),
+                        ]
                       : null,
                 ),
                 alignment: Alignment.center,
@@ -256,7 +281,9 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
-                    color: !_isDeposit ? AppTheme.textPrimary : AppTheme.textSecondary,
+                    color: !_isDeposit
+                        ? AppTheme.textPrimary
+                        : AppTheme.textSecondary,
                   ),
                 ),
               ),
@@ -276,7 +303,12 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
                   color: _isDeposit ? Colors.white : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: _isDeposit
-                      ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)]
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                          ),
+                        ]
                       : null,
                 ),
                 alignment: Alignment.center,
@@ -285,7 +317,9 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
-                    color: _isDeposit ? AppTheme.textPrimary : AppTheme.textSecondary,
+                    color: _isDeposit
+                        ? AppTheme.textPrimary
+                        : AppTheme.textSecondary,
                   ),
                 ),
               ),
@@ -298,7 +332,7 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
 
   Widget _buildCategories() {
     final categoriesAsync = ref.watch(transactionCategoriesProvider);
-    
+
     return categoriesAsync.when(
       data: (allCategories) {
         // Filter categories based on current tab
@@ -306,9 +340,9 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
           final isEnabled = cat['is_enabled'] == true;
           final isCustom = cat['is_custom'] == true;
           final categoryId = cat['category_id'] as String? ?? '';
-          
+
           if (!isEnabled) return false;
-          
+
           if (_isDeposit) {
             // For deposits: only show specific deposit categories
             return _depositCategoryIds.contains(categoryId);
@@ -317,14 +351,14 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
             return _withdrawalCategoryIds.contains(categoryId);
           }
         }).toList();
-        
+
         if (filteredCategories.isEmpty) {
           return const Text(
             'Нет доступных категорий',
             style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
           );
         }
-        
+
         // Initialize selected category ID if not set or when switching tabs
         if (_selectedCategoryId == null && filteredCategories.isNotEmpty) {
           final defaultCategory = _isDeposit
@@ -340,12 +374,13 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
             if (mounted) {
               setState(() {
                 _selectedCategoryId = defaultCategory['category_id'] as String?;
-                _selectedCategory = defaultCategory['name'] as String? ?? 'Без названия';
+                _selectedCategory =
+                    defaultCategory['name'] as String? ?? 'Без названия';
               });
             }
           });
         }
-        
+
         return Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -359,12 +394,17 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
                 _selectedCategoryId = categoryId;
               }),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: isSelected ? AppTheme.textPrimary : AppTheme.borderColor,
+                    color: isSelected
+                        ? AppTheme.textPrimary
+                        : AppTheme.borderColor,
                     width: 1,
                   ),
                 ),
@@ -393,22 +433,22 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
 
   Widget _buildManualCategoriesSection() {
     final categoriesAsync = ref.watch(transactionCategoriesProvider);
-    
+
     return categoriesAsync.when(
       data: (allCategories) {
         // Get only custom categories that are enabled
         final customCategories = allCategories.where((cat) {
           return cat['is_custom'] == true && cat['is_enabled'] == true;
         }).toList();
-        
+
         if (customCategories.isEmpty) {
           return const SizedBox.shrink();
         }
-        
+
         // Show only first 6 custom categories
         final displayedCategories = customCategories.take(6).toList();
         final hasMore = customCategories.length > 6;
-        
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -434,7 +474,11 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
                           color: AppTheme.textPrimary,
                         ),
                       ),
-                      Icon(Icons.chevron_right, size: 16, color: AppTheme.textPrimary),
+                      Icon(
+                        Icons.chevron_right,
+                        size: 16,
+                        color: AppTheme.textPrimary,
+                      ),
                     ],
                   ),
                 ),
@@ -455,12 +499,17 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
                       _selectedCategoryId = categoryId;
                     }),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: isSelected ? AppTheme.textPrimary : AppTheme.borderColor,
+                          color: isSelected
+                              ? AppTheme.textPrimary
+                              : AppTheme.borderColor,
                           width: 1,
                         ),
                       ),
@@ -478,11 +527,17 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
                   GestureDetector(
                     onTap: _showAllCategories,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppTheme.borderColor, width: 1),
+                        border: Border.all(
+                          color: AppTheme.borderColor,
+                          width: 1,
+                        ),
                       ),
                       child: const Text(
                         'Показать все',
@@ -505,7 +560,7 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
 
   void _showAllCategories() {
     final categoriesAsync = ref.read(transactionCategoriesProvider);
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -536,7 +591,11 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
                 ),
                 GestureDetector(
                   onTap: () => Navigator.of(context).pop(),
-                  child: const Icon(Icons.close, color: AppTheme.textPrimary, size: 24),
+                  child: const Icon(
+                    Icons.close,
+                    color: AppTheme.textPrimary,
+                    size: 24,
+                  ),
                 ),
               ],
             ),
@@ -546,9 +605,10 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
                 data: (allCategories) {
                   // Show only custom categories that are enabled
                   final customCategories = allCategories.where((cat) {
-                    return cat['is_custom'] == true && cat['is_enabled'] == true;
+                    return cat['is_custom'] == true &&
+                        cat['is_enabled'] == true;
                   }).toList();
-                  
+
                   if (customCategories.isEmpty) {
                     return const Center(
                       child: Text(
@@ -557,16 +617,17 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
                       ),
                     );
                   }
-                  
+
                   return ListView.builder(
                     shrinkWrap: true,
                     itemCount: customCategories.length,
                     itemBuilder: (context, index) {
                       final category = customCategories[index];
                       final name = category['name'] ?? 'Без названия';
-                      final categoryId = category['category_id'] as String? ?? '';
+                      final categoryId =
+                          category['category_id'] as String? ?? '';
                       final isSelected = _selectedCategory == name;
-                      
+
                       return GestureDetector(
                         onTap: () {
                           setState(() {
@@ -579,10 +640,14 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
                           margin: const EdgeInsets.only(bottom: 8),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFFF2F2F2) : Colors.white,
+                            color: isSelected
+                                ? const Color(0xFFF2F2F2)
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isSelected ? AppTheme.textPrimary : AppTheme.borderColor,
+                              color: isSelected
+                                  ? AppTheme.textPrimary
+                                  : AppTheme.borderColor,
                               width: 1,
                             ),
                           ),
@@ -590,7 +655,9 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
                             name,
                             style: TextStyle(
                               fontSize: 15,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
                               color: AppTheme.textPrimary,
                             ),
                           ),
@@ -636,20 +703,22 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
     final isFine = kind == 'fine';
     final isDamage = kind == 'damage';
     final isFuel = kind == 'fuel';
-    final isCustom = _selectedCategoryId?.startsWith('partner_service_manual_') ?? false;
-    
+    final isCustom =
+        _selectedCategoryId?.startsWith('partner_service_manual_') ?? false;
+
     // For custom categories: show only comment
     // For "other" in deposits: show only comment
     // For "other" in withdrawals: show reason field
     final showOnlyComment = isCustom || (isOther && _isDeposit);
     final showReasonForOther = isOther && !_isDeposit;
-    
+
     // Categories that require vehicle ID (rent, deposit, insurance, fine, damage, fuel)
-    final requiresVehicleId = isRent || isDeposit || isInsurance || isFine || isDamage || isFuel;
-    
+    final requiresVehicleId =
+        isRent || isDeposit || isInsurance || isFine || isDamage || isFuel;
+
     // Categories that support fee_amount
     final supportsFeeAmount = isTopup || isPayout;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -682,10 +751,7 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
           const SizedBox(height: 4),
           const Text(
             'Помогут вам и исполнителю уточнить условия или узнать детали',
-            style: TextStyle(
-              fontSize: 13,
-              color: AppTheme.textSecondary,
-            ),
+            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 16),
         ],
@@ -695,7 +761,8 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
             controller: _feeAmountController,
             hintText: 'Комиссия',
             keyboardType: TextInputType.number,
-            helperText: 'Будет виден в транзакции в Диспетчерской, а также исполнителю в Про',
+            helperText:
+                'Будет виден в транзакции в Диспетчерской, а также исполнителю в Про',
           ),
           const SizedBox(height: 16),
         ],
@@ -748,7 +815,8 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
           _buildTextField(
             controller: _conditionController,
             hintText: 'Краткое условие',
-            helperText: 'Будет виден в транзакции в Диспетчерской, а также исполнителю в Про',
+            helperText:
+                'Будет виден в транзакции в Диспетчерской, а также исполнителю в Про',
           ),
           const SizedBox(height: 16),
         ],
@@ -766,7 +834,8 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
         _buildTextField(
           controller: _commentController,
           hintText: 'Комментарий',
-          helperText: 'Будет виден партнёру в карточке транзакции в Диспетчерской, а исполнителю — в Про',
+          helperText:
+              'Будет виден партнёру в карточке транзакции в Диспетчерской, а исполнителю — в Про',
         ),
       ],
     );
@@ -787,11 +856,11 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
           decoration: BoxDecoration(
             color: hasBorder ? Colors.white : const Color(0xFFF2F2F2),
             borderRadius: BorderRadius.circular(12),
-            border: showErrorText 
-                ? Border.all(color: Colors.red, width: 1) 
-                : hasBorder 
-                    ? Border.all(color: AppTheme.textPrimary, width: 1) 
-                    : null,
+            border: showErrorText
+                ? Border.all(color: Colors.red, width: 1)
+                : hasBorder
+                ? Border.all(color: AppTheme.textPrimary, width: 1)
+                : null,
           ),
           child: TextField(
             controller: controller,
@@ -801,7 +870,10 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
               hintText: hintText,
               hintStyle: const TextStyle(color: AppTheme.textSecondary),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
             ),
           ),
         ),
@@ -821,7 +893,10 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
             padding: const EdgeInsets.only(left: 16),
             child: Text(
               helperText,
-              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 12,
+              ),
             ),
           ),
         ],
@@ -834,9 +909,7 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(
-          top: BorderSide(color: AppTheme.borderColor, width: 1),
-        ),
+        border: Border(top: BorderSide(color: AppTheme.borderColor, width: 1)),
       ),
       child: FadingButton(
         onTap: _isSubmitting ? null : _handleSubmit,
@@ -854,7 +927,9 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
                   width: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.textPrimary),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppTheme.textPrimary,
+                    ),
                   ),
                 )
               : Text(
@@ -893,7 +968,7 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
 
     try {
       final repository = ref.read(staffRepositoryProvider);
-      
+
       // Extract the kind from category_id
       final kind = _getKindFromCategoryId();
 
@@ -965,10 +1040,7 @@ class _TransactionBottomSheetState extends ConsumerState<TransactionBottomSheet>
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 }

@@ -32,33 +32,38 @@ class CarsCard extends ConsumerWidget {
               items: [
                 (
                   color: AppTheme.statusGreen,
-                  text: '${data.indicator.working.count} ${data.indicator.working.name.toLowerCase()}',
+                  text:
+                      '${data.indicator.working.count} ${data.indicator.working.name.toLowerCase()}',
                   onTap: null,
                 ),
                 (
                   color: AppTheme.statusOrange,
-                  text: '${data.indicator.noDriver.count} ${data.indicator.noDriver.name.toLowerCase()}',
+                  text:
+                      '${data.indicator.noDriver.count} ${data.indicator.noDriver.name.toLowerCase()}',
                   onTap: null,
                 ),
                 (
                   color: AppTheme.statusRed,
-                  text: '${data.indicator.repairing.count} ${data.indicator.repairing.name.toLowerCase()}',
+                  text:
+                      '${data.indicator.repairing.count} ${data.indicator.repairing.name.toLowerCase()}',
                   onTap: null,
                 ),
                 (
                   color: AppTheme.statusBlue,
-                  text: '${data.indicator.pending.count} ${data.indicator.pending.name.toLowerCase()}',
+                  text:
+                      '${data.indicator.pending.count} ${data.indicator.pending.name.toLowerCase()}',
                   onTap: null,
                 ),
                 (
                   color: Colors.grey,
-                  text: '${data.indicator.unknown.count} ${data.indicator.unknown.name.toLowerCase()}',
+                  text:
+                      '${data.indicator.unknown.count} ${data.indicator.unknown.name.toLowerCase()}',
                   onTap: null,
                 ),
               ],
             ),
             const SizedBox(height: 24),
-            const CarsChart(),
+            CarsChart(indicator: data.indicator),
           ],
         ),
         loading: () => const Center(
@@ -92,8 +97,8 @@ class CarsCard extends ConsumerWidget {
 
   String _formatNumber(int number) {
     return number.toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]} ',
-        );
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]} ',
+    );
   }
 }

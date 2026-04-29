@@ -19,32 +19,35 @@ class VehiclesFilterNotifier extends StateNotifier<VehicleFilter> {
   void updateFilter(VehicleFilter newFilter) {
     state = newFilter;
   }
-  
+
   void updateSearch(String query) {
     state = state.copyWith(searchQuery: query);
   }
 }
 
-final vehiclesFilterProvider = StateNotifierProvider<VehiclesFilterNotifier, VehicleFilter>((ref) {
-  return VehiclesFilterNotifier();
-});
+final vehiclesFilterProvider =
+    StateNotifierProvider<VehiclesFilterNotifier, VehicleFilter>((ref) {
+      return VehiclesFilterNotifier();
+    });
 
 final vehiclesProvider = FutureProvider.autoDispose<List<Vehicle>>((ref) async {
   final filter = ref.watch(vehiclesFilterProvider);
   final service = ref.watch(vehiclesServiceProvider);
-  
+
   return service.getVehicles(filter);
 });
 
-final vehicleDetailsProvider = FutureProvider.autoDispose.family<VehicleDetails, String>((ref, id) async {
-  final service = ref.watch(vehiclesServiceProvider);
-  return service.getVehicleDetails(id);
-});
+final vehicleDetailsProvider = FutureProvider.autoDispose
+    .family<VehicleDetails, String>((ref, id) async {
+      final service = ref.watch(vehiclesServiceProvider);
+      return service.getVehicleDetails(id);
+    });
 
-final vehicleCategoriesProvider = FutureProvider.autoDispose.family<List<String>, String>((ref, vehicleId) async {
-  final service = ref.watch(vehiclesServiceProvider);
-  return service.getCategories(vehicleId);
-});
+final vehicleCategoriesProvider = FutureProvider.autoDispose
+    .family<List<String>, String>((ref, vehicleId) async {
+      final service = ref.watch(vehiclesServiceProvider);
+      return service.getCategories(vehicleId);
+    });
 
 final carCategoriesProvider = FutureProvider<Map<String, String>>((ref) async {
   final service = ref.watch(vehiclesServiceProvider);

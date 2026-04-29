@@ -46,13 +46,20 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
 
   String _getStatusName(VehicleStatus status) {
     switch (status) {
-      case VehicleStatus.working: return 'Работает';
-      case VehicleStatus.service: return 'Сервис';
-      case VehicleStatus.noDriver: return 'Нет водителя';
-      case VehicleStatus.preparation: return 'Подготовка';
-      case VehicleStatus.other: return 'Другое';
-      case VehicleStatus.notWorking: return 'Не работает';
-      default: return 'Неизвестно';
+      case VehicleStatus.working:
+        return 'Работает';
+      case VehicleStatus.service:
+        return 'Сервис';
+      case VehicleStatus.noDriver:
+        return 'Нет водителя';
+      case VehicleStatus.preparation:
+        return 'Подготовка';
+      case VehicleStatus.other:
+        return 'Другое';
+      case VehicleStatus.notWorking:
+        return 'Не работает';
+      default:
+        return 'Неизвестно';
     }
   }
 
@@ -76,57 +83,65 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-                ...VehicleStatus.values.map((status) => ListTile(
-                      title: Text(_getStatusName(status)),
-                      onTap: () async {
-                        Navigator.pop(context);
-                        
-                        // Сохраняем ScaffoldMessenger до async операции
-                        final messenger = ScaffoldMessenger.of(context);
-                        
-                        // Показываем индикатор загрузки
-                        messenger.showSnackBar(
-                          SnackBar(
-                            content: Text('Обновление статуса ${_selectedVehicles.length} автомобилей...'),
-                            duration: const Duration(seconds: 30),
+                ...VehicleStatus.values.map(
+                  (status) => ListTile(
+                    title: Text(_getStatusName(status)),
+                    onTap: () async {
+                      Navigator.pop(context);
+
+                      // Сохраняем ScaffoldMessenger до async операции
+                      final messenger = ScaffoldMessenger.of(context);
+
+                      // Показываем индикатор загрузки
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Обновление статуса ${_selectedVehicles.length} автомобилей...',
                           ),
+                          duration: const Duration(seconds: 30),
+                        ),
+                      );
+
+                      try {
+                        final service = ref.read(vehiclesServiceProvider);
+                        await service.updateVehiclesStatus(
+                          _selectedVehicles.toList(),
+                          status,
                         );
-                        
-                        try {
-                          final service = ref.read(vehiclesServiceProvider);
-                          await service.updateVehiclesStatus(
-                            _selectedVehicles.toList(),
-                            status,
+
+                        // Обновляем список автомобилей
+                        ref.invalidate(vehiclesProvider);
+
+                        if (mounted) {
+                          messenger.hideCurrentSnackBar();
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Статус "${_getStatusName(status)}" применен к ${_selectedVehicles.length} автомобилям',
+                              ),
+                              backgroundColor: Colors.green,
+                              duration: const Duration(seconds: 3),
+                            ),
                           );
-                          
-                          // Обновляем список автомобилей
-                          ref.invalidate(vehiclesProvider);
-                          
-                          if (mounted) {
-                            messenger.hideCurrentSnackBar();
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text('Статус "${_getStatusName(status)}" применен к ${_selectedVehicles.length} автомобилям'),
-                                backgroundColor: Colors.green,
-                                duration: const Duration(seconds: 3),
-                              ),
-                            );
-                            _toggleSelectionMode();
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            messenger.hideCurrentSnackBar();
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text('Ошибка: ${e.toString().replaceAll('Exception: ', '')}'),
-                                backgroundColor: Colors.red,
-                                duration: const Duration(seconds: 5),
-                              ),
-                            );
-                          }
+                          _toggleSelectionMode();
                         }
-                      },
-                    )),
+                      } catch (e) {
+                        if (mounted) {
+                          messenger.hideCurrentSnackBar();
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Ошибка: ${e.toString().replaceAll('Exception: ', '')}',
+                              ),
+                              backgroundColor: Colors.red,
+                              duration: const Duration(seconds: 5),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                  ),
+                ),
               ],
             ),
           ),
@@ -163,7 +178,11 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
             onTap: () => Navigator.of(context).pop(),
             icon: const Padding(
               padding: EdgeInsets.only(left: 6.0),
-              child: Icon(Icons.arrow_back_ios, size: 20, color: AppTheme.textPrimary),
+              child: Icon(
+                Icons.arrow_back_ios,
+                size: 20,
+                color: AppTheme.textPrimary,
+              ),
             ),
             color: Colors.transparent,
             size: 40,
@@ -189,7 +208,9 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
                     hint: 'Поиск по марке, модели, номеру',
                     controller: _searchController,
                     onChanged: (value) {
-                      ref.read(vehiclesFilterProvider.notifier).updateSearch(value);
+                      ref
+                          .read(vehiclesFilterProvider.notifier)
+                          .updateSearch(value);
                     },
                     suffixIcon: GestureDetector(
                       onTap: () {
@@ -233,7 +254,7 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
               ),
             ),
           const SizedBox(height: 8),
-          
+
           // Кнопка "Сбросить все фильтры"
           if (!ref.watch(vehiclesFilterProvider).isEmpty)
             Padding(
@@ -242,7 +263,9 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
                 alignment: Alignment.centerLeft,
                 child: FadingButton(
                   onTap: () {
-                    ref.read(vehiclesFilterProvider.notifier).updateFilter(const VehicleFilter());
+                    ref
+                        .read(vehiclesFilterProvider.notifier)
+                        .updateFilter(const VehicleFilter());
                     _searchController.clear();
                   },
                   child: Text(
@@ -256,52 +279,61 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
               ),
             ),
           const SizedBox(height: 16),
-          
+
           // Список автомобилей
           Expanded(
             child: Stack(
               children: [
-                ref.watch(vehiclesProvider).when(
-                  data: (vehicles) {
-                    if (vehicles.isEmpty) {
-                      return const Center(child: Text('Ничего не найдено'));
-                    }
-                    return ListView.builder(
-                      padding: EdgeInsets.only(
-                        left: 16,
-                        right: 16,
-                        top: 0,
-                        bottom: _isSelectionMode ? 140 : 16,
-                      ),
-                      itemCount: vehicles.length,
-                      itemBuilder: (context, index) {
-                        final vehicle = vehicles[index];
-                        return VehicleListItem(
-                          vehicle: vehicle,
-                          isSelectionMode: _isSelectionMode,
-                          isSelected: _selectedVehicles.contains(vehicle.id),
-                          onSelect: (val) => _onVehicleSelect(vehicle.id, val),
-                          onTap: () {
-                            if (_isSelectionMode) {
-                              _onVehicleSelect(vehicle.id, !_selectedVehicles.contains(vehicle.id));
-                              return;
-                            }
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => VehicleInfoScreen(
-                                  vehicle: vehicle,
-                                ),
+                ref
+                    .watch(vehiclesProvider)
+                    .when(
+                      data: (vehicles) {
+                        if (vehicles.isEmpty) {
+                          return const Center(child: Text('Ничего не найдено'));
+                        }
+                        return ListView.builder(
+                          padding: EdgeInsets.only(
+                            left: 16,
+                            right: 16,
+                            top: 0,
+                            bottom: _isSelectionMode ? 140 : 16,
+                          ),
+                          itemCount: vehicles.length,
+                          itemBuilder: (context, index) {
+                            final vehicle = vehicles[index];
+                            return VehicleListItem(
+                              vehicle: vehicle,
+                              isSelectionMode: _isSelectionMode,
+                              isSelected: _selectedVehicles.contains(
+                                vehicle.id,
                               ),
+                              onSelect: (val) =>
+                                  _onVehicleSelect(vehicle.id, val),
+                              onTap: () {
+                                if (_isSelectionMode) {
+                                  _onVehicleSelect(
+                                    vehicle.id,
+                                    !_selectedVehicles.contains(vehicle.id),
+                                  );
+                                  return;
+                                }
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        VehicleInfoScreen(vehicle: vehicle),
+                                  ),
+                                );
+                              },
                             );
                           },
                         );
                       },
-                    );
-                  },
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (err, stack) => Center(child: Text('Ошибка: $err')),
-                ),
-                
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (err, stack) =>
+                          Center(child: Text('Ошибка: $err')),
+                    ),
+
                 // Всплывающая панель при выделении
                 if (_isSelectionMode)
                   Positioned(
@@ -318,7 +350,7 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
                             color: Colors.black.withOpacity(0.15),
                             blurRadius: 15,
                             offset: const Offset(0, 5),
-                          )
+                          ),
                         ],
                       ),
                       child: Column(
@@ -346,7 +378,9 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
                                     foregroundColor: Colors.white,
                                     elevation: 0,
                                   ),
-                                  onPressed: _selectedVehicles.isEmpty ? null : _showStatusUpdateDialog,
+                                  onPressed: _selectedVehicles.isEmpty
+                                      ? null
+                                      : _showStatusUpdateDialog,
                                   child: const Text('Статус'),
                                 ),
                                 const SizedBox(width: 8),
@@ -356,7 +390,9 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
                                     foregroundColor: AppTheme.textPrimary,
                                     elevation: 0,
                                   ),
-                                  onPressed: _selectedVehicles.isEmpty ? null : () {},
+                                  onPressed: _selectedVehicles.isEmpty
+                                      ? null
+                                      : () {},
                                   child: const Text('Адрес'),
                                 ),
                                 const SizedBox(width: 8),
@@ -366,12 +402,14 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
                                     foregroundColor: AppTheme.textPrimary,
                                     elevation: 0,
                                   ),
-                                  onPressed: _selectedVehicles.isEmpty ? null : () {},
+                                  onPressed: _selectedVehicles.isEmpty
+                                      ? null
+                                      : () {},
                                   child: const Text('Условия аренды'),
                                 ),
                               ],
                             ),
-                          )
+                          ),
                         ],
                       ),
                     ),

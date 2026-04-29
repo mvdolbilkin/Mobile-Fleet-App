@@ -10,7 +10,8 @@ class FadingButton extends StatefulWidget {
     super.key,
     required this.child,
     required this.onTap,
-    this.pressedOpacity = 0.4, // Насколько прозрачным становится (0.4 = 40% видимости)
+    this.pressedOpacity =
+        0.4, // Насколько прозрачным становится (0.4 = 40% видимости)
     this.duration = const Duration(milliseconds: 100),
   });
 

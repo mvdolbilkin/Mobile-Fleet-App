@@ -40,7 +40,8 @@ class CustomSelectorBottomSheet extends StatefulWidget {
   }
 
   @override
-  State<CustomSelectorBottomSheet> createState() => _CustomSelectorBottomSheetState();
+  State<CustomSelectorBottomSheet> createState() =>
+      _CustomSelectorBottomSheetState();
 }
 
 class _CustomSelectorBottomSheetState extends State<CustomSelectorBottomSheet> {
@@ -97,10 +98,7 @@ class _CustomSelectorBottomSheetState extends State<CustomSelectorBottomSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  widget.title,
-                  style: AppTheme.listTitle,
-                ),
+                Text(widget.title, style: AppTheme.listTitle),
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
                   child: const Icon(
@@ -128,9 +126,15 @@ class _CustomSelectorBottomSheetState extends State<CustomSelectorBottomSheet> {
                   decoration: const InputDecoration(
                     hintText: 'Поиск...',
                     hintStyle: TextStyle(color: AppTheme.textSecondary),
-                    prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: AppTheme.textSecondary,
+                    ),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                   ),
                 ),
               ),

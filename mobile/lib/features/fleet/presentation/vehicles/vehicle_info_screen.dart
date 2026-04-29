@@ -39,7 +39,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: Text(
-          widget.vehicle != null 
+          widget.vehicle != null
               ? '${widget.vehicle!.plateNumber} ${widget.vehicle!.model} ${widget.vehicle!.year}'
               : 'Информация об автомобиле',
           style: AppTheme.appBarTitle,
@@ -105,7 +105,9 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(child: _buildInfoCard('Среднее время на линии', '0 мин')),
+              Expanded(
+                child: _buildInfoCard('Среднее время на линии', '0 мин'),
+              ),
               const SizedBox(width: 8),
               Expanded(child: _buildInfoCard('Доход', '5 ₽')),
             ],
@@ -128,7 +130,10 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
         children: [
           Text(title, style: const TextStyle(color: Colors.grey, fontSize: 12)),
           const SizedBox(height: 8),
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
@@ -146,7 +151,11 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
         children: [
           const Text(
             'Подтвердите право использования и получите полный контроль над автомобилем',
-            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 12),
           ElevatedButton(
@@ -167,7 +176,9 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
       return const SizedBox.shrink();
     }
 
-    final vehicleDetailsAsync = ref.watch(vehicleDetailsProvider(widget.vehicle!.id));
+    final vehicleDetailsAsync = ref.watch(
+      vehicleDetailsProvider(widget.vehicle!.id),
+    );
 
     return vehicleDetailsAsync.when(
       loading: () => Container(
@@ -179,7 +190,10 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
         child: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Включенные тарифы', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(
+              'Включенные тарифы',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             SizedBox(height: 4),
             Text('Загрузка...', style: TextStyle(color: Colors.black87)),
           ],
@@ -194,7 +208,10 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
         child: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Включенные тарифы', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(
+              'Включенные тарифы',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             SizedBox(height: 4),
             Text('—', style: TextStyle(color: Colors.black87)),
           ],
@@ -219,7 +236,10 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Включенные тарифы', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Включенные тарифы',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, size: 20),
                     onPressed: () => _showTariffEditSheet(categories),
@@ -230,7 +250,11 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
               ),
               const SizedBox(height: 4),
               categoriesAsync != null && categoriesAsync.isLoading
-                  ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : Text(
                       tariffNames.isEmpty ? '—' : tariffNames,
                       style: const TextStyle(color: Colors.black87),
@@ -263,7 +287,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
       ),
     );
   }
-  
+
   Widget _buildRentSection() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -276,7 +300,10 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
         children: const [
           Text('Условие аренды', style: TextStyle(fontWeight: FontWeight.bold)),
           SizedBox(height: 4),
-          Text('7/0 3000₽ • Схема\n1000₽ • Депозит', style: TextStyle(color: Colors.black87)),
+          Text(
+            '7/0 3000₽ • Схема\n1000₽ • Депозит',
+            style: TextStyle(color: Colors.black87),
+          ),
         ],
       ),
     );
@@ -286,16 +313,21 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Настройки', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const Text(
+          'Настройки',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 16),
         _buildSettingGroup(
           title: 'Брендинг',
-          subtitle: 'После добавления оклейки или Lightbox, водитель должен пройти фотоконтроль в приложении Про',
+          subtitle:
+              'После добавления оклейки или Lightbox, водитель должен пройти фотоконтроль в приложении Про',
           cards: [
             _buildSettingCard(
               title: 'Оклейка',
               status: 'Ожидаем фотоконтроль',
-              description: 'Мы автоматически обновим статус, когда водитель пройдет фотоконтроль',
+              description:
+                  'Мы автоматически обновим статус, когда водитель пройдет фотоконтроль',
               icon: Icons.warning_rounded,
               iconColor: Colors.orange,
               showDelete: true,
@@ -316,7 +348,8 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
         const SizedBox(height: 24),
         _buildSettingGroup(
           title: 'Детские кресла',
-          subtitle: 'Детские кресла, которые принадлежат водителю, может редактировать только сам водитель в приложении Про',
+          subtitle:
+              'Детские кресла, которые принадлежат водителю, может редактировать только сам водитель в приложении Про',
           cards: [
             _buildChildSeatCard(
               title: 'Кресло 1',
@@ -337,23 +370,37 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
     );
   }
 
-  Widget _buildSettingGroup({required String title, required String subtitle, required List<Widget> cards}) {
+  Widget _buildSettingGroup({
+    required String title,
+    required String subtitle,
+    required List<Widget> cards,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
         const SizedBox(height: 4),
-        Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+        Text(
+          subtitle,
+          style: const TextStyle(color: Colors.grey, fontSize: 12),
+        ),
         const SizedBox(height: 12),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: cards.map((card) => Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: card,
-              )).toList(),
+              children: cards
+                  .map(
+                    (card) => Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: card,
+                    ),
+                  )
+                  .toList(),
             ),
           ),
         ),
@@ -384,17 +431,30 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
               Icon(icon, color: iconColor, size: 20),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
               if (showDelete)
-                const Icon(Icons.delete_outline, size: 20, color: Colors.black54),
+                const Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: Colors.black54,
+                ),
             ],
           ),
           const SizedBox(height: 8),
-          Text(status, style: const TextStyle(fontSize: 13, color: Colors.black87)),
+          Text(
+            status,
+            style: const TextStyle(fontSize: 13, color: Colors.black87),
+          ),
           if (description != null) ...[
             const SizedBox(height: 16),
-            Text(description, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+            Text(
+              description,
+              style: const TextStyle(fontSize: 12, color: Colors.black54),
+            ),
           ],
         ],
       ),
@@ -418,19 +478,30 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
             children: [
               const Icon(Icons.add, color: Colors.grey, size: 20),
               const SizedBox(width: 8),
-              Text(title, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
-          Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.grey, fontSize: 12),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildChildSeatCard({
-    required String title, 
-    required String status, 
+    required String title,
+    required String status,
     required String categories,
     required String id,
   }) {
@@ -449,7 +520,10 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
               const Icon(Icons.warning_rounded, color: Colors.orange, size: 20),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
               const Icon(Icons.edit_outlined, size: 20, color: Colors.black54),
               const SizedBox(width: 8),
@@ -457,18 +531,33 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
             ],
           ),
           const SizedBox(height: 8),
-          Text(status, style: const TextStyle(fontSize: 13, color: Colors.black87)),
+          Text(
+            status,
+            style: const TextStyle(fontSize: 13, color: Colors.black87),
+          ),
           const SizedBox(height: 16),
           Text.rich(
             TextSpan(
               children: [
-                TextSpan(text: categories, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                const TextSpan(text: ' • категории', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                TextSpan(
+                  text: categories,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+                const TextSpan(
+                  text: ' • категории',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 4),
-          Text('$id • ID', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+          Text(
+            '$id • ID',
+            style: const TextStyle(color: Colors.grey, fontSize: 11),
+          ),
         ],
       ),
     );
@@ -479,11 +568,16 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
       return const Center(child: Text('Машина не выбрана'));
     }
 
-    final vehicleDetailsAsync = ref.watch(vehicleDetailsProvider(widget.vehicle!.id));
+    final vehicleDetailsAsync = ref.watch(
+      vehicleDetailsProvider(widget.vehicle!.id),
+    );
 
     return vehicleDetailsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
-      error: (error, stack) => Center(child: Text('Ошибка загрузки данных: $error')),
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: AppTheme.primaryColor),
+      ),
+      error: (error, stack) =>
+          Center(child: Text('Ошибка загрузки данных: $error')),
       data: (details) {
         final specs = details.specifications;
         final licenses = details.licenses;
@@ -491,21 +585,31 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
 
         String parseTransmission(String? tr) {
           switch (tr) {
-            case 'mechanical': return 'Механика';
-            case 'automatic': return 'Автомат';
-            case 'robotic': return 'Робот';
-            case 'variator': return 'Вариатор';
-            default: return 'Неизвестный';
+            case 'mechanical':
+              return 'Механика';
+            case 'automatic':
+              return 'Автомат';
+            case 'robotic':
+              return 'Робот';
+            case 'variator':
+              return 'Вариатор';
+            default:
+              return 'Неизвестный';
           }
         }
 
         String parseFuel(String? fuel) {
           switch (fuel) {
-            case 'petrol': return 'Бензин';
-            case 'methane': return 'Метан';
-            case 'propane': return 'Пропан';
-            case 'electricity': return 'Электро';
-            default: return '—';
+            case 'petrol':
+              return 'Бензин';
+            case 'methane':
+              return 'Метан';
+            case 'propane':
+              return 'Пропан';
+            case 'electricity':
+              return 'Электро';
+            default:
+              return '—';
           }
         }
 
@@ -515,7 +619,8 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
           return hasCargo ? 'Грузовой автомобиль' : 'Легковой автомобиль';
         }
 
-        bool hasConditioner = parkProfile?.amenities?.contains('conditioner') ?? false;
+        bool hasConditioner =
+            parkProfile?.amenities?.contains('conditioner') ?? false;
 
         return ListView(
           padding: const EdgeInsets.all(16),
@@ -524,13 +629,27 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
               'Об автомобиле',
               'Детали',
               _buildDetailGrid([
-                {'СТС': licenses?.registrationCertificate ?? '—'}, {'Год выпуска': specs?.year?.toString() ?? '—'},
-                {'Дата выдачи СТС': licenses?.registrationCertIssueDate ?? '—'}, {'Номер кузова': specs?.bodyNumber ?? '—'},
-                {'Госномер': licenses?.licencePlateNumber ?? widget.vehicle?.plateNumber ?? '—'}, {'Цвет': specs?.color ?? widget.vehicle?.color ?? '—'},
-                {'VIN': specs?.vin ?? '—'}, {'КПП': parseTransmission(specs?.transmission)},
-                {'Марка': specs?.brand ?? widget.vehicle?.brand ?? '—'}, {'Вид топлива': parseFuel(parkProfile?.fuelType)},
-                {'Модель': specs?.model ?? '—'}, {'Тип ТС': _getVehicleType(parkProfile)},
-                {'Позывной': parkProfile?.callsign ?? widget.vehicle?.callsign ?? '—'},
+                {'СТС': licenses?.registrationCertificate ?? '—'},
+                {'Год выпуска': specs?.year?.toString() ?? '—'},
+                {'Дата выдачи СТС': licenses?.registrationCertIssueDate ?? '—'},
+                {'Номер кузова': specs?.bodyNumber ?? '—'},
+                {
+                  'Госномер':
+                      licenses?.licencePlateNumber ??
+                      widget.vehicle?.plateNumber ??
+                      '—',
+                },
+                {'Цвет': specs?.color ?? widget.vehicle?.color ?? '—'},
+                {'VIN': specs?.vin ?? '—'},
+                {'КПП': parseTransmission(specs?.transmission)},
+                {'Марка': specs?.brand ?? widget.vehicle?.brand ?? '—'},
+                {'Вид топлива': parseFuel(parkProfile?.fuelType)},
+                {'Модель': specs?.model ?? '—'},
+                {'Тип ТС': _getVehicleType(parkProfile)},
+                {
+                  'Позывной':
+                      parkProfile?.callsign ?? widget.vehicle?.callsign ?? '—',
+                },
               ]),
               onEdit: () => _showEditVehicleSheet(details),
             ),
@@ -548,7 +667,13 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
     );
   }
 
-  Widget _buildDetailSection(String title, String subtitle, Widget content, {bool showDivider = true, VoidCallback? onEdit}) {
+  Widget _buildDetailSection(
+    String title,
+    String subtitle,
+    Widget content, {
+    bool showDivider = true,
+    VoidCallback? onEdit,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       child: Column(
@@ -560,9 +685,18 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
                 ],
               ),
               if (onEdit != null)
@@ -587,28 +721,36 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
 
   void _showEditVehicleSheet(VehicleDetails details) {
     if (widget.vehicle == null) return;
-    
-    EditVehicleBottomSheet.show(
-      context,
-      widget.vehicle!.id,
-      details,
-    );
+
+    EditVehicleBottomSheet.show(context, widget.vehicle!.id, details);
   }
 
   Widget _buildDetailGrid(List<Map<String, String>> items) {
     List<Widget> rows = [];
     for (int i = 0; i < items.length; i += 2) {
-      rows.add(Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: _buildDetailItem(items[i].keys.first, items[i].values.first)),
-          const SizedBox(width: 16),
-          if (i + 1 < items.length)
-            Expanded(child: _buildDetailItem(items[i + 1].keys.first, items[i + 1].values.first))
-          else
-            const Expanded(child: SizedBox()),
-        ],
-      ));
+      rows.add(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildDetailItem(
+                items[i].keys.first,
+                items[i].values.first,
+              ),
+            ),
+            const SizedBox(width: 16),
+            if (i + 1 < items.length)
+              Expanded(
+                child: _buildDetailItem(
+                  items[i + 1].keys.first,
+                  items[i + 1].values.first,
+                ),
+              )
+            else
+              const Expanded(child: SizedBox()),
+          ],
+        ),
+      );
       if (i + 2 < items.length) {
         rows.add(const SizedBox(height: 16));
       }
@@ -679,7 +821,10 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
               Expanded(
                 child: Text(
                   name,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const Icon(Icons.open_in_new, size: 18, color: Colors.blue),
@@ -689,9 +834,19 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(status, style: TextStyle(color: statusColor, fontWeight: FontWeight.w500, fontSize: 13)),
-              Text(state, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-            ]
+              Text(
+                status,
+                style: TextStyle(
+                  color: statusColor,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                ),
+              ),
+              Text(
+                state,
+                style: const TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+            ],
           ),
           const Divider(height: 24, thickness: 1, color: Color(0xFFEEEEEE)),
           _buildDriverInfoRow('ВУ', license),
@@ -704,15 +859,19 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
     );
   }
 
-  Widget _buildDriverInfoRow(String label, String value, {bool isLink = false}) {
+  Widget _buildDriverInfoRow(
+    String label,
+    String value, {
+    bool isLink = false,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
         Text(
-          value, 
+          value,
           style: TextStyle(
-            color: isLink ? Colors.blue : Colors.black87, 
+            color: isLink ? Colors.blue : Colors.black87,
             fontSize: 13,
             decoration: isLink ? TextDecoration.underline : null,
             decorationColor: Colors.blue,
@@ -728,10 +887,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SvgPicture.asset(
-            'assets/images/waiting-man.svg',
-            width: 250,
-          ),
+          SvgPicture.asset('assets/images/waiting-man.svg', width: 250),
           const SizedBox(height: 24),
           const Text(
             'Ещё нет фотографий',
@@ -744,13 +900,12 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
           const SizedBox(height: 8),
           const Text(
             'Подождите, пока водитель загрузит их',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.black54,
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.black54),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 60), // Add a little extra space to center better optically
+          const SizedBox(
+            height: 60,
+          ), // Add a little extra space to center better optically
         ],
       ),
     );

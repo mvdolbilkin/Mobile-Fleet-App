@@ -112,20 +112,34 @@ class AddVehicleFormData {
   // Проверка конкретных полей
   bool isFieldValid(String fieldName) {
     switch (fieldName) {
-      case 'sts': return sts.isNotEmpty && _isValidLatinOrDigits(sts);
-      case 'plateNumber': return plateNumber.isNotEmpty && _isValidPlateNumber(plateNumber);
-      case 'brand': return brand.isNotEmpty;
-      case 'year': return year.isNotEmpty && _isValidYear(year);
-      case 'vin': return vin.isNotEmpty && _isValidVIN(vin);
-      case 'model': return model.isNotEmpty;
-      case 'color': return color.isNotEmpty;
-      case 'fuelType': return fuelType.isNotEmpty;
-      case 'transmission': return transmission.isNotEmpty;
-      case 'length': return length.isNotEmpty && _isValidLength(length);
-      case 'height': return height.isNotEmpty && _isValidHeight(height);
-      case 'width': return width.isNotEmpty && _isValidWidth(width);
-      case 'capacity': return capacity.isNotEmpty && _isValidCapacity(capacity);
-      default: return true;
+      case 'sts':
+        return sts.isNotEmpty && _isValidLatinOrDigits(sts);
+      case 'plateNumber':
+        return plateNumber.isNotEmpty && _isValidPlateNumber(plateNumber);
+      case 'brand':
+        return brand.isNotEmpty;
+      case 'year':
+        return year.isNotEmpty && _isValidYear(year);
+      case 'vin':
+        return vin.isNotEmpty && _isValidVIN(vin);
+      case 'model':
+        return model.isNotEmpty;
+      case 'color':
+        return color.isNotEmpty;
+      case 'fuelType':
+        return fuelType.isNotEmpty;
+      case 'transmission':
+        return transmission.isNotEmpty;
+      case 'length':
+        return length.isNotEmpty && _isValidLength(length);
+      case 'height':
+        return height.isNotEmpty && _isValidHeight(height);
+      case 'width':
+        return width.isNotEmpty && _isValidWidth(width);
+      case 'capacity':
+        return capacity.isNotEmpty && _isValidCapacity(capacity);
+      default:
+        return true;
     }
   }
 
@@ -192,7 +206,7 @@ class AddVehicleFormData {
   // Получение сообщения об ошибке для поля
   String? getFieldError(String fieldName) {
     if (!showValidationErrors) return null;
-    
+
     switch (fieldName) {
       case 'sts':
         if (sts.isEmpty) return 'Обязательное поле';
@@ -200,7 +214,8 @@ class AddVehicleFormData {
         return null;
       case 'plateNumber':
         if (plateNumber.isEmpty) return 'Обязательное поле';
-        if (!_isValidPlateNumber(plateNumber)) return 'Только латиница и цифры (A123BC777)';
+        if (!_isValidPlateNumber(plateNumber))
+          return 'Только латиница и цифры (A123BC777)';
         return null;
       case 'vin':
         if (vin.isEmpty) return 'Обязательное поле';
@@ -229,7 +244,8 @@ class AddVehicleFormData {
       case 'capacity':
         if (capacity.isEmpty) return 'Обязательное поле';
         if (!_isValidNumber(capacity)) return 'Только цифры';
-        if (!_isValidCapacity(capacity)) return 'Грузоподъемность от 300 до 6000 кг';
+        if (!_isValidCapacity(capacity))
+          return 'Грузоподъемность от 300 до 6000 кг';
         return null;
       default:
         if (!isFieldValid(fieldName)) return 'Обязательное поле';
@@ -240,23 +256,23 @@ class AddVehicleFormData {
   // Валидация обязательных полей
   bool get isStep1Valid {
     return sts.isNotEmpty &&
-           plateNumber.isNotEmpty &&
-           brand.isNotEmpty &&
-           year.isNotEmpty &&
-           vin.isNotEmpty &&
-           _isValidVIN(vin) &&
-           model.isNotEmpty &&
-           color.isNotEmpty &&
-           fuelType.isNotEmpty &&
-           transmission.isNotEmpty;
+        plateNumber.isNotEmpty &&
+        brand.isNotEmpty &&
+        year.isNotEmpty &&
+        vin.isNotEmpty &&
+        _isValidVIN(vin) &&
+        model.isNotEmpty &&
+        color.isNotEmpty &&
+        fuelType.isNotEmpty &&
+        transmission.isNotEmpty;
   }
 
   bool get isStep2Valid {
     if (isTruck) {
       return length.isNotEmpty &&
-             height.isNotEmpty &&
-             width.isNotEmpty &&
-             capacity.isNotEmpty;
+          height.isNotEmpty &&
+          width.isNotEmpty &&
+          capacity.isNotEmpty;
     }
     return true;
   }
@@ -280,14 +296,38 @@ class AddVehicleFormData {
       'vehicle_licenses': {
         'licence_plate_number': _transliteratePlateNumber(plateNumber),
         'registration_certificate': _transliterateToLatin(sts),
-        'registration_cert_issue_date': stsIssueDate.isNotEmpty ? _formatDateForApi(stsIssueDate) : '',
+        'registration_cert_issue_date': stsIssueDate.isNotEmpty
+            ? _formatDateForApi(stsIssueDate)
+            : '',
       },
       'park_profile': {
         'status': 'working',
         'amenities': amenities,
         'fuel_type': _mapFuelType(fuelType),
         'is_park_property': isParkVehicle,
-        'categories': isTruck ? ['cargo'] : ['express', 'econom', 'comfort', 'comfort_plus', 'minivan', 'intercity', 'business', 'ultimate', 'premium_van', 'personal_driver', 'vip', 'suv', 'premium_suv', 'envoy_ultima', 'maybach', 'standart', 'summit_b2b', 'transfer', 'wagon'],
+        'categories': isTruck
+            ? ['cargo']
+            : [
+                'express',
+                'econom',
+                'comfort',
+                'comfort_plus',
+                'minivan',
+                'intercity',
+                'business',
+                'ultimate',
+                'premium_van',
+                'personal_driver',
+                'vip',
+                'suv',
+                'premium_suv',
+                'envoy_ultima',
+                'maybach',
+                'standart',
+                'summit_b2b',
+                'transfer',
+                'wagon',
+              ],
       },
     };
 
@@ -305,7 +345,11 @@ class AddVehicleFormData {
     }
 
     // Добавляем параметры грузового отсека для грузовых автомобилей
-    if (isTruck && length.isNotEmpty && height.isNotEmpty && width.isNotEmpty && capacity.isNotEmpty) {
+    if (isTruck &&
+        length.isNotEmpty &&
+        height.isNotEmpty &&
+        width.isNotEmpty &&
+        capacity.isNotEmpty) {
       payload['cargo'] = {
         'cargo_loaders': 0,
         'cargo_hold_dimensions': {
@@ -333,101 +377,174 @@ class AddVehicleFormData {
 
   String _mapFuelType(String fuelType) {
     switch (fuelType.toLowerCase()) {
-      case 'бензин': return 'petrol';
-      case 'метан': return 'methane';
-      case 'пропан': return 'propane';
-      case 'электричество': return 'electricity';
-      default: return 'petrol';
+      case 'бензин':
+        return 'petrol';
+      case 'метан':
+        return 'methane';
+      case 'пропан':
+        return 'propane';
+      case 'электричество':
+        return 'electricity';
+      default:
+        return 'petrol';
     }
   }
 
   String _mapColor(String color) {
     switch (color) {
-      case 'Белый': return 'Белый';
-      case 'Желтый': return 'Желтый';
-      case 'Бежевый': return 'Бежевый';
-      case 'Черный': return 'Черный';
-      case 'Голубой': return 'Голубой';
-      case 'Серый': return 'Серый';
-      case 'Красный': return 'Красный';
-      case 'Оранжевый': return 'Оранжевый';
-      case 'Синий': return 'Синий';
-      case 'Зеленый': return 'Зеленый';
-      case 'Коричневый': return 'Коричневый';
-      case 'Фиолетовый': return 'Фиолетовый';
-      case 'Розовый': return 'Розовый';
-      default: return color;
+      case 'Белый':
+        return 'Белый';
+      case 'Желтый':
+        return 'Желтый';
+      case 'Бежевый':
+        return 'Бежевый';
+      case 'Черный':
+        return 'Черный';
+      case 'Голубой':
+        return 'Голубой';
+      case 'Серый':
+        return 'Серый';
+      case 'Красный':
+        return 'Красный';
+      case 'Оранжевый':
+        return 'Оранжевый';
+      case 'Синий':
+        return 'Синий';
+      case 'Зеленый':
+        return 'Зеленый';
+      case 'Коричневый':
+        return 'Коричневый';
+      case 'Фиолетовый':
+        return 'Фиолетовый';
+      case 'Розовый':
+        return 'Розовый';
+      default:
+        return color;
     }
   }
 
   String _mapTransmission(String transmission) {
     switch (transmission.toLowerCase()) {
-      case 'механическая': return 'mechanical';
-      case 'автоматическая': return 'automatic';
-      case 'роботизированная': return 'robotic';
-      case 'вариатор': return 'variator';
-      default: return 'mechanical';
+      case 'механическая':
+        return 'mechanical';
+      case 'автоматическая':
+        return 'automatic';
+      case 'роботизированная':
+        return 'robotic';
+      case 'вариатор':
+        return 'variator';
+      default:
+        return 'mechanical';
     }
   }
 
   // Транслитерация номера автомобиля (кириллица → латиница)
   String _transliteratePlateNumber(String text) {
     const Map<String, String> translitMap = {
-      'А': 'A', 'а': 'A',
-      'В': 'B', 'в': 'B',
-      'Е': 'E', 'е': 'E',
-      'К': 'K', 'к': 'K',
-      'М': 'M', 'м': 'M',
-      'Н': 'H', 'н': 'H',
-      'О': 'O', 'о': 'O',
-      'Р': 'P', 'р': 'P',
-      'С': 'C', 'с': 'C',
-      'Т': 'T', 'т': 'T',
-      'У': 'Y', 'у': 'Y',
-      'Х': 'X', 'х': 'X',
+      'А': 'A',
+      'а': 'A',
+      'В': 'B',
+      'в': 'B',
+      'Е': 'E',
+      'е': 'E',
+      'К': 'K',
+      'к': 'K',
+      'М': 'M',
+      'м': 'M',
+      'Н': 'H',
+      'н': 'H',
+      'О': 'O',
+      'о': 'O',
+      'Р': 'P',
+      'р': 'P',
+      'С': 'C',
+      'с': 'C',
+      'Т': 'T',
+      'т': 'T',
+      'У': 'Y',
+      'у': 'Y',
+      'Х': 'X',
+      'х': 'X',
     };
-    
-    return text.split('').map((char) => translitMap[char] ?? char).join('').toUpperCase();
+
+    return text
+        .split('')
+        .map((char) => translitMap[char] ?? char)
+        .join('')
+        .toUpperCase();
   }
 
   // Транслитерация для СТС и других полей
   String _transliterateToLatin(String text) {
     const Map<String, String> translitMap = {
-      'А': 'A', 'а': 'a',
-      'Б': 'B', 'б': 'b',
-      'В': 'V', 'в': 'v',
-      'Г': 'G', 'г': 'g',
-      'Д': 'D', 'д': 'd',
-      'Е': 'E', 'е': 'e',
-      'Ё': 'E', 'ё': 'e',
-      'Ж': 'Zh', 'ж': 'zh',
-      'З': 'Z', 'з': 'z',
-      'И': 'I', 'и': 'i',
-      'Й': 'Y', 'й': 'y',
-      'К': 'K', 'к': 'k',
-      'Л': 'L', 'л': 'l',
-      'М': 'M', 'м': 'm',
-      'Н': 'N', 'н': 'n',
-      'О': 'O', 'о': 'o',
-      'П': 'P', 'п': 'p',
-      'Р': 'R', 'р': 'r',
-      'С': 'S', 'с': 's',
-      'Т': 'T', 'т': 't',
-      'У': 'U', 'у': 'u',
-      'Ф': 'F', 'ф': 'f',
-      'Х': 'Kh', 'х': 'kh',
-      'Ц': 'Ts', 'ц': 'ts',
-      'Ч': 'Ch', 'ч': 'ch',
-      'Ш': 'Sh', 'ш': 'sh',
-      'Щ': 'Shch', 'щ': 'shch',
-      'Ъ': '', 'ъ': '',
-      'Ы': 'Y', 'ы': 'y',
-      'Ь': '', 'ь': '',
-      'Э': 'E', 'э': 'e',
-      'Ю': 'Yu', 'ю': 'yu',
-      'Я': 'Ya', 'я': 'ya',
+      'А': 'A',
+      'а': 'a',
+      'Б': 'B',
+      'б': 'b',
+      'В': 'V',
+      'в': 'v',
+      'Г': 'G',
+      'г': 'g',
+      'Д': 'D',
+      'д': 'd',
+      'Е': 'E',
+      'е': 'e',
+      'Ё': 'E',
+      'ё': 'e',
+      'Ж': 'Zh',
+      'ж': 'zh',
+      'З': 'Z',
+      'з': 'z',
+      'И': 'I',
+      'и': 'i',
+      'Й': 'Y',
+      'й': 'y',
+      'К': 'K',
+      'к': 'k',
+      'Л': 'L',
+      'л': 'l',
+      'М': 'M',
+      'м': 'm',
+      'Н': 'N',
+      'н': 'n',
+      'О': 'O',
+      'о': 'o',
+      'П': 'P',
+      'п': 'p',
+      'Р': 'R',
+      'р': 'r',
+      'С': 'S',
+      'с': 's',
+      'Т': 'T',
+      'т': 't',
+      'У': 'U',
+      'у': 'u',
+      'Ф': 'F',
+      'ф': 'f',
+      'Х': 'Kh',
+      'х': 'kh',
+      'Ц': 'Ts',
+      'ц': 'ts',
+      'Ч': 'Ch',
+      'ч': 'ch',
+      'Ш': 'Sh',
+      'ш': 'sh',
+      'Щ': 'Shch',
+      'щ': 'shch',
+      'Ъ': '',
+      'ъ': '',
+      'Ы': 'Y',
+      'ы': 'y',
+      'Ь': '',
+      'ь': '',
+      'Э': 'E',
+      'э': 'e',
+      'Ю': 'Yu',
+      'ю': 'yu',
+      'Я': 'Ya',
+      'я': 'ya',
     };
-    
+
     return text.split('').map((char) => translitMap[char] ?? char).join();
   }
 }
@@ -505,12 +622,12 @@ class AddVehicleFormNotifier extends Notifier<AddVehicleFormData> {
   Future<String?> submit() async {
     // Включаем показ ошибок
     state = state.copyWith(showValidationErrors: true);
-    
+
     // Валидация
     if (!state.isStep1Valid) {
       return 'Заполните все обязательные поля';
     }
-    
+
     if (!state.isStep2Valid) {
       return 'Заполните все обязательные поля для грузового автомобиля';
     }
@@ -519,13 +636,13 @@ class AddVehicleFormNotifier extends Notifier<AddVehicleFormData> {
       final dio = ref.read(dioProvider);
       final secureStorage = ref.read(secureStorageServiceProvider);
       final vehiclesService = VehiclesService(dio, secureStorage);
-      
+
       final payload = state.toYandexApiJson();
       await vehiclesService.createVehicle(payload);
-      
+
       // Инвалидируем кэш списка
       ref.invalidate(vehiclesProvider);
-      
+
       reset();
       return null; // успех
     } catch (e) {
@@ -557,7 +674,10 @@ final brandsProvider = FutureProvider<List<String>>((ref) async {
 });
 
 // Провайдер для загрузки моделей по выбранной марке
-final modelsProvider = FutureProvider.family<List<String>, String>((ref, brand) async {
+final modelsProvider = FutureProvider.family<List<String>, String>((
+  ref,
+  brand,
+) async {
   if (brand.isEmpty) return [];
   final dio = ref.read(dioProvider);
   final secureStorage = ref.read(secureStorageServiceProvider);

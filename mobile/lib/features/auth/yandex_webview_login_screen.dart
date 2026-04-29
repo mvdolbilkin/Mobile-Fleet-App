@@ -66,7 +66,11 @@ class _YandexWebViewLoginScreenState
                   color: Colors.blue.shade50,
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.blue.shade700,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -126,7 +130,7 @@ class _YandexWebViewLoginScreenState
                         _currentUrl = url.toString();
                       });
                       ref.read(loggerProvider).i('URL updated: $url');
-                      
+
                       // Проверяем cookies при изменении URL
                       if (url.toString().contains('fleet.yandex.ru') &&
                           !url.toString().contains('/passport') &&
@@ -188,10 +192,16 @@ class _YandexWebViewLoginScreenState
       String? yandexLogin;
       String? yandexUid;
       String? parkId;
+      
+      // Дополнительные cookies для Yandex API
+      final Map<String, String> allCookies = {};
 
       for (final cookie in cookies) {
-        ref.read(loggerProvider).d('Cookie: ${cookie.name} = ${cookie.value}');
+        ref.read(loggerProvider).d('Cookie: ${cookie.name} = ${cookie.value.substring(0, cookie.value.length > 50 ? 50 : cookie.value.length)}...');
         
+        // Сохраняем все cookies
+        allCookies[cookie.name] = cookie.value;
+
         switch (cookie.name) {
           case 'Session_id':
             sessionId = cookie.value;
@@ -213,16 +223,23 @@ class _YandexWebViewLoginScreenState
             break;
         }
       }
+      
+      // Логируем длину Session_id для проверки
+      if (sessionId != null) {
+        ref.read(loggerProvider).i('Session_id length: ${sessionId.length}');
+      }
 
       // Извлекаем park_id из URL если не нашли в cookies
       if (parkId == null || parkId.isEmpty) {
         parkId = _extractParkIdFromUrl(url);
       }
 
-      ref.read(loggerProvider).i(
-        'Extracted: park_id=$parkId, yandex_login=$yandexLogin, '
-        'Session_id=${sessionId != null}, sessionid2=${sessionId2 != null}',
-      );
+      ref
+          .read(loggerProvider)
+          .i(
+            'Extracted: park_id=$parkId, yandex_login=$yandexLogin, '
+            'Session_id=${sessionId != null}, sessionid2=${sessionId2 != null}',
+          );
 
       // Проверяем наличие всех необходимых данных
       if (parkId != null &&
@@ -252,6 +269,11 @@ class _YandexWebViewLoginScreenState
           yandexLogin: yandexLogin,
           yandexUid: yandexUid,
         );
+        
+        // Сохраняем все cookies как строку для полной передачи в API
+        final cookiesString = allCookies.entries.map((e) => '${e.key}=${e.value}').join('; ');
+        ref.read(loggerProvider).i('Saving ${allCookies.length} cookies, total length: ${cookiesString.length}');
+        await secureStorage.saveAllYandexCookies(cookiesString);
 
         // Отправляем сессию на backend
         try {
@@ -290,13 +312,15 @@ class _YandexWebViewLoginScreenState
           }
         }
       } else {
-        ref.read(loggerProvider).w(
-          'Waiting for login... Missing: '
-          '${parkId == null ? "park_id " : ""}'
-          '${yandexLogin == null ? "yandex_login " : ""}'
-          '${sessionId == null ? "Session_id " : ""}'
-          '${sessionId2 == null ? "sessionid2 " : ""}',
-        );
+        ref
+            .read(loggerProvider)
+            .w(
+              'Waiting for login... Missing: '
+              '${parkId == null ? "park_id " : ""}'
+              '${yandexLogin == null ? "yandex_login " : ""}'
+              '${sessionId == null ? "Session_id " : ""}'
+              '${sessionId2 == null ? "sessionid2 " : ""}',
+            );
         setState(() {
           _isProcessing = false;
         });
@@ -312,13 +336,13 @@ class _YandexWebViewLoginScreenState
   String? _extractParkIdFromUrl(String url) {
     try {
       final uri = Uri.parse(url);
-      
+
       // Проверяем query параметр park_id
       final queryParkId = uri.queryParameters['park_id'];
       if (queryParkId != null && queryParkId.isNotEmpty) {
         return queryParkId;
       }
-      
+
       // Проверяем путь вида /parks/{park_id}/...
       final pathSegments = uri.pathSegments;
       if (pathSegments.length >= 2 && pathSegments[0] == 'parks') {

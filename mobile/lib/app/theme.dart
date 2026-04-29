@@ -10,7 +10,7 @@ class AppTheme {
   static const Color textSecondary = Color(0xFF8E8E93);
   static const Color borderColor = Color(0xFFE5E5EA);
   static const Color buttonColor = Color(0xFFFCE000);
-  
+
   // Статусные цвета для бейджей
   static const Color statusGreen = Color(0xFF34C759);
   static const Color statusRed = Color(0xFFFF3B30);
@@ -88,14 +88,14 @@ class AppTheme {
     color: textPrimary,
     fontFamily: 'Yandex Sans Text',
   );
-  
+
   static const TextStyle captionSecondary = TextStyle(
     fontSize: 14,
     color: textSecondary,
     fontFamily: 'Yandex Sans Text',
   );
 
-  // Deprecated or Aliases for backward compatibility if needed, 
+  // Deprecated or Aliases for backward compatibility if needed,
   // but better to stick to the new naming convention.
   // Keeping YandexSansMedium as bodyText alias for now or removing if not used elsewhere.
   static const TextStyle YandexSansMedium = bodyText;
@@ -133,15 +133,17 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: cardColor,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppTheme.backgroundColor,
         indicatorColor: Colors.transparent, // Убираем овал выделения
-        overlayColor: WidgetStateProperty.all(Colors.transparent), // Убираем Ripple Effect
-        iconTheme: WidgetStateProperty.all(const IconThemeData(size: 28)), // Увеличиваем иконки
+        overlayColor: WidgetStateProperty.all(
+          Colors.transparent,
+        ), // Убираем Ripple Effect
+        iconTheme: WidgetStateProperty.all(
+          const IconThemeData(size: 28),
+        ), // Увеличиваем иконки
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return const TextStyle(

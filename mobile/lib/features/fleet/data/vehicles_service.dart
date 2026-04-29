@@ -110,16 +110,14 @@ class VehiclesService {
         queryMap["text"] = filter.searchQuery;
       }
 
-      final Map<String, dynamic> payload = {
-        "query": queryMap,
-        "limit": 30,
-      };
+      final Map<String, dynamic> payload = {"query": queryMap, "limit": 30};
 
       final response = await _dio.post('/api/vehicles/list', data: payload);
 
       if (response.statusCode == 200 && response.data != null) {
         final data = response.data;
-        final List<dynamic>? carsJson = (data['cars'] ?? data['vehicles']) as List<dynamic>?;
+        final List<dynamic>? carsJson =
+            (data['cars'] ?? data['vehicles']) as List<dynamic>?;
         if (carsJson == null) {
           throw Exception('Unexpected response shape from server');
         }
@@ -239,9 +237,7 @@ class VehiclesService {
 
       final response = await _dio.get(
         '/api/vehicles/car',
-        queryParameters: {
-          'vehicle_id': vehicleId,
-        },
+        queryParameters: {'vehicle_id': vehicleId},
       );
 
       if (response.statusCode == 200 && response.data != null) {
@@ -262,10 +258,7 @@ class VehiclesService {
         throw Exception('Park ID is not available. Please login again.');
       }
 
-      final response = await _dio.post(
-        '/api/vehicles/create',
-        data: payload,
-      );
+      final response = await _dio.post('/api/vehicles/create', data: payload);
 
       if (response.statusCode == 200 && response.data != null) {
         return response.data['vehicle_id'] as String;
@@ -277,20 +270,20 @@ class VehiclesService {
       print('Status code: ${e.response?.statusCode}');
       print('Response data: ${e.response?.data}');
       print('Request data: ${e.requestOptions.data}');
-      
+
       // Извлекаем и обрабатываем ошибки от API
       if (e.response?.data != null) {
         final errorData = e.response!.data;
         if (errorData is Map) {
           final code = errorData['code'] as String?;
           final message = errorData['message'] as String?;
-          
+
           // Обрабатываем специфичные коды ошибок
           final userMessage = _getErrorMessage(code, message);
           throw Exception(userMessage);
         }
       }
-      
+
       throw Exception('Не удалось создать автомобиль: ${e.message}');
     } catch (e) {
       print('Error creating vehicle: $e');
@@ -298,7 +291,10 @@ class VehiclesService {
     }
   }
 
-  Future<void> updateVehicle(String vehicleId, Map<String, dynamic> payload) async {
+  Future<void> updateVehicle(
+    String vehicleId,
+    Map<String, dynamic> payload,
+  ) async {
     try {
       final parkId = await _secureStorage.getParkId();
       if (parkId == null || parkId.isEmpty) {
@@ -307,9 +303,7 @@ class VehiclesService {
 
       final response = await _dio.put(
         '/api/vehicles/car',
-        queryParameters: {
-          'vehicle_id': vehicleId,
-        },
+        queryParameters: {'vehicle_id': vehicleId},
         data: payload,
       );
 
@@ -321,20 +315,20 @@ class VehiclesService {
       print('Status code: ${e.response?.statusCode}');
       print('Response data: ${e.response?.data}');
       print('Request data: ${e.requestOptions.data}');
-      
+
       // Извлекаем и обрабатываем ошибки от API
       if (e.response?.data != null) {
         final errorData = e.response!.data;
         if (errorData is Map) {
           final code = errorData['code'] as String?;
           final message = errorData['message'] as String?;
-          
+
           // Обрабатываем специфичные коды ошибок
           final userMessage = _getErrorMessage(code, message);
           throw Exception(userMessage);
         }
       }
-      
+
       throw Exception('Не удалось обновить автомобиль: ${e.message}');
     } catch (e) {
       print('Error updating vehicle: $e');
@@ -342,7 +336,10 @@ class VehiclesService {
     }
   }
 
-  Future<void> updateVehiclesStatus(List<String> vehicleIds, VehicleStatus status) async {
+  Future<void> updateVehiclesStatus(
+    List<String> vehicleIds,
+    VehicleStatus status,
+  ) async {
     try {
       final parkId = await _secureStorage.getParkId();
       if (parkId == null || parkId.isEmpty) {
@@ -382,9 +379,7 @@ class VehiclesService {
             'car_ids': vehicleIds,
           },
         },
-        'action': {
-          'status': apiStatus,
-        },
+        'action': {'status': apiStatus},
       };
 
       await _dio.post('/api/vehicles/status', data: payload);
@@ -434,7 +429,8 @@ class VehiclesService {
         return 'Не заполнены обязательные поля. Проверьте форму.';
       default:
         // Возвращаем оригинальное сообщение от API, если код неизвестен
-        return apiMessage ?? 'Ошибка при создании автомобиля. Проверьте введенные данные.';
+        return apiMessage ??
+            'Ошибка при создании автомобиля. Проверьте введенные данные.';
     }
   }
 
@@ -597,7 +593,10 @@ class VehiclesService {
     }
   }
 
-  Future<void> updateCategories(String vehicleId, List<String> categories) async {
+  Future<void> updateCategories(
+    String vehicleId,
+    List<String> categories,
+  ) async {
     try {
       await _dio.post(
         '/api/vehicles/categories',
@@ -614,11 +613,14 @@ class VehiclesService {
     try {
       final response = await _dio.post(
         '/api/vehicles/references',
-        data: {'references': ['car_categories']},
+        data: {
+          'references': ['car_categories'],
+        },
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        final List<dynamic> categories = response.data['car_categories'] as List<dynamic>;
+        final List<dynamic> categories =
+            response.data['car_categories'] as List<dynamic>;
         final Map<String, String> result = {};
         for (final cat in categories) {
           final map = cat as Map<String, dynamic>;

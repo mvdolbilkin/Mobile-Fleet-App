@@ -3,7 +3,6 @@ import 'package:mobile/app/theme.dart';
 import 'package:mobile/features/fleet/domain/vehicle.dart';
 import 'package:mobile/shared/widgets/badge.dart';
 
-
 class VehicleListItem extends StatelessWidget {
   final Vehicle vehicle;
   final VoidCallback? onTap;
@@ -138,10 +137,7 @@ class VehicleListItem extends StatelessWidget {
                         text: _getStatusText(vehicle.status),
                       ),
                       SizedBox(width: 8),
-                      Text(
-                        '${vehicle.mileage} км',
-                        style: AppTheme.caption,
-                      ),
+                      Text('${vehicle.mileage} км', style: AppTheme.caption),
                       if (vehicle.driverName != null) ...[
                         SizedBox(width: 8),
                         Expanded(
@@ -159,10 +155,7 @@ class VehicleListItem extends StatelessWidget {
               ),
             ),
             // Стрелка
-            Icon(
-              Icons.chevron_right,
-              color: AppTheme.textSecondary,
-            ),
+            Icon(Icons.chevron_right, color: AppTheme.textSecondary),
           ],
         ),
       ),

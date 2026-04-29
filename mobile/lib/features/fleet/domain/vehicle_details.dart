@@ -20,7 +20,9 @@ class VehicleDetails {
         parkProfile: ParkProfile(
           callsign: json['callsign'] as String?,
           fuelType: json['fuel_type'] as String?,
-          amenities: (json['amenities'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
+          amenities: (json['amenities'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList(),
           ownershipType: json['vehicle_owner_type'] as String?,
           officeId: json['office_id'] as String?,
           isReadonly: json['is_readonly'] as bool?,
@@ -31,7 +33,8 @@ class VehicleDetails {
         licenses: VehicleLicenses(
           licencePlateNumber: json['number'] as String?,
           registrationCertificate: json['registration_cert'] as String?,
-          registrationCertIssueDate: json['registration_cert_issue_date'] as String?,
+          registrationCertIssueDate:
+              json['registration_cert_issue_date'] as String?,
         ),
         specifications: VehicleSpecifications(
           brand: json['brand'] as String?,
@@ -53,12 +56,18 @@ class VehicleDetails {
           ? ParkProfile.fromJson(json['park_profile'] as Map<String, dynamic>)
           : null,
       licenses: json['vehicle_licenses'] != null
-          ? VehicleLicenses.fromJson(json['vehicle_licenses'] as Map<String, dynamic>)
+          ? VehicleLicenses.fromJson(
+              json['vehicle_licenses'] as Map<String, dynamic>,
+            )
           : null,
       specifications: json['vehicle_specifications'] != null
-          ? VehicleSpecifications.fromJson(json['vehicle_specifications'] as Map<String, dynamic>)
+          ? VehicleSpecifications.fromJson(
+              json['vehicle_specifications'] as Map<String, dynamic>,
+            )
           : null,
-      cargo: json['cargo'] != null ? Cargo.fromJson(json['cargo'] as Map<String, dynamic>) : null,
+      cargo: json['cargo'] != null
+          ? Cargo.fromJson(json['cargo'] as Map<String, dynamic>)
+          : null,
       childSafety: json['child_safety'] != null
           ? ChildSafety.fromJson(json['child_safety'] as Map<String, dynamic>)
           : null,
@@ -108,8 +117,12 @@ class ParkProfile {
       callsign: json['callsign'] as String?,
       fuelType: json['fuel_type'] as String?,
       status: json['status'] as String?,
-      amenities: (json['amenities'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
-      categories: (json['categories'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
+      amenities: (json['amenities'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList(),
+      categories: (json['categories'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList(),
       comment: json['comment'] as String?,
       isParkProperty: json['is_park_property'] as bool?,
       licenseOwnerId: json['license_owner_id'] as String?,
@@ -119,9 +132,13 @@ class ParkProfile {
       isCreatedByContractor: json['is_created_by_contractor'] as bool?,
       rental: json['rental'] as bool?,
       isCargoFrauder: json['is_cargo_frauder'] as bool?,
-      tariffs: (json['tariffs'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
+      tariffs: (json['tariffs'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList(),
       leasingConditions: json['leasing_conditions'] != null
-          ? LeasingConditions.fromJson(json['leasing_conditions'] as Map<String, dynamic>)
+          ? LeasingConditions.fromJson(
+              json['leasing_conditions'] as Map<String, dynamic>,
+            )
           : null,
     );
   }
@@ -145,7 +162,8 @@ class VehicleLicenses {
       licencePlateNumber: json['licence_plate_number'] as String?,
       licenceNumber: json['licence_number'] as String?,
       registrationCertificate: json['registration_certificate'] as String?,
-      registrationCertIssueDate: json['registration_cert_issue_date'] as String?,
+      registrationCertIssueDate:
+          json['registration_cert_issue_date'] as String?,
     );
   }
 }
@@ -190,18 +208,16 @@ class Cargo {
   final int? carryingCapacity;
   final Dimensions? cargoHoldDimensions;
 
-  Cargo({
-    this.cargoLoaders,
-    this.carryingCapacity,
-    this.cargoHoldDimensions,
-  });
+  Cargo({this.cargoLoaders, this.carryingCapacity, this.cargoHoldDimensions});
 
   factory Cargo.fromJson(Map<String, dynamic> json) {
     return Cargo(
       cargoLoaders: json['cargo_loaders'] as int?,
       carryingCapacity: json['carrying_capacity'] as int?,
       cargoHoldDimensions: json['cargo_hold_dimensions'] != null
-          ? Dimensions.fromJson(json['cargo_hold_dimensions'] as Map<String, dynamic>)
+          ? Dimensions.fromJson(
+              json['cargo_hold_dimensions'] as Map<String, dynamic>,
+            )
           : null,
     );
   }
@@ -212,11 +228,7 @@ class Dimensions {
   final int? length;
   final int? width;
 
-  Dimensions({
-    this.height,
-    this.length,
-    this.width,
-  });
+  Dimensions({this.height, this.length, this.width});
 
   factory Dimensions.fromJson(Map<String, dynamic> json) {
     return Dimensions(
@@ -233,9 +245,7 @@ class ChildSafety {
   ChildSafety({this.boosterCount});
 
   factory ChildSafety.fromJson(Map<String, dynamic> json) {
-    return ChildSafety(
-      boosterCount: json['booster_count'] as int?,
-    );
+    return ChildSafety(boosterCount: json['booster_count'] as int?);
   }
 }
 

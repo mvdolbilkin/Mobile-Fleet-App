@@ -8,7 +8,7 @@ class Vehicle {
   final int mileage;
   final String? driverName;
   final String? imageUrl;
-  
+
   // Поля из Яндекс API
   final String? brand;
   final String? callsign;
@@ -86,9 +86,15 @@ class Vehicle {
       callsign: json['callsign'] as String?,
       registrationCert: json['registration_cert'] as String?,
       vin: json['vin'] as String?,
-      amenities: (json['amenities'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
-      categories: (json['categories'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
-      tariffs: (json['tariffs'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
+      amenities: (json['amenities'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList(),
+      categories: (json['categories'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList(),
+      tariffs: (json['tariffs'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList(),
       transmission: json['transmission'] as String?,
       bodyNumber: json['body_number'] as String?,
       fuelType: json['fuel_type'] as String?,
@@ -102,12 +108,18 @@ class Vehicle {
 
   static VehicleStatus _parseStatus(String? status) {
     switch (status) {
-      case 'working': return VehicleStatus.working;
-      case 'not_working': return VehicleStatus.notWorking;
-      case 'repairing': return VehicleStatus.service;
-      case 'no_driver': return VehicleStatus.noDriver;
-      case 'pending': return VehicleStatus.preparation;
-      default: return VehicleStatus.other;
+      case 'working':
+        return VehicleStatus.working;
+      case 'not_working':
+        return VehicleStatus.notWorking;
+      case 'repairing':
+        return VehicleStatus.service;
+      case 'no_driver':
+        return VehicleStatus.noDriver;
+      case 'pending':
+        return VehicleStatus.preparation;
+      default:
+        return VehicleStatus.other;
     }
   }
 
@@ -115,24 +127,42 @@ class Vehicle {
     if (categories == null || categories.isEmpty) return VehicleCategory.econom;
     final first = categories.first.toString();
     switch (first) {
-      case 'comfort': return VehicleCategory.comfort;
-      case 'comfort_plus': return VehicleCategory.comfortPlus;
-      case 'business': return VehicleCategory.business;
-      case 'minivan': return VehicleCategory.minivan;
-      case 'vip': return VehicleCategory.vip;
-      case 'wagon': return VehicleCategory.wagon;
-      case 'pool': return VehicleCategory.pool;
-      case 'start': return VehicleCategory.start;
-      case 'standart': return VehicleCategory.standart;
-      case 'ultimate': return VehicleCategory.ultimate;
-      case 'maybach': return VehicleCategory.maybach;
-      case 'promo': return VehicleCategory.promo;
-      case 'premium_van': return VehicleCategory.premiumVan;
-      case 'premium_suv': return VehicleCategory.premiumSuv;
-      case 'suv': return VehicleCategory.suv;
-      case 'personal_driver': return VehicleCategory.personalDriver;
-      case 'express': return VehicleCategory.express;
-      case 'cargo': return VehicleCategory.cargo;
+      case 'comfort':
+        return VehicleCategory.comfort;
+      case 'comfort_plus':
+        return VehicleCategory.comfortPlus;
+      case 'business':
+        return VehicleCategory.business;
+      case 'minivan':
+        return VehicleCategory.minivan;
+      case 'vip':
+        return VehicleCategory.vip;
+      case 'wagon':
+        return VehicleCategory.wagon;
+      case 'pool':
+        return VehicleCategory.pool;
+      case 'start':
+        return VehicleCategory.start;
+      case 'standart':
+        return VehicleCategory.standart;
+      case 'ultimate':
+        return VehicleCategory.ultimate;
+      case 'maybach':
+        return VehicleCategory.maybach;
+      case 'promo':
+        return VehicleCategory.promo;
+      case 'premium_van':
+        return VehicleCategory.premiumVan;
+      case 'premium_suv':
+        return VehicleCategory.premiumSuv;
+      case 'suv':
+        return VehicleCategory.suv;
+      case 'personal_driver':
+        return VehicleCategory.personalDriver;
+      case 'express':
+        return VehicleCategory.express;
+      case 'cargo':
+        return VehicleCategory.cargo;
       case 'econom':
       default:
         return VehicleCategory.econom;
@@ -149,22 +179,11 @@ enum VehicleStatus {
   notWorking,
 }
 
-enum VehicleType {
-  automobile,
-  motorcycle,
-  rickshaw,
-}
+enum VehicleType { automobile, motorcycle, rickshaw }
 
-enum VehicleOwner {
-  taxiPark,
-  other,
-  notSpecified,
-}
+enum VehicleOwner { taxiPark, other, notSpecified }
 
-enum VehicleUsageRight {
-  confirmed,
-  notConfirmed,
-}
+enum VehicleUsageRight { confirmed, notConfirmed }
 
 enum VehicleBrandingFilter {
   confirmed,

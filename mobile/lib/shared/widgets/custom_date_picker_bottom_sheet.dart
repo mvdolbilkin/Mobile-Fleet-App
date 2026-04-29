@@ -38,10 +38,12 @@ class CustomDatePickerBottomSheet extends StatefulWidget {
   }
 
   @override
-  State<CustomDatePickerBottomSheet> createState() => _CustomDatePickerBottomSheetState();
+  State<CustomDatePickerBottomSheet> createState() =>
+      _CustomDatePickerBottomSheetState();
 }
 
-class _CustomDatePickerBottomSheetState extends State<CustomDatePickerBottomSheet> {
+class _CustomDatePickerBottomSheetState
+    extends State<CustomDatePickerBottomSheet> {
   late DateTime _selectedDate;
   late DateTime _displayedMonth;
   DatePickerMode _mode = DatePickerMode.day;
@@ -55,20 +57,23 @@ class _CustomDatePickerBottomSheetState extends State<CustomDatePickerBottomShee
 
   void _previousMonth() {
     setState(() {
-      _displayedMonth = DateTime(_displayedMonth.year, _displayedMonth.month - 1);
+      _displayedMonth = DateTime(
+        _displayedMonth.year,
+        _displayedMonth.month - 1,
+      );
     });
   }
 
   void _nextMonth() {
     final now = DateTime.now();
     final nextMonth = DateTime(_displayedMonth.year, _displayedMonth.month + 1);
-    
+
     // Не позволяем переходить в будущие месяцы
-    if (nextMonth.year > now.year || 
+    if (nextMonth.year > now.year ||
         (nextMonth.year == now.year && nextMonth.month > now.month)) {
       return;
     }
-    
+
     setState(() {
       _displayedMonth = nextMonth;
     });
@@ -95,29 +100,37 @@ class _CustomDatePickerBottomSheetState extends State<CustomDatePickerBottomShee
   }
 
   List<DateTime> _getDaysInMonth() {
-    final firstDayOfMonth = DateTime(_displayedMonth.year, _displayedMonth.month, 1);
-    final lastDayOfMonth = DateTime(_displayedMonth.year, _displayedMonth.month + 1, 0);
-    
+    final firstDayOfMonth = DateTime(
+      _displayedMonth.year,
+      _displayedMonth.month,
+      1,
+    );
+    final lastDayOfMonth = DateTime(
+      _displayedMonth.year,
+      _displayedMonth.month + 1,
+      0,
+    );
+
     final days = <DateTime>[];
-    
+
     // Добавляем пустые дни в начале для выравнивания
     final firstWeekday = firstDayOfMonth.weekday;
     for (int i = 1; i < firstWeekday; i++) {
       days.add(DateTime(0)); // Пустой день
     }
-    
+
     // Добавляем все дни месяца
     for (int day = 1; day <= lastDayOfMonth.day; day++) {
       days.add(DateTime(_displayedMonth.year, _displayedMonth.month, day));
     }
-    
+
     return days;
   }
 
   bool _isSameDay(DateTime date1, DateTime date2) {
     return date1.year == date2.year &&
-           date1.month == date2.month &&
-           date1.day == date2.day;
+        date1.month == date2.month &&
+        date1.day == date2.day;
   }
 
   bool _isToday(DateTime date) {
@@ -135,14 +148,24 @@ class _CustomDatePickerBottomSheetState extends State<CustomDatePickerBottomShee
   bool _canGoToNextMonth() {
     final now = DateTime.now();
     final nextMonth = DateTime(_displayedMonth.year, _displayedMonth.month + 1);
-    return nextMonth.year < now.year || 
-           (nextMonth.year == now.year && nextMonth.month <= now.month);
+    return nextMonth.year < now.year ||
+        (nextMonth.year == now.year && nextMonth.month <= now.month);
   }
 
   String _getMonthName(int month) {
     const months = [
-      'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+      'Январь',
+      'Февраль',
+      'Март',
+      'Апрель',
+      'Май',
+      'Июнь',
+      'Июль',
+      'Август',
+      'Сентябрь',
+      'Октябрь',
+      'Ноябрь',
+      'Декабрь',
     ];
     return months[month - 1];
   }
@@ -173,10 +196,7 @@ class _CustomDatePickerBottomSheetState extends State<CustomDatePickerBottomShee
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    widget.title,
-                    style: AppTheme.listTitle,
-                  ),
+                  Text(widget.title, style: AppTheme.listTitle),
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: const Icon(
@@ -228,7 +248,8 @@ class _CustomDatePickerBottomSheetState extends State<CustomDatePickerBottomShee
   }
 
   Widget _buildDayPicker() {
-    final monthYear = '${_getMonthName(_displayedMonth.month)} ${_displayedMonth.year}';
+    final monthYear =
+        '${_getMonthName(_displayedMonth.month)} ${_displayedMonth.year}';
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -281,19 +302,21 @@ class _CustomDatePickerBottomSheetState extends State<CustomDatePickerBottomShee
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
-                .map((day) => SizedBox(
-                      width: 40,
-                      child: Center(
-                        child: Text(
-                          day,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textSecondary,
-                          ),
+                .map(
+                  (day) => SizedBox(
+                    width: 40,
+                    child: Center(
+                      child: Text(
+                        day,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textSecondary,
                         ),
                       ),
-                    ))
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         ),
@@ -308,7 +331,7 @@ class _CustomDatePickerBottomSheetState extends State<CustomDatePickerBottomShee
 
   Widget _buildMonthGrid(DateTime month) {
     final days = _getDaysInMonthForDate(month);
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GridView.builder(
@@ -322,7 +345,7 @@ class _CustomDatePickerBottomSheetState extends State<CustomDatePickerBottomShee
         itemCount: days.length,
         itemBuilder: (context, index) {
           final date = days[index];
-          
+
           // Пустая ячейка
           if (date.year == 0) {
             return const SizedBox();
@@ -346,7 +369,9 @@ class _CustomDatePickerBottomSheetState extends State<CustomDatePickerBottomShee
                   '${date.day}',
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                     color: isFuture
                         ? AppTheme.textSecondary.withOpacity(0.3)
                         : AppTheme.textPrimary,
@@ -363,20 +388,20 @@ class _CustomDatePickerBottomSheetState extends State<CustomDatePickerBottomShee
   List<DateTime> _getDaysInMonthForDate(DateTime month) {
     final firstDayOfMonth = DateTime(month.year, month.month, 1);
     final lastDayOfMonth = DateTime(month.year, month.month + 1, 0);
-    
+
     final days = <DateTime>[];
-    
+
     // Добавляем пустые дни в начале для выравнивания
     final firstWeekday = firstDayOfMonth.weekday;
     for (int i = 1; i < firstWeekday; i++) {
       days.add(DateTime(0)); // Пустой день
     }
-    
+
     // Добавляем все дни месяца
     for (int day = 1; day <= lastDayOfMonth.day; day++) {
       days.add(DateTime(month.year, month.month, day));
     }
-    
+
     return days;
   }
 
@@ -404,10 +429,7 @@ class _CustomDatePickerBottomSheetState extends State<CustomDatePickerBottomShee
                   ),
                 ),
                 const SizedBox(width: 4),
-                const Icon(
-                  Icons.arrow_drop_down,
-                  color: AppTheme.textPrimary,
-                ),
+                const Icon(Icons.arrow_drop_down, color: AppTheme.textPrimary),
               ],
             ),
           ),
@@ -429,12 +451,14 @@ class _CustomDatePickerBottomSheetState extends State<CustomDatePickerBottomShee
             itemBuilder: (context, index) {
               final month = index + 1;
               final monthName = _getMonthName(month);
-              final isCurrentMonth = currentYear == _displayedMonth.year && 
-                                     month == _displayedMonth.month;
-              
+              final isCurrentMonth =
+                  currentYear == _displayedMonth.year &&
+                  month == _displayedMonth.month;
+
               // Проверяем, является ли месяц будущим
-              final isFutureMonth = currentYear > now.year || 
-                                   (currentYear == now.year && month > now.month);
+              final isFutureMonth =
+                  currentYear > now.year ||
+                  (currentYear == now.year && month > now.month);
 
               return GestureDetector(
                 onTap: isFutureMonth ? null : () => _selectMonth(month),
@@ -450,7 +474,9 @@ class _CustomDatePickerBottomSheetState extends State<CustomDatePickerBottomShee
                       monthName,
                       style: TextStyle(
                         fontSize: 14,
-                        fontWeight: isCurrentMonth ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight: isCurrentMonth
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                         color: isFutureMonth
                             ? AppTheme.textSecondary.withOpacity(0.3)
                             : AppTheme.textPrimary,
@@ -470,7 +496,10 @@ class _CustomDatePickerBottomSheetState extends State<CustomDatePickerBottomShee
     final now = DateTime.now();
     final currentYear = now.year;
     final startYear = 1970;
-    final years = List.generate(currentYear - startYear + 1, (index) => currentYear - index);
+    final years = List.generate(
+      currentYear - startYear + 1,
+      (index) => currentYear - index,
+    );
 
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.5,
@@ -493,7 +522,9 @@ class _CustomDatePickerBottomSheetState extends State<CustomDatePickerBottomShee
                 '$year',
                 style: TextStyle(
                   fontSize: 16,
-                  fontWeight: isCurrentYear ? FontWeight.w600 : FontWeight.normal,
+                  fontWeight: isCurrentYear
+                      ? FontWeight.w600
+                      : FontWeight.normal,
                   color: AppTheme.textPrimary,
                 ),
               ),

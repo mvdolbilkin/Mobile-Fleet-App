@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/staff/domain/staff.dart';
 import 'package:mobile/shared/api/dio_provider.dart';
@@ -13,7 +13,10 @@ final staffListProvider = FutureProvider<List<Staff>>((ref) async {
   return await repository.fetchStaff();
 });
 
-final staffProfileProvider = FutureProvider.family<Staff, String>((ref, profileId) async {
+final staffProfileProvider = FutureProvider.family<Staff, String>((
+  ref,
+  profileId,
+) async {
   final repository = ref.watch(staffRepositoryProvider);
   return await repository.fetchStaffProfile(profileId);
 });
@@ -37,61 +40,71 @@ class DriverOrdersParams {
   int get hashCode => profileId.hashCode ^ days.hashCode;
 }
 
-final driverOrdersProvider = FutureProvider.family<Map<String, dynamic>, DriverOrdersParams>((ref, params) async {
-  final repository = ref.watch(staffRepositoryProvider);
-  
-  // Рассчитываем даты внутри провайдера, чтобы избежать бесконечного цикла обновлений UI.
-  // API Яндекса требует таймзону.
-  final now = DateTime.now();
-  final startDate = now.subtract(Duration(days: params.days));
-  
-  // Форматируем с нулями и добавляем таймзону
-  String formatYandexDate(DateTime dt) {
-    return '${dt.toIso8601String().split('.')[0]}+03:00'; // Упрощенный формат для примера
-  }
+final driverOrdersProvider =
+    FutureProvider.family<Map<String, dynamic>, DriverOrdersParams>((
+      ref,
+      params,
+    ) async {
+      final repository = ref.watch(staffRepositoryProvider);
 
-  final fromStr = formatYandexDate(startDate);
-  final toStr = formatYandexDate(now);
+      // Рассчитываем даты внутри провайдера, чтобы избежать бесконечного цикла обновлений UI.
+      // API Яндекса требует таймзону.
+      final now = DateTime.now();
+      final startDate = now.subtract(Duration(days: params.days));
 
-  final data = await repository.fetchDriverOrders(params.profileId, fromStr, toStr);
-  return data;
-});
+      // Форматируем с нулями и добавляем таймзону
+      String formatYandexDate(DateTime dt) {
+        return '${dt.toIso8601String().split('.')[0]}+03:00'; // Упрощенный формат для примера
+      }
 
-final carInfoProvider = FutureProvider.family<Map<String, dynamic>?, String>((ref, carId) async {
+      final fromStr = formatYandexDate(startDate);
+      final toStr = formatYandexDate(now);
+
+      final data = await repository.fetchDriverOrders(
+        params.profileId,
+        fromStr,
+        toStr,
+      );
+      return data;
+    });
+
+final carInfoProvider = FutureProvider.family<Map<String, dynamic>?, String>((
+  ref,
+  carId,
+) async {
   if (carId.isEmpty) return null;
   final repository = ref.watch(staffRepositoryProvider);
   final data = await repository.fetchCarInfo(carId);
-  final cars = data['cars'] as List<dynamic>? ?? [];
-  if (cars.isNotEmpty) {
-    return cars.first as Map<String, dynamic>;
-  }
-  return null;
+  return data;
 });
 
-final transactionCategoriesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final repository = ref.watch(staffRepositoryProvider);
-  return await repository.fetchTransactionCategories();
-});
+final transactionCategoriesProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+      final repository = ref.watch(staffRepositoryProvider);
+      return await repository.fetchTransactionCategories();
+    });
 
-final driverDetailsProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, driverId) async {
-  final repository = ref.watch(staffRepositoryProvider);
-  return await repository.fetchDriverDetails(driverId);
-});
+final driverDetailsProvider =
+    FutureProvider.family<Map<String, dynamic>, String>((ref, driverId) async {
+      final repository = ref.watch(staffRepositoryProvider);
+      return await repository.fetchDriverDetails(driverId);
+    });
 
 class StaffRepository {
   final Dio _dio;
 
   StaffRepository({required Dio dio}) : _dio = dio;
 
-  Future<List<Staff>> fetchStaff({int limit = 500, int offset = 0, int retries = 2}) async {
+  Future<List<Staff>> fetchStaff({
+    int limit = 500,
+    int offset = 0,
+    int retries = 2,
+  }) async {
     for (int attempt = 1; attempt <= retries; attempt++) {
       try {
         final response = await _dio.get(
           '/api/staff/list',
-          queryParameters: {
-            'limit': limit,
-            'offset': offset,
-          },
+          queryParameters: {'limit': limit, 'offset': offset},
         );
 
         final data = response.data;
@@ -99,7 +112,9 @@ class StaffRepository {
           return data.map((json) => Staff.fromContractorJson(json)).toList();
         } else if (data != null && data['contractors'] != null) {
           final List<dynamic> profiles = data['contractors'];
-          return profiles.map((json) => Staff.fromContractorJson(json)).toList();
+          return profiles
+              .map((json) => Staff.fromContractorJson(json))
+              .toList();
         } else if (data != null && data['users'] != null) {
           final List<dynamic> profiles = data['users'];
           return profiles.map((json) => Staff.fromUserJson(json)).toList();
@@ -119,9 +134,7 @@ class StaffRepository {
     try {
       final response = await _dio.get(
         '/api/staff/profile',
-        queryParameters: {
-          'contractor_profile_id': profileId,
-        },
+        queryParameters: {'contractor_profile_id': profileId},
       );
 
       final data = response.data;
@@ -166,8 +179,10 @@ class StaffRepository {
   }) async {
     try {
       // Check if this is a custom category
-      final isCustomCategory = categoryId != null && categoryId.startsWith('partner_service_manual_');
-      
+      final isCustomCategory =
+          categoryId != null &&
+          categoryId.startsWith('partner_service_manual_');
+
       final requestBody = <String, dynamic>{
         'contractor_profile_id': contractorProfileId,
         'amount': amount,
@@ -178,9 +193,7 @@ class StaffRepository {
         requestBody['category_id'] = categoryId;
       } else {
         // For system categories: use data object with kind
-        final dataMap = <String, dynamic>{
-          'kind': kind,
-        };
+        final dataMap = <String, dynamic>{'kind': kind};
 
         // Add fee_amount if provided (convert positive to negative for API)
         if (feeAmount != null && feeAmount.isNotEmpty) {
@@ -201,7 +214,10 @@ class StaffRepository {
         }
 
         // Add object for rent (vehicle information)
-        if (objectId != null && objectId.isNotEmpty && objectType != null && objectType.isNotEmpty) {
+        if (objectId != null &&
+            objectId.isNotEmpty &&
+            objectType != null &&
+            objectType.isNotEmpty) {
           dataMap['object'] = {
             'object_type': objectType,
             'object_id': objectId,
@@ -236,7 +252,9 @@ class StaffRepository {
       if (balanceMin != null && balanceMin.isNotEmpty) {
         final balanceValue = double.tryParse(balanceMin);
         if (balanceValue != null) {
-          requestBody['condition'] = {'balance_min': balanceValue.toStringAsFixed(4)};
+          requestBody['condition'] = {
+            'balance_min': balanceValue.toStringAsFixed(4),
+          };
         }
       }
 
@@ -245,14 +263,21 @@ class StaffRepository {
         requestBody['description'] = description;
       }
 
-      final response = await _dio.post('/api/staff/transaction', data: requestBody);
+      final response = await _dio.post(
+        '/api/staff/transaction',
+        data: requestBody,
+      );
       return response.data ?? {};
     } catch (e) {
       throw Exception('Failed to create transaction: $e');
     }
   }
 
-  Future<Map<String, dynamic>> fetchDriverOrders(String profileId, String from, String to) async {
+  Future<Map<String, dynamic>> fetchDriverOrders(
+    String profileId,
+    String from,
+    String to,
+  ) async {
     try {
       final response = await _dio.get(
         '/api/staff/orders',
@@ -272,9 +297,7 @@ class StaffRepository {
     try {
       final response = await _dio.get(
         '/api/staff/car',
-        queryParameters: {
-          'car_id': carId,
-        },
+        queryParameters: {'car_id': carId},
       );
       return response.data ?? {};
     } catch (e) {
@@ -286,14 +309,27 @@ class StaffRepository {
     try {
       final response = await _dio.post(
         '/api/staff/details',
-        data: {
-          'driver_id': driverId,
-        },
+        data: {'driver_id': driverId},
       );
       return response.data ?? {};
     } catch (e) {
       throw Exception('Failed to load driver details: $e');
     }
   }
-}
 
+  Future<List<Map<String, dynamic>>> fetchVehicleSuggestions({int limit = 20}) async {
+    try {
+      final response = await _dio.get(
+        '/api/staff/vehicles/suggest',
+        queryParameters: {'limit': limit},
+      );
+      final data = response.data;
+      if (data != null && data['items'] != null) {
+        return List<Map<String, dynamic>>.from(data['items']);
+      }
+      return [];
+    } catch (e) {
+      throw Exception('Failed to load vehicle suggestions: $e');
+    }
+  }
+}

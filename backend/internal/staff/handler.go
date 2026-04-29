@@ -28,6 +28,7 @@ func RegisterRoutes(r *gin.Engine) {
 		staffGroup.GET("/categories", handler.GetTransactionCategories)
 		staffGroup.POST("/transaction", handler.CreateTransaction)
 		staffGroup.POST("/details", handler.GetDriverDetails)
+		staffGroup.GET("/vehicles/suggest", handler.GetVehicleSuggestions)
 	}
 }
 
@@ -218,6 +219,31 @@ func (h *Handler) GetDriverDetails(c *gin.Context) {
 	}
 
 	result, err := h.service.GetDriverDetails(cookieHeader, parkID, req.DriverID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetVehicleSuggestions(c *gin.Context) {
+	limitStr := c.DefaultQuery("limit", "20")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный параметр limit"})
+		return
+	}
+
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	if cookieHeader == "" && parkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
+		return
+	}
+
+	result, err := h.service.GetVehicleSuggestions(cookieHeader, parkID, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

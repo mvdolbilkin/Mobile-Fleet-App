@@ -1,62 +1,132 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/app/theme.dart';
+import 'package:mobile/features/menu/models/contractors_model.dart';
 
 class ExecutorsChart extends StatelessWidget {
-  const ExecutorsChart({super.key});
+  final Indicator indicator;
+
+  const ExecutorsChart({super.key, required this.indicator});
 
   @override
   Widget build(BuildContext context) {
+    // Generate scale values
+    final total = indicator.total;
+    int maxGridLine = 30; // default minimum
+    if (total > 0) {
+      maxGridLine = ((total / 10).ceil() + 1) * 10;
+      if (maxGridLine - total > 10) maxGridLine -= 10;
+    }
+
+    const int step = 10;
+    final int linesCount = (maxGridLine ~/ step) + 1;
+
+    const double chartHeight = 120.0;
+    final double barHeight = total == 0 ? 0 : (total / maxGridLine) * chartHeight;
+
     return SizedBox(
-      height: 120,
+      height: chartHeight,
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
           // Grid lines
-          Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(
-                4, (index) => Container(height: 1, color: AppTheme.borderColor)),
-          ),
-          // Bar
-          Align(
-            alignment: Alignment.bottomRight,
-            child: Container(
-              margin: const EdgeInsets.only(right: 16),
-              width: 40,
-              height: 100, // Roughly matching the "30" mark
-              decoration: BoxDecoration(
-                color: AppTheme.statusRed,
-                borderRadius: BorderRadius.circular(4),
+          ...List.generate(linesCount, (index) {
+            final val = index * step;
+            final double bottomPos = (val / maxGridLine) * chartHeight;
+            return Positioned(
+              left: 0,
+              right: 0,
+              bottom: bottomPos - 6,
+              child: SizedBox(
+                height: 12,
+                child: Row(
+                  children: [
+                  Expanded(
+                    child: Container(
+                      height: 1,
+                      color: AppTheme.borderColor,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 20,
+                    child: Text(
+                      '$val',
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        height: 1, // Remove extra line height
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                ],
+              ),
+              ),
+            );
+          }),
+          // 3 Bars
+          if (total > 0)
+            Positioned(
+              right: 36, // space from labels
+              bottom: 0,
+              child: SizedBox(
+                height: chartHeight,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    _buildBar(
+                      value: indicator.free,
+                      max: maxGridLine,
+                      chartHeight: chartHeight,
+                      color: AppTheme.statusGreen,
+                    ),
+                    const SizedBox(width: 4),
+                    _buildBar(
+                      value: indicator.inOrder,
+                      max: maxGridLine,
+                      chartHeight: chartHeight,
+                      color: AppTheme.statusOrange,
+                    ),
+                    const SizedBox(width: 4),
+                    _buildBar(
+                      value: indicator.busy,
+                      max: maxGridLine,
+                      chartHeight: chartHeight,
+                      color: AppTheme.statusRed,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          // Y-Axis Labels
-          const _ChartLabel(text: '30', top: 0),
-          const _ChartLabel(text: '20', top: 35),
-          const _ChartLabel(text: '10', top: 70),
-          const _ChartLabel(text: '0', bottom: 0),
         ],
       ),
     );
   }
-}
 
-class _ChartLabel extends StatelessWidget {
-  final String text;
-  final double? top;
-  final double? bottom;
-
-  const _ChartLabel({required this.text, this.top, this.bottom});
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      right: 0,
-      top: top,
-      bottom: bottom,
-      child: Text(
-        text,
-        style: const TextStyle(color: Colors.grey, fontSize: 12),
+  Widget _buildBar({
+    required int value,
+    required int max,
+    required double chartHeight,
+    required Color color,
+  }) {
+    if (value == 0) {
+      return const SizedBox(width: 32);
+    }
+    return Container(
+      width: 32,
+      height: (value / max) * chartHeight,
+      // Adding minimal border radius so it doesn't look cut off and thick
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(2),
+          topRight: Radius.circular(2),
+        ),
       ),
     );
   }
 }
+
+

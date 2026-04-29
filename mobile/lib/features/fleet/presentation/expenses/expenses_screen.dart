@@ -92,7 +92,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
       }
 
       final repository = ref.read(expensesRepositoryProvider);
-      
+
       // Используем указанные даты: 2025-11-01 до 2026-06-30
       final data = await repository.getCostsList(
         parkId: parkId,
@@ -121,7 +121,9 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
         _isLoading = false;
       });
 
-      ref.read(loggerProvider).i('✅ Loaded ${expenses.length} expenses from Yandex Fleet API');
+      ref
+          .read(loggerProvider)
+          .i('✅ Loaded ${expenses.length} expenses from Yandex Fleet API');
     } catch (e) {
       ref.read(loggerProvider).e('❌ Failed to load expenses: $e');
       setState(() {

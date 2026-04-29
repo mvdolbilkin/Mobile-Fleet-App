@@ -6,8 +6,18 @@ import 'package:mobile/features/staff/widgets/status_badge.dart';
 class StaffListItem extends StatelessWidget {
   final Staff staff;
   final VoidCallback? onTap;
+  final bool isSelectionMode;
+  final bool isSelected;
+  final ValueChanged<bool?>? onSelect;
 
-  const StaffListItem({required this.staff, this.onTap, super.key});
+  const StaffListItem({
+    required this.staff,
+    this.onTap,
+    this.isSelectionMode = false,
+    this.isSelected = false,
+    this.onSelect,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,13 +25,24 @@ class StaffListItem extends StatelessWidget {
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
+        padding: isSelectionMode
+            ? const EdgeInsets.only(left: 4, top: 12, right: 12, bottom: 12)
+            : const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: AppTheme.cardColor,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
+            if (isSelectionMode)
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: Checkbox(
+                  value: isSelected,
+                  onChanged: onSelect,
+                  activeColor: AppTheme.primaryColor,
+                ),
+              ),
             // Аватар
             Container(
               width: 56,

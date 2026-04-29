@@ -2,10 +2,7 @@ class ProblemsData {
   final int total;
   final List<ProblemBadge> badges;
 
-  ProblemsData({
-    required this.total,
-    required this.badges,
-  });
+  ProblemsData({required this.total, required this.badges});
 
   factory ProblemsData.fromJson(Map<String, dynamic> json) {
     return ProblemsData(
@@ -44,16 +41,10 @@ class ProblemIcon {
   final int? value;
   final String? picture;
 
-  ProblemIcon({
-    this.value,
-    this.picture,
-  });
+  ProblemIcon({this.value, this.picture});
 
   factory ProblemIcon.fromJson(Map<String, dynamic> json) {
-    return ProblemIcon(
-      value: json['value'],
-      picture: json['picture'],
-    );
+    return ProblemIcon(value: json['value'], picture: json['picture']);
   }
 
   bool get hasValue => value != null;

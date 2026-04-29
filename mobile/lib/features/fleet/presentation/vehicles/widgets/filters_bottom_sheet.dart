@@ -37,7 +37,9 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
 
   void _clearFilters() {
     setState(() {
-      _filter = VehicleFilter(searchQuery: _filter.searchQuery); // Сохраняем только поиск
+      _filter = VehicleFilter(
+        searchQuery: _filter.searchQuery,
+      ); // Сохраняем только поиск
     });
   }
 
@@ -68,10 +70,19 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Фильтры', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Фильтры',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     TextButton(
                       onPressed: _clearFilters,
-                      child: const Text('Сбросить', style: TextStyle(color: Colors.red)),
+                      child: const Text(
+                        'Сбросить',
+                        style: TextStyle(color: Colors.red),
+                      ),
                     ),
                   ],
                 ),
@@ -87,12 +98,17 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
                       title: 'Тип ТС',
                       items: VehicleType.values,
                       selectedItems: _filter.types ?? [],
-                      onChanged: (values) => setState(() => _filter = _filter.copyWith(types: values)),
+                      onChanged: (values) => setState(
+                        () => _filter = _filter.copyWith(types: values),
+                      ),
                       labelBuilder: (type) {
                         switch (type) {
-                          case VehicleType.automobile: return 'Автомобиль';
-                          case VehicleType.motorcycle: return 'Мотоцикл';
-                          case VehicleType.rickshaw: return 'Рикша';
+                          case VehicleType.automobile:
+                            return 'Автомобиль';
+                          case VehicleType.motorcycle:
+                            return 'Мотоцикл';
+                          case VehicleType.rickshaw:
+                            return 'Рикша';
                         }
                       },
                     ),
@@ -100,12 +116,17 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
                       title: 'Владелец',
                       items: VehicleOwner.values,
                       selectedItems: _filter.owners ?? [],
-                      onChanged: (values) => setState(() => _filter = _filter.copyWith(owners: values)),
+                      onChanged: (values) => setState(
+                        () => _filter = _filter.copyWith(owners: values),
+                      ),
                       labelBuilder: (owner) {
                         switch (owner) {
-                          case VehicleOwner.taxiPark: return 'Таксопарк';
-                          case VehicleOwner.other: return 'Другое';
-                          case VehicleOwner.notSpecified: return 'Не указан';
+                          case VehicleOwner.taxiPark:
+                            return 'Таксопарк';
+                          case VehicleOwner.other:
+                            return 'Другое';
+                          case VehicleOwner.notSpecified:
+                            return 'Не указан';
                         }
                       },
                     ),
@@ -113,11 +134,15 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
                       title: 'Право использования',
                       items: VehicleUsageRight.values,
                       selectedItems: _filter.usageRights ?? [],
-                      onChanged: (values) => setState(() => _filter = _filter.copyWith(usageRights: values)),
+                      onChanged: (values) => setState(
+                        () => _filter = _filter.copyWith(usageRights: values),
+                      ),
                       labelBuilder: (right) {
                         switch (right) {
-                          case VehicleUsageRight.confirmed: return 'Подтвержден';
-                          case VehicleUsageRight.notConfirmed: return 'Не подтвержден';
+                          case VehicleUsageRight.confirmed:
+                            return 'Подтвержден';
+                          case VehicleUsageRight.notConfirmed:
+                            return 'Не подтвержден';
                         }
                       },
                     ),
@@ -125,15 +150,23 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
                       title: 'Статусы',
                       items: VehicleStatus.values,
                       selectedItems: _filter.statuses ?? [],
-                      onChanged: (values) => setState(() => _filter = _filter.copyWith(statuses: values)),
+                      onChanged: (values) => setState(
+                        () => _filter = _filter.copyWith(statuses: values),
+                      ),
                       labelBuilder: (status) {
                         switch (status) {
-                          case VehicleStatus.working: return 'Работает';
-                          case VehicleStatus.noDriver: return 'Нет водителя';
-                          case VehicleStatus.service: return 'Сервис';
-                          case VehicleStatus.preparation: return 'Подготовка';
-                          case VehicleStatus.notWorking: return 'Не работает';
-                          case VehicleStatus.other: return 'Другое';
+                          case VehicleStatus.working:
+                            return 'Работает';
+                          case VehicleStatus.noDriver:
+                            return 'Нет водителя';
+                          case VehicleStatus.service:
+                            return 'Сервис';
+                          case VehicleStatus.preparation:
+                            return 'Подготовка';
+                          case VehicleStatus.notWorking:
+                            return 'Не работает';
+                          case VehicleStatus.other:
+                            return 'Другое';
                         }
                       },
                     ),
@@ -200,9 +233,14 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: const Text('Применить', style: TextStyle(color: Colors.white, fontSize: 16)),
+                    child: const Text(
+                      'Применить',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
                   ),
                 ),
               ),
@@ -228,7 +266,10 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Категории', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text(
+              'Категории',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -239,13 +280,17 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
                   label: Text(categoryNames[entry.key] ?? entry.key),
                   selected: isSelected,
                   onSelected: (selected) {
-                    final newSelected = List<VehicleCategory>.from(selectedCategories);
+                    final newSelected = List<VehicleCategory>.from(
+                      selectedCategories,
+                    );
                     if (selected) {
                       newSelected.add(cat);
                     } else {
                       newSelected.remove(cat);
                     }
-                    setState(() => _filter = _filter.copyWith(categories: newSelected));
+                    setState(
+                      () => _filter = _filter.copyWith(categories: newSelected),
+                    );
                   },
                   backgroundColor: AppTheme.controlsColor,
                   selectedColor: Colors.black12,
@@ -260,7 +305,10 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
       loading: () => const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Категории', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(
+            'Категории',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
           SizedBox(height: 8),
           Center(child: CircularProgressIndicator()),
           SizedBox(height: 24),
@@ -286,7 +334,10 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,

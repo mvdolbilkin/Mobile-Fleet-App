@@ -50,10 +50,9 @@ class _EditVehicleBottomSheetState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(editVehicleFormProvider.notifier).initialize(
-            widget.vehicleId,
-            widget.vehicleDetails,
-          );
+      ref
+          .read(editVehicleFormProvider.notifier)
+          .initialize(widget.vehicleId, widget.vehicleDetails);
     });
   }
 
@@ -73,7 +72,9 @@ class _EditVehicleBottomSheetState
     }
 
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -88,7 +89,10 @@ class _EditVehicleBottomSheetState
             _buildHeader(),
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 child: _buildForm(formData),
               ),
             ),
@@ -287,32 +291,32 @@ class _EditVehicleBottomSheetState
         16,
         16 + MediaQuery.of(context).padding.bottom,
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-      ),
+      decoration: const BoxDecoration(color: Colors.white),
       child: FadingButton(
-        onTap: _isLoading ? null : () async {
-          setState(() => _isLoading = true);
+        onTap: _isLoading
+            ? null
+            : () async {
+                setState(() => _isLoading = true);
 
-          final notifier = ref.read(editVehicleFormProvider.notifier);
-          final error = await notifier.submit();
+                final notifier = ref.read(editVehicleFormProvider.notifier);
+                final error = await notifier.submit();
 
-          if (mounted) {
-            setState(() => _isLoading = false);
+                if (mounted) {
+                  setState(() => _isLoading = false);
 
-            if (error == null) {
-              Navigator.pop(context);
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(error),
-                  backgroundColor: Colors.red,
-                  duration: const Duration(seconds: 5),
-                ),
-              );
-            }
-          }
-        },
+                  if (error == null) {
+                    Navigator.pop(context);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(error),
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 5),
+                      ),
+                    );
+                  }
+                }
+              },
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -401,8 +405,9 @@ class _EditVehicleBottomSheetState
     int maxLines = 1,
   }) {
     final formData = ref.watch(editVehicleFormProvider);
-    final errorMessage =
-        fieldName != null && formData != null ? formData.getFieldError(fieldName) : null;
+    final errorMessage = fieldName != null && formData != null
+        ? formData.getFieldError(fieldName)
+        : null;
     final showError = errorMessage != null;
 
     return Column(
@@ -418,7 +423,9 @@ class _EditVehicleBottomSheetState
           decoration: BoxDecoration(
             color: const Color(0xFFF2F2F2),
             borderRadius: BorderRadius.circular(16),
-            border: showError ? Border.all(color: Colors.red, width: 1.5) : null,
+            border: showError
+                ? Border.all(color: Colors.red, width: 1.5)
+                : null,
           ),
           child: TextFormField(
             initialValue: initialValue,
@@ -462,7 +469,8 @@ class _EditVehicleBottomSheetState
     List<String>? items,
   }) {
     final formData = ref.watch(editVehicleFormProvider);
-    final showError = formData != null &&
+    final showError =
+        formData != null &&
         formData.showValidationErrors &&
         fieldName != null &&
         !formData.isFieldValid(fieldName);
@@ -492,8 +500,9 @@ class _EditVehicleBottomSheetState
             decoration: BoxDecoration(
               color: const Color(0xFFF2F2F2),
               borderRadius: BorderRadius.circular(16),
-              border:
-                  showError ? Border.all(color: Colors.red, width: 1.5) : null,
+              border: showError
+                  ? Border.all(color: Colors.red, width: 1.5)
+                  : null,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -506,8 +515,8 @@ class _EditVehicleBottomSheetState
                       color: showError
                           ? Colors.red.shade300
                           : (value != null && value.isNotEmpty
-                              ? AppTheme.textPrimary
-                              : AppTheme.textSecondary),
+                                ? AppTheme.textPrimary
+                                : AppTheme.textSecondary),
                     ),
                   ),
                 ),
@@ -625,10 +634,7 @@ class _EditVehicleBottomSheetState
             title,
             style: const TextStyle(fontSize: 16, color: AppTheme.textSecondary),
           ),
-          CustomSwitch(
-            value: value,
-            onChanged: onChanged,
-          ),
+          CustomSwitch(value: value, onChanged: onChanged),
         ],
       ),
     );

@@ -91,28 +91,68 @@ class MainWrapper extends ConsumerWidget {
             onDestinationSelected: _goBranch,
             destinations: [
               NavigationDestination(
-                icon: _buildTabItem('assets/images/autopark.svg', 'Автопарк', AppTheme.textSecondary),
-                selectedIcon: _buildTabItem('assets/images/autopark.svg', 'Автопарк', Colors.black),
+                icon: _buildTabItem(
+                  'assets/images/autopark.svg',
+                  'Автопарк',
+                  AppTheme.textSecondary,
+                ),
+                selectedIcon: _buildTabItem(
+                  'assets/images/autopark.svg',
+                  'Автопарк',
+                  Colors.black,
+                ),
                 label: 'Автопарк',
               ),
               NavigationDestination(
-                icon: _buildTabItem('assets/images/personal.svg', 'Персонал', AppTheme.textSecondary),
-                selectedIcon: _buildTabItem('assets/images/personal.svg', 'Персонал', Colors.black),
+                icon: _buildTabItem(
+                  'assets/images/personal.svg',
+                  'Персонал',
+                  AppTheme.textSecondary,
+                ),
+                selectedIcon: _buildTabItem(
+                  'assets/images/personal.svg',
+                  'Персонал',
+                  Colors.black,
+                ),
                 label: 'Персонал',
               ),
               NavigationDestination(
-                icon: _buildTabItem('assets/images/map.svg', 'Карта', AppTheme.textSecondary),
-                selectedIcon: _buildTabItem('assets/images/map.svg', 'Карта', Colors.black),
+                icon: _buildTabItem(
+                  'assets/images/map.svg',
+                  'Карта',
+                  AppTheme.textSecondary,
+                ),
+                selectedIcon: _buildTabItem(
+                  'assets/images/map.svg',
+                  'Карта',
+                  Colors.black,
+                ),
                 label: 'Карта',
               ),
               NavigationDestination(
-                icon: _buildTabItem('assets/images/analytics.svg', 'Аналитика', AppTheme.textSecondary),
-                selectedIcon: _buildTabItem('assets/images/analytics.svg', 'Аналитика', Colors.black),
+                icon: _buildTabItem(
+                  'assets/images/analytics.svg',
+                  'Аналитика',
+                  AppTheme.textSecondary,
+                ),
+                selectedIcon: _buildTabItem(
+                  'assets/images/analytics.svg',
+                  'Аналитика',
+                  Colors.black,
+                ),
                 label: 'Аналитика',
               ),
               NavigationDestination(
-                icon: _buildTabItem('assets/images/menu.svg', 'Меню', AppTheme.textSecondary),
-                selectedIcon: _buildTabItem('assets/images/menu.svg', 'Меню', Colors.black),
+                icon: _buildTabItem(
+                  'assets/images/menu.svg',
+                  'Меню',
+                  AppTheme.textSecondary,
+                ),
+                selectedIcon: _buildTabItem(
+                  'assets/images/menu.svg',
+                  'Меню',
+                  Colors.black,
+                ),
                 label: 'Меню',
               ),
             ],

@@ -81,11 +81,7 @@ class ExpensesRepository {
             'date_to': dateTo.toIso8601String().split('T')[0],
           },
         },
-        options: Options(
-          headers: {
-            'X-Park-ID': parkId,
-          },
-        ),
+        options: Options(headers: {'X-Park-ID': parkId}),
       );
 
       logger.i('Costs list response: ${response.statusCode}');

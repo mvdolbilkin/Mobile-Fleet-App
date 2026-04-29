@@ -170,18 +170,6 @@ class _StaffFilterSectionState extends State<StaffFilterSection> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              // Checkbox Circle
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppTheme.controlsColor,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.check, size: 20, color: Colors.black),
-              ),
-              const SizedBox(width: 8),
-
               // Filter Icon Circle
               GestureDetector(
                 onTap: _showFilterBottomSheet,
