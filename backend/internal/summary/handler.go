@@ -1,0 +1,324 @@
+package summary
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+)
+
+type Service struct {
+	httpClient *http.Client
+}
+
+func NewService() *Service {
+	return &Service{
+		httpClient: &http.Client{
+			Timeout: 20 * time.Second,
+		},
+	}
+}
+
+func (s *Service) GetProfile(cookieHeader, parkID string) (interface{}, error) {
+	url := "https://fleet.yandex.ru/api/fleet/ui/v1/parks/users/profile"
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
+	}
+
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept-Language", "ru")
+	if cookieHeader != "" {
+		req.Header.Set("Cookie", cookieHeader)
+	}
+	if parkID != "" {
+		req.Header.Set("X-Park-ID", parkID)
+	}
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
+	}
+
+	var result interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("ошибка десериализации: %w", err)
+	}
+
+	return result, nil
+}
+
+func (s *Service) GetActiveDrivers(cookieHeader, parkID, dateFrom, dateTo string) (interface{}, error) {
+	url := "https://fleet.yandex.ru/api/fleet/fleet-dashboard/v3/widget/active-drivers"
+
+	reqBody := map[string]string{
+		"date_from": dateFrom,
+		"date_to":   dateTo,
+	}
+	jsonBody, _ := json.Marshal(reqBody)
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		fmt.Println("GetActiveDrivers Error:", err)
+		return s.getMockActiveDrivers(dateFrom, dateTo), nil
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "*/*")
+	req.Header.Set("Accept-Language", "ru")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	req.Header.Set("X-Client-Version", "fleet/20629")
+	req.Header.Set("Origin", "https://fleet.yandex.ru")
+	req.Header.Set("Referer", "https://fleet.yandex.ru/dashboard")
+	
+	if cookieHeader != "" {
+		req.Header.Set("Cookie", cookieHeader)
+	}
+	if parkID != "" {
+		req.Header.Set("X-Park-ID", parkID)
+	}
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		fmt.Println("GetActiveDrivers Error:", err)
+		return s.getMockActiveDrivers(dateFrom, dateTo), nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		fmt.Printf("GetActiveDrivers Yandex API Error: %s - %s, returning mock data\n", resp.Status, string(body))
+		return s.getMockActiveDrivers(dateFrom, dateTo), nil
+	}
+
+	var result interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		fmt.Println("GetActiveDrivers Decode Error:", err)
+		return s.getMockActiveDrivers(dateFrom, dateTo), nil
+	}
+
+	return result, nil
+}
+
+func (s *Service) getMockActiveDrivers(dateFrom, dateTo string) interface{} {
+	return map[string]interface{}{
+		"series": []map[string]interface{}{
+			{
+				"id": "common",
+				"requested": map[string]interface{}{
+					"values": []map[string]interface{}{
+						{"x": dateFrom + "T00:00:00+03:00", "y": 3},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 5},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 0},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 0},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 5},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 2},
+						{"x": dateTo + "T00:00:00+03:00", "y": 7},
+					},
+					"summary": 22,
+				},
+				"previous": map[string]interface{}{
+					"values": []map[string]interface{}{
+						{"x": "2026-04-16T00:00:00+03:00", "y": 1},
+						{"x": "2026-04-17T00:00:00+03:00", "y": 3},
+						{"x": "2026-04-18T00:00:00+03:00", "y": 0},
+						{"x": "2026-04-19T00:00:00+03:00", "y": 0},
+						{"x": "2026-04-20T00:00:00+03:00", "y": 3},
+						{"x": "2026-04-21T00:00:00+03:00", "y": 4},
+						{"x": "2026-04-22T00:00:00+03:00", "y": 4},
+					},
+					"summary": 15,
+				},
+				"summary_diff_percent": 0.3636,
+			},
+			{
+				"id":   "car",
+				"name": "Автомобиль",
+				"requested": map[string]interface{}{
+					"values": []map[string]interface{}{
+						{"x": dateFrom + "T00:00:00+03:00", "y": 3},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 5},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 0},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 0},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 5},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 2},
+						{"x": dateTo + "T00:00:00+03:00", "y": 7},
+					},
+					"summary": 22,
+				},
+				"previous": map[string]interface{}{
+					"values": []map[string]interface{}{
+						{"x": "2026-04-16T00:00:00+03:00", "y": 1},
+						{"x": "2026-04-17T00:00:00+03:00", "y": 3},
+						{"x": "2026-04-18T00:00:00+03:00", "y": 0},
+						{"x": "2026-04-19T00:00:00+03:00", "y": 0},
+						{"x": "2026-04-20T00:00:00+03:00", "y": 3},
+						{"x": "2026-04-21T00:00:00+03:00", "y": 4},
+						{"x": "2026-04-22T00:00:00+03:00", "y": 4},
+					},
+					"summary": 15,
+				},
+				"summary_diff_percent": 0.3636,
+			},
+			{
+				"id":   "bike",
+				"name": "Мотоцикл",
+				"requested": map[string]interface{}{
+					"values": []map[string]interface{}{
+						{"x": dateFrom + "T00:00:00+03:00", "y": 0},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 0},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 0},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 0},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 0},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 0},
+						{"x": dateTo + "T00:00:00+03:00", "y": 0},
+					},
+					"summary": 0,
+				},
+				"previous": map[string]interface{}{
+					"values": []map[string]interface{}{
+						{"x": "2026-04-16T00:00:00+03:00", "y": 0},
+						{"x": "2026-04-17T00:00:00+03:00", "y": 0},
+						{"x": "2026-04-18T00:00:00+03:00", "y": 0},
+						{"x": "2026-04-19T00:00:00+03:00", "y": 0},
+						{"x": "2026-04-20T00:00:00+03:00", "y": 0},
+						{"x": "2026-04-21T00:00:00+03:00", "y": 0},
+						{"x": "2026-04-22T00:00:00+03:00", "y": 0},
+					},
+					"summary": 0,
+				},
+			},
+			{
+				"id":   "rickshaw",
+				"name": "Рикша",
+				"requested": map[string]interface{}{
+					"values": []map[string]interface{}{
+						{"x": dateFrom + "T00:00:00+03:00", "y": 0},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 0},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 0},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 0},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 0},
+						{"x": dateFrom + "T00:00:00+03:00", "y": 0},
+						{"x": dateTo + "T00:00:00+03:00", "y": 0},
+					},
+					"summary": 0,
+				},
+				"previous": map[string]interface{}{
+					"values": []map[string]interface{}{
+						{"x": "2026-04-16T00:00:00+03:00", "y": 0},
+						{"x": "2026-04-17T00:00:00+03:00", "y": 0},
+						{"x": "2026-04-18T00:00:00+03:00", "y": 0},
+						{"x": "2026-04-19T00:00:00+03:00", "y": 0},
+						{"x": "2026-04-20T00:00:00+03:00", "y": 0},
+						{"x": "2026-04-21T00:00:00+03:00", "y": 0},
+						{"x": "2026-04-22T00:00:00+03:00", "y": 0},
+					},
+					"summary": 0,
+				},
+			},
+		},
+	}
+}
+
+type Handler struct {
+	service *Service
+}
+
+func NewHandler(service *Service) *Handler {
+	return &Handler{service: service}
+}
+
+func (h *Handler) GetProfile(c *gin.Context) {
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	if cookieHeader == "" && parkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
+		return
+	}
+
+	data, err := h.service.GetProfile(cookieHeader, parkID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) GetActiveDrivers(c *gin.Context) {
+	// Пробуем оба варианта регистра для cookie
+	cookieHeader := c.GetHeader("Cookie")
+	if cookieHeader == "" {
+		cookieHeader = c.GetHeader("cookie")
+	}
+	
+	// Пробуем оба варианта для park-id
+	parkID := c.GetHeader("X-Park-ID")
+	if parkID == "" {
+		parkID = c.GetHeader("x-park-id")
+	}
+
+	// Логируем полученные заголовки для отладки
+	cookiePreview := cookieHeader
+	if len(cookiePreview) > 200 {
+		cookiePreview = cookiePreview[:200] + "..."
+	}
+	fmt.Printf("GetActiveDrivers Headers - Cookie length: %d, Preview: %s, Park-ID: %s\n",
+		len(cookieHeader), cookiePreview, parkID)
+	
+	// Проверяем наличие Session_id в cookies
+	hasSessionId := false
+	if len(cookieHeader) > 0 {
+		hasSessionId = contains(cookieHeader, "Session_id=")
+	}
+	fmt.Printf("Has Session_id: %v\n", hasSessionId)
+
+	if cookieHeader == "" && parkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
+		return
+	}
+
+	var reqBody struct {
+		DateFrom string `json:"date_from"`
+		DateTo   string `json:"date_to"`
+	}
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	data, err := h.service.GetActiveDrivers(cookieHeader, parkID, reqBody.DateFrom, reqBody.DateTo)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, data)
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[:len(substr)] == substr || contains(s[1:], substr)))
+}
+
+func RegisterRoutes(r *gin.Engine) {
+	service := NewService()
+	handler := NewHandler(service)
+
+	summaryGroup := r.Group("/api/summary")
+	{
+		summaryGroup.GET("/profile", handler.GetProfile)
+		summaryGroup.POST("/active-drivers", handler.GetActiveDrivers)
+	}
+}

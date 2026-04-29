@@ -46,21 +46,34 @@ final dioProvider = Provider<Dio>((ref) {
         // Проверяем наличие cookies (приоритет для закрытого API)
         final sessionId = await secureStorage.getYandexSessionId();
         final sessionId2 = await secureStorage.getYandexSessionId2();
-        final loginToken = await secureStorage.getYandexLoginToken();
-        final yandexLogin = await secureStorage.getYandexLogin();
-        final yandexUid = await secureStorage.getYandexUid();
 
         if (sessionId != null && sessionId2 != null) {
-          // Используем cookies для закрытого API
-          final cookieParts = <String>[];
-
-          cookieParts.add('Session_id=$sessionId');
-          cookieParts.add('sessionid2=$sessionId2');
-          if (loginToken != null) cookieParts.add('L=$loginToken');
-          if (yandexLogin != null) cookieParts.add('yandex_login=$yandexLogin');
-          if (yandexUid != null) cookieParts.add('yandexuid=$yandexUid');
-
-          options.headers['cookie'] = cookieParts.join('; ');
+          // Пытаемся получить все cookies
+          final allCookies = await secureStorage.getAllYandexCookies();
+          
+          print('🍪 All cookies length: ${allCookies?.length ?? 0}');
+          print('🍪 Session_id length: ${sessionId.length}');
+          
+          if (allCookies != null && allCookies.isNotEmpty) {
+            // Используем все сохраненные cookies
+            print('✅ Using all saved cookies');
+            options.headers['cookie'] = allCookies;
+          } else {
+            print('⚠️ Using fallback cookies');
+            // Fallback: используем только основные cookies
+            final loginToken = await secureStorage.getYandexLoginToken();
+            final yandexLogin = await secureStorage.getYandexLogin();
+            final yandexUid = await secureStorage.getYandexUid();
+            
+            final cookieParts = <String>[];
+            cookieParts.add('Session_id=$sessionId');
+            cookieParts.add('sessionid2=$sessionId2');
+            if (loginToken != null) cookieParts.add('L=$loginToken');
+            if (yandexLogin != null) cookieParts.add('yandex_login=$yandexLogin');
+            if (yandexUid != null) cookieParts.add('yandexuid=$yandexUid');
+            
+            options.headers['cookie'] = cookieParts.join('; ');
+          }
 
           // Добавляем park_id если есть
           final parkId = await secureStorage.getParkId();

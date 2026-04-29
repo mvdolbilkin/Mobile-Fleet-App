@@ -3,7 +3,9 @@ package main
 import (
 	"backend/internal/auth"
 	"backend/internal/expenses"
+	"backend/internal/goals"
 	"backend/internal/menu"
+	"backend/internal/summary"
 	"backend/internal/session"
 	"backend/internal/staff"
 	"backend/internal/vehicles"
@@ -36,6 +38,12 @@ func main() {
 
 	// Register menu routes
 	menu.RegisterRoutes(r)
+
+	// Register summary routes
+	summary.RegisterRoutes(r)
+
+	// Register goals routes
+	goals.RegisterRoutes(r)
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{

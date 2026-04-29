@@ -79,7 +79,10 @@ class MenuScreen extends ConsumerWidget {
                   'Сводка',
                   style: TextStyle(fontFamily: 'Yandex Sans Text', fontSize: 16, color: AppTheme.textPrimary),
                 ),
-                onTap: () => Navigator.pop(context),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.go('/menu/summary');
+                },
               ),
               ListTile(
                 leading: const Icon(Icons.flag_outlined, color: AppTheme.textPrimary),
@@ -87,7 +90,10 @@ class MenuScreen extends ConsumerWidget {
                   'Цели',
                   style: TextStyle(fontFamily: 'Yandex Sans Text', fontSize: 16, color: AppTheme.textPrimary),
                 ),
-                onTap: () => Navigator.pop(context),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.go('/menu/goals');
+                },
               ),
               ListTile(
                 leading: const Icon(Icons.person_outline, color: AppTheme.textPrimary),

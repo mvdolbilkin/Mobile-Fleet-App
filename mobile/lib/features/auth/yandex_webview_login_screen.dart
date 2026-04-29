@@ -192,9 +192,15 @@ class _YandexWebViewLoginScreenState
       String? yandexLogin;
       String? yandexUid;
       String? parkId;
+      
+      // Дополнительные cookies для Yandex API
+      final Map<String, String> allCookies = {};
 
       for (final cookie in cookies) {
-        ref.read(loggerProvider).d('Cookie: ${cookie.name} = ${cookie.value}');
+        ref.read(loggerProvider).d('Cookie: ${cookie.name} = ${cookie.value.substring(0, cookie.value.length > 50 ? 50 : cookie.value.length)}...');
+        
+        // Сохраняем все cookies
+        allCookies[cookie.name] = cookie.value;
 
         switch (cookie.name) {
           case 'Session_id':
@@ -216,6 +222,11 @@ class _YandexWebViewLoginScreenState
             parkId = cookie.value;
             break;
         }
+      }
+      
+      // Логируем длину Session_id для проверки
+      if (sessionId != null) {
+        ref.read(loggerProvider).i('Session_id length: ${sessionId.length}');
       }
 
       // Извлекаем park_id из URL если не нашли в cookies
@@ -258,6 +269,11 @@ class _YandexWebViewLoginScreenState
           yandexLogin: yandexLogin,
           yandexUid: yandexUid,
         );
+        
+        // Сохраняем все cookies как строку для полной передачи в API
+        final cookiesString = allCookies.entries.map((e) => '${e.key}=${e.value}').join('; ');
+        ref.read(loggerProvider).i('Saving ${allCookies.length} cookies, total length: ${cookiesString.length}');
+        await secureStorage.saveAllYandexCookies(cookiesString);
 
         // Отправляем сессию на backend
         try {

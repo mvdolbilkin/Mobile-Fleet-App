@@ -5,6 +5,7 @@ import 'package:mobile/features/staff/domain/staff.dart';
 import 'package:mobile/features/staff/widgets/staff_filter_section.dart';
 import 'package:mobile/features/staff/widgets/staff_list_item.dart';
 import 'package:mobile/features/staff/staff_details_screen.dart';
+import '../../../../app/theme.dart';
 
 class StaffScreen extends ConsumerStatefulWidget {
   const StaffScreen({super.key});
@@ -17,6 +18,27 @@ class _StaffScreenState extends ConsumerState<StaffScreen> {
   String? _selectedStatus;
   String? _selectedVehicle;
   String _searchQuery = '';
+  bool _isSelectionMode = false;
+  final Set<String> _selectedStaff = {};
+
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      if (!_isSelectionMode) {
+        _selectedStaff.clear();
+      }
+    });
+  }
+
+  void _onStaffSelect(String id, bool? selected) {
+    setState(() {
+      if (selected == true) {
+        _selectedStaff.add(id);
+      } else {
+        _selectedStaff.remove(id);
+      }
+    });
+  }
 
   List<Staff> _filterStaffList(List<Staff> staffList) {
     if (staffList.isEmpty) return [];
@@ -105,81 +127,172 @@ class _StaffScreenState extends ConsumerState<StaffScreen> {
         backgroundColor: const Color(0xFFF5F4F2),
         elevation: 0,
         centerTitle: false,
-      ),
-      body: RefreshIndicator(
-        color: const Color(0xFF21201F),
-        backgroundColor: const Color(0xFFFCE000),
-        onRefresh: () async {
-          return await ref.refresh(staffListProvider.future);
-        },
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: StaffFilterSection(
-                  selectedStatus: _selectedStatus,
-                  selectedVehicle: _selectedVehicle,
-                  onFilterChanged: _onFilterChanged,
-                  onSearchChanged: _onSearchChanged,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: TextButton(
+              onPressed: _toggleSelectionMode,
+              child: Text(
+                _isSelectionMode ? 'Отмена' : 'Выбрать',
+                style: const TextStyle(
+                  color: AppTheme.primaryColor,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
                 ),
               ),
             ),
-            staffAsyncValue.when(
-              data: (staffList) {
-                final filteredStaff = _filterStaffList(staffList);
-                if (filteredStaff.isEmpty) {
-                  return const SliverFillRemaining(
-                    child: Center(
-                      child: Text(
-                        'Ничего не найдено',
-                        style: TextStyle(fontFamily: 'Yandex Sans Text'),
-                      ),
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          RefreshIndicator(
+            color: const Color(0xFF21201F),
+            backgroundColor: const Color(0xFFFCE000),
+            onRefresh: () async {
+              return await ref.refresh(staffListProvider.future);
+            },
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: StaffFilterSection(
+                      selectedStatus: _selectedStatus,
+                      selectedVehicle: _selectedVehicle,
+                      onFilterChanged: _onFilterChanged,
+                      onSearchChanged: _onSearchChanged,
                     ),
-                  );
-                }
-                return SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final staff = filteredStaff[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: StaffListItem(
-                          staff: staff,
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    StaffDetailsScreen(staff: staff),
-                              ),
-                            );
-                          },
+                  ),
+                ),
+                staffAsyncValue.when(
+                  data: (staffList) {
+                    final filteredStaff = _filterStaffList(staffList);
+                    if (filteredStaff.isEmpty) {
+                      return const SliverFillRemaining(
+                        child: Center(
+                          child: Text(
+                            'Ничего не найдено',
+                            style: TextStyle(fontFamily: 'Yandex Sans Text'),
+                          ),
                         ),
                       );
-                    }, childCount: filteredStaff.length),
+                    }
+                    return SliverPadding(
+                      padding: EdgeInsets.only(
+                        left: 16,
+                        right: 16,
+                        bottom: _isSelectionMode ? 140 : 16,
+                      ),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final staff = filteredStaff[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: StaffListItem(
+                              staff: staff,
+                              isSelectionMode: _isSelectionMode,
+                              isSelected: _selectedStaff.contains(staff.id),
+                              onSelect: (val) => _onStaffSelect(staff.id, val),
+                              onTap: () {
+                                if (_isSelectionMode) {
+                                  _onStaffSelect(
+                                    staff.id,
+                                    !_selectedStaff.contains(staff.id),
+                                  );
+                                  return;
+                                }
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        StaffDetailsScreen(staff: staff),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        }, childCount: filteredStaff.length),
+                      ),
+                    );
+                  },
+                  loading: () => const SliverFillRemaining(
+                    child: Center(
+                      child: CircularProgressIndicator(color: Color(0xFFFCE000)),
+                    ),
                   ),
-                );
-              },
-              loading: () => const SliverFillRemaining(
-                child: Center(
-                  child: CircularProgressIndicator(color: Color(0xFFFCE000)),
-                ),
-              ),
-              error: (err, stack) => SliverFillRemaining(
-                child: Center(
-                  child: Text(
-                    'Ошибка загрузки: $err',
-                    style: const TextStyle(
-                      fontFamily: 'Yandex Sans Text',
-                      color: Colors.red,
+                  error: (err, stack) => SliverFillRemaining(
+                    child: Center(
+                      child: Text(
+                        'Ошибка загрузки: $err',
+                        style: const TextStyle(
+                          fontFamily: 'Yandex Sans Text',
+                          color: Colors.red,
+                        ),
+                      ),
                     ),
                   ),
                 ),
+              ],
+            ),
+          ),
+          // Всплывающая панель при выделении
+          if (_isSelectionMode)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${_selectedStaff.length} выбранных исполнителей',
+                      style: const TextStyle(
+                        fontFamily: 'Yandex Sans Text',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF21201F),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFCE000),
+                              foregroundColor: const Color(0xFF21201F),
+                              elevation: 0,
+                            ),
+                            onPressed: _selectedStaff.isEmpty
+                                ? null
+                                : () {
+                                    // Действие для выбранных исполнителей
+                                  },
+                            child: const Text('Действие'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
