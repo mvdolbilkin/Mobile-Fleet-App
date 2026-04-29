@@ -63,7 +63,7 @@ class CarsCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 24),
-            const CarsChart(),
+            CarsChart(indicator: data.indicator),
           ],
         ),
         loading: () => const Center(

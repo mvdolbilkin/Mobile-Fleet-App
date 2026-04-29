@@ -29,7 +29,6 @@ class ExecutorsCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  flex: 3,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -60,7 +59,7 @@ class ExecutorsCard extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const Expanded(flex: 2, child: ExecutorsChart()),
+                Expanded(child: ExecutorsChart(indicator: data.indicator)),
               ],
             ),
             const SizedBox(height: 24),

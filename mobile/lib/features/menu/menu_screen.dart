@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/app/theme.dart';
 import 'package:mobile/features/menu/widgets/cars_card.dart';
@@ -45,9 +46,80 @@ class MenuScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
+      drawer: Drawer(
+        backgroundColor: Colors.white,
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(24, 24, 24, 16),
+                child: Text(
+                  'Дополнительно',
+                  style: TextStyle(
+                    fontFamily: 'Yandex Sans Text',
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ),
+              const Divider(height: 1, color: AppTheme.borderColor),
+              ListTile(
+                leading: const Icon(Icons.home_outlined, color: AppTheme.textPrimary),
+                title: const Text(
+                  'Главная',
+                  style: TextStyle(fontFamily: 'Yandex Sans Text', fontSize: 16, color: AppTheme.textPrimary),
+                ),
+                onTap: () => Navigator.pop(context),
+              ),
+              ListTile(
+                leading: const Icon(Icons.analytics_outlined, color: AppTheme.textPrimary),
+                title: const Text(
+                  'Сводка',
+                  style: TextStyle(fontFamily: 'Yandex Sans Text', fontSize: 16, color: AppTheme.textPrimary),
+                ),
+                onTap: () => Navigator.pop(context),
+              ),
+              ListTile(
+                leading: const Icon(Icons.flag_outlined, color: AppTheme.textPrimary),
+                title: const Text(
+                  'Цели',
+                  style: TextStyle(fontFamily: 'Yandex Sans Text', fontSize: 16, color: AppTheme.textPrimary),
+                ),
+                onTap: () => Navigator.pop(context),
+              ),
+              ListTile(
+                leading: const Icon(Icons.person_outline, color: AppTheme.textPrimary),
+                title: const Text(
+                  'Профиль партнера',
+                  style: TextStyle(fontFamily: 'Yandex Sans Text', fontSize: 16, color: AppTheme.textPrimary),
+                ),
+                onTap: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        ),
+      ),
+      appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: SvgPicture.asset(
+              'assets/images/menu.svg',
+              colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn),
+              width: 24,
+              height: 24,
+            ),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
+        title: const Text('Главаня'),
+        centerTitle: true,
+        scrolledUnderElevation: 0,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             children: [
               const ExecutorsCard(),
