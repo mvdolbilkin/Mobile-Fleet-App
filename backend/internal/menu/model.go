@@ -8,12 +8,12 @@ type ContractorsRequest struct {
 
 // ContractorsResponse represents the contractors widget data
 type ContractorsResponse struct {
-	Indicator      Indicator      `json:"indicator"`
-	New            MetricWithDiff `json:"new"`
-	Churn          MetricWithDiff `json:"churn"`
-	AvgTimeOnline  AvgTimeOnline  `json:"avg_time_online"`
-	Conversion     Conversion     `json:"conversion"`
-	RatingInfo     RatingInfo     `json:"rating_info"`
+	Indicator     Indicator      `json:"indicator"`
+	New           MetricWithDiff `json:"new"`
+	Churn         MetricWithDiff `json:"churn"`
+	AvgTimeOnline AvgTimeOnline  `json:"avg_time_online"`
+	Conversion    Conversion     `json:"conversion"`
+	RatingInfo    RatingInfo     `json:"rating_info"`
 }
 
 // Indicator represents the current status of contractors
@@ -26,8 +26,8 @@ type Indicator struct {
 
 // MetricWithDiff represents a metric with its difference
 type MetricWithDiff struct {
-	Current int  `json:"current"`
-	Diff    Diff `json:"diff"`
+	Current float64 `json:"current"`
+	Diff    Diff    `json:"diff"`
 }
 
 // Diff represents the difference value
@@ -74,20 +74,20 @@ type CarsRequest struct {
 
 // CarsResponse represents the cars widget data
 type CarsResponse struct {
-	Indicator      CarsIndicator  `json:"indicator"`
-	RentalRevenue  MetricWithDiff `json:"rental_revenue"`
-	Expenses       SimpleMetric   `json:"expenses"`
-	Profit         MetricWithDiff `json:"profit"`
+	Indicator     CarsIndicator  `json:"indicator"`
+	RentalRevenue MetricWithDiff `json:"rental_revenue"`
+	Expenses      SimpleMetric   `json:"expenses"`
+	Profit        MetricWithDiff `json:"profit"`
 }
 
 // CarsIndicator represents the current status of cars
 type CarsIndicator struct {
-	Total     int              `json:"total"`
-	Unknown   CarStatusDetail  `json:"unknown"`
-	Working   CarStatusDetail  `json:"working"`
-	Repairing CarStatusDetail  `json:"repairing"`
-	NoDriver  CarStatusDetail  `json:"no_driver"`
-	Pending   CarStatusDetail  `json:"pending"`
+	Total     int             `json:"total"`
+	Unknown   CarStatusDetail `json:"unknown"`
+	Working   CarStatusDetail `json:"working"`
+	Repairing CarStatusDetail `json:"repairing"`
+	NoDriver  CarStatusDetail `json:"no_driver"`
+	Pending   CarStatusDetail `json:"pending"`
 }
 
 // CarStatusDetail represents a car status with name and count
@@ -98,7 +98,7 @@ type CarStatusDetail struct {
 
 // SimpleMetric represents a metric without diff
 type SimpleMetric struct {
-	Current int `json:"current"`
+	Current float64 `json:"current"`
 }
 
 // LoyaltyProgramResponse represents the loyalty program data
@@ -172,7 +172,7 @@ type ParkInfo struct {
 
 // ProblemsResponse represents the problems widget data
 type ProblemsResponse struct {
-	Total  int           `json:"total"`
+	Total  int            `json:"total"`
 	Badges []ProblemBadge `json:"badges"`
 }
 

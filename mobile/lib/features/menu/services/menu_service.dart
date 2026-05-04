@@ -45,7 +45,7 @@ class MenuService {
 
   Future<LoyaltyProgramData> getLoyaltyProgram() async {
     try {
-      final response = await _dio.post('/api/menu/loyalty');
+      final response = await _dio.post('/api/menu/loyalty', data: {});
       return LoyaltyProgramData.fromJson(response.data);
     } catch (e) {
       rethrow;

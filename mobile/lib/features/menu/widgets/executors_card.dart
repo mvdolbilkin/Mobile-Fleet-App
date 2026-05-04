@@ -90,7 +90,7 @@ class ExecutorsCard extends ConsumerWidget {
                 Expanded(
                   child: InfoBlock(
                     title: 'Новые',
-                    value: '${data.newContractors.current}',
+                    value: '${data.newContractors.current.toInt()}',
                     subtitle:
                         '${data.newContractors.diff.formattedValue} ${data.newContractors.diff.arrow}',
                     subtitleColor: data.newContractors.diff.value >= 0
@@ -102,7 +102,7 @@ class ExecutorsCard extends ConsumerWidget {
                 Expanded(
                   child: InfoBlock(
                     title: 'Отток',
-                    value: '${data.churn.current}',
+                    value: '${data.churn.current.toInt()}',
                     subtitle:
                         '${data.churn.diff.formattedValue} ${data.churn.diff.arrow}',
                     subtitleColor: data.churn.diff.value <= 0

@@ -62,12 +62,12 @@ class CarStatusDetail {
 }
 
 class SimpleMetric {
-  final int current;
+  final double current;
 
   SimpleMetric({required this.current});
 
   factory SimpleMetric.fromJson(Map<String, dynamic> json) {
-    return SimpleMetric(current: json['current']);
+    return SimpleMetric(current: (json['current'] as num).toDouble());
   }
 
   String get formatted {
@@ -76,14 +76,14 @@ class SimpleMetric {
 }
 
 class MetricWithDiff {
-  final int current;
+  final double current;
   final DiffValue diff;
 
   MetricWithDiff({required this.current, required this.diff});
 
   factory MetricWithDiff.fromJson(Map<String, dynamic> json) {
     return MetricWithDiff(
-      current: json['current'],
+      current: (json['current'] as num).toDouble(),
       diff: DiffValue.fromJson(json['diff']),
     );
   }
@@ -121,7 +121,7 @@ class DiffValue {
   }
 }
 
-String _formatCurrency(int value) {
+String _formatCurrency(double value) {
   if (value >= 1000000) {
     final millions = value / 1000000;
     return '${millions.toStringAsFixed(1)} млн ₽';
@@ -129,5 +129,5 @@ String _formatCurrency(int value) {
     final thousands = value / 1000;
     return '${thousands.toStringAsFixed(0)} тыс ₽';
   }
-  return '$value ₽';
+  return '${value.toStringAsFixed(0)} ₽';
 }

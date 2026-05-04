@@ -51,14 +51,14 @@ class Indicator {
 }
 
 class MetricWithDiff {
-  final int current;
+  final double current;
   final Diff diff;
 
   MetricWithDiff({required this.current, required this.diff});
 
   factory MetricWithDiff.fromJson(Map<String, dynamic> json) {
     return MetricWithDiff(
-      current: json['current'],
+      current: (json['current'] as num).toDouble(),
       diff: Diff.fromJson(json['diff']),
     );
   }

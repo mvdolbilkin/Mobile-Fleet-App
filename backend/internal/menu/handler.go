@@ -1,8 +1,10 @@
 package menu
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 )
 
@@ -11,6 +13,11 @@ type Handler struct{}
 func NewHandler() *Handler {
 	return &Handler{}
 }
+
+const yandexFleetContractorsWidgetURL = "https://fleet.yandex.ru/api/fleet/fleet-dashboard/v1/widget/contractors"
+const yandexFleetCarsWidgetURL = "https://fleet.yandex.ru/api/fleet/fleet-dashboard/v1/widget/cars"
+const yandexFleetProblemsWidgetURL = "https://fleet.yandex.ru/api/fleet/fleet-dashboard/v3/widget/problems"
+const yandexFleetLoyaltyProgramURL = "https://fleet.yandex.ru/api/fleet/fleet-goals/v2/goals/current"
 
 // GetContractorsWidget handles POST /api/menu/contractors
 func (h *Handler) GetContractorsWidget(w http.ResponseWriter, r *http.Request) {
@@ -34,52 +41,73 @@ func (h *Handler) GetContractorsWidget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Replace with actual data from Yandex Fleet API
-	response := ContractorsResponse{
-		Indicator: Indicator{
-			Total:   32,
-			Free:    3,
-			InOrder: 0,
-			Busy:    29,
-		},
-		New: MetricWithDiff{
-			Current: 30,
-			Diff: Diff{
-				Value:     -57.14285714285714,
-				IsPercent: true,
-			},
-		},
-		Churn: MetricWithDiff{
-			Current: 6,
-			Diff: Diff{
-				Value:     -14.285714285714285,
-				IsPercent: true,
-			},
-		},
-		AvgTimeOnline: AvgTimeOnline{
-			Current: 12117,
-		},
-		Conversion: Conversion{
-			OneTrip: ConversionMetric{
-				Trips:   1,
-				Current: 0,
-				Status:  "normal",
-			},
-			NTrips: ConversionMetric{
-				Trips:   50,
-				Current: 0,
-				Status:  "normal",
-			},
-		},
-		RatingInfo: RatingInfo{
-			Rating: "4.82",
-			RatingCategory: RatingCategory{
-				CategoryCode: "not_ranked",
-				Text:         "Рейтинг парка",
-			},
-		},
+	log.Printf("[CONTRACTORS] Request received: date_from=%s, date_to=%s", req.DateFrom, req.DateTo)
+
+	// Prepare request to Yandex Fleet API
+	requestBody, err := json.Marshal(req)
+	if err != nil {
+		http.Error(w, "Failed to prepare request", http.StatusInternalServerError)
+		return
 	}
 
+	log.Printf("[CONTRACTORS] Sending to Yandex Fleet: %s", string(requestBody))
+
+	yandexReq, err := http.NewRequest("POST", yandexFleetContractorsWidgetURL, bytes.NewBuffer(requestBody))
+	if err != nil {
+		http.Error(w, "Failed to create request", http.StatusInternalServerError)
+		return
+	}
+
+	// Set headers
+	yandexReq.Header.Set("Content-Type", "application/json")
+	yandexReq.Header.Set("Accept", "*/*")
+	yandexReq.Header.Set("Accept-Language", "ru")
+	yandexReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	yandexReq.Header.Set("X-Client-Version", "fleet/20629")
+	yandexReq.Header.Set("Origin", "https://fleet.yandex.ru")
+	yandexReq.Header.Set("Referer", "https://fleet.yandex.ru/dashboard")
+
+	if cookieHeader != "" {
+		yandexReq.Header.Set("Cookie", cookieHeader)
+	}
+	if parkID != "" {
+		yandexReq.Header.Set("X-Park-ID", parkID)
+	}
+
+	// Make request to Yandex Fleet API
+	client := &http.Client{}
+	yandexResp, err := client.Do(yandexReq)
+	if err != nil {
+		log.Printf("Error calling Yandex Fleet API: %v", err)
+		http.Error(w, "Failed to fetch data from Yandex Fleet", http.StatusBadGateway)
+		return
+	}
+	defer yandexResp.Body.Close()
+
+	// Read response body
+	body, err := ioutil.ReadAll(yandexResp.Body)
+	if err != nil {
+		log.Printf("Error reading response: %v", err)
+		http.Error(w, "Failed to read response", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if request was successful
+	if yandexResp.StatusCode != http.StatusOK {
+		log.Printf("Yandex Fleet API returned status %d: %s", yandexResp.StatusCode, string(body))
+		http.Error(w, "Failed to fetch data from Yandex Fleet", yandexResp.StatusCode)
+		return
+	}
+
+	// Parse and validate response
+	var response ContractorsResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		log.Printf("Error parsing response: %v", err)
+		http.Error(w, "Invalid response from Yandex Fleet", http.StatusInternalServerError)
+		return
+	}
+
+	// Return response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -105,49 +133,73 @@ func (h *Handler) GetCarsWidget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := CarsResponse{
-		Indicator: CarsIndicator{
-			Total: 2744,
-			Unknown: CarStatusDetail{
-				Name:  "Другое",
-				Count: 1,
-			},
-			Working: CarStatusDetail{
-				Name:  "Работает",
-				Count: 2643,
-			},
-			Repairing: CarStatusDetail{
-				Name:  "Сервис",
-				Count: 3,
-			},
-			NoDriver: CarStatusDetail{
-				Name:  "Нет водителя",
-				Count: 71,
-			},
-			Pending: CarStatusDetail{
-				Name:  "Подготовка",
-				Count: 1,
-			},
-		},
-		RentalRevenue: MetricWithDiff{
-			Current: 1004553,
-			Diff: Diff{
-				Value:     -1,
-				IsPercent: true,
-			},
-		},
-		Expenses: SimpleMetric{
-			Current: 0,
-		},
-		Profit: MetricWithDiff{
-			Current: 1004553,
-			Diff: Diff{
-				Value:     -1,
-				IsPercent: true,
-			},
-		},
+	log.Printf("[CARS] Request received: date_from=%s, date_to=%s", req.DateFrom, req.DateTo)
+
+	// Prepare request to Yandex Fleet API
+	requestBody, err := json.Marshal(req)
+	if err != nil {
+		http.Error(w, "Failed to prepare request", http.StatusInternalServerError)
+		return
 	}
 
+	log.Printf("[CARS] Sending to Yandex Fleet: %s", string(requestBody))
+
+	yandexReq, err := http.NewRequest("POST", yandexFleetCarsWidgetURL, bytes.NewBuffer(requestBody))
+	if err != nil {
+		http.Error(w, "Failed to create request", http.StatusInternalServerError)
+		return
+	}
+
+	// Set headers
+	yandexReq.Header.Set("Content-Type", "application/json")
+	yandexReq.Header.Set("Accept", "*/*")
+	yandexReq.Header.Set("Accept-Language", "ru")
+	yandexReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	yandexReq.Header.Set("X-Client-Version", "fleet/20629")
+	yandexReq.Header.Set("Origin", "https://fleet.yandex.ru")
+	yandexReq.Header.Set("Referer", "https://fleet.yandex.ru/dashboard")
+
+	if cookieHeader != "" {
+		yandexReq.Header.Set("Cookie", cookieHeader)
+	}
+	if parkID != "" {
+		yandexReq.Header.Set("X-Park-ID", parkID)
+	}
+
+	// Make request to Yandex Fleet API
+	client := &http.Client{}
+	yandexResp, err := client.Do(yandexReq)
+	if err != nil {
+		log.Printf("Error calling Yandex Fleet API: %v", err)
+		http.Error(w, "Failed to fetch data from Yandex Fleet", http.StatusBadGateway)
+		return
+	}
+	defer yandexResp.Body.Close()
+
+	// Read response body
+	body, err := ioutil.ReadAll(yandexResp.Body)
+	if err != nil {
+		log.Printf("Error reading response: %v", err)
+		http.Error(w, "Failed to read response", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if request was successful
+	if yandexResp.StatusCode != http.StatusOK {
+		log.Printf("Yandex Fleet API returned status %d: %s", yandexResp.StatusCode, string(body))
+		http.Error(w, "Failed to fetch data from Yandex Fleet", yandexResp.StatusCode)
+		return
+	}
+
+	// Parse and validate response
+	var response CarsResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		log.Printf("Error parsing response: %v", err)
+		http.Error(w, "Invalid response from Yandex Fleet", http.StatusInternalServerError)
+		return
+	}
+
+	// Return response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -167,181 +219,68 @@ func (h *Handler) GetLoyaltyProgram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Read and discard body
-	ioutil.ReadAll(r.Body)
-
-	// TODO: Replace with actual data from Yandex Fleet API
-	response := LoyaltyProgramResponse{
-		Goals: []Goal{
-			{
-				ID:     "84dd1db2-8b9d-43ee-9a04-212755c3ffa2",
-				Type:   "taxi_certification",
-				Title:  "Программа лояльности",
-				Status: "completed",
-				Period: Period{
-					Start:  "2026-02-28T21:00:00+00:00",
-					Finish: "2026-03-31T21:00:00+00:00",
-					Type:   "monthly",
-				},
-				Rewards: []Reward{
-					{
-						Title:          "Базовый",
-						Subtitle:       "Необходимо выполнить 1 из 2 показателей",
-						IsCompleted:    true,
-						LoyaltyStatus:  "basic",
-						KpisToComplete: 1,
-						Items: []Item{
-							{Type: "loyalty_status", Value: "basic"},
-						},
-						KeyPerformanceIndicators: []KPI{
-							{
-								Type:   "newbie_period_completed",
-								Title:  "Прошло 3 месяца с момента регистрации",
-								Status: "completed",
-								Value: KPIValue{
-									Type:    "binary",
-									Current: true,
-									Target:  true,
-									Order:   "ascending",
-								},
-							},
-							{
-								Type:   "praktikum",
-								Title:  "60% в тесте Практикума",
-								Status: "completed",
-								Value: KPIValue{
-									Type:    "percent",
-									Current: 73.83,
-									Target:  60.0,
-									Order:   "ascending",
-								},
-							},
-						},
-					},
-					{
-						Title:          "Бронзовый",
-						IsCompleted:    false,
-						LoyaltyStatus:  "bronze",
-						KpisToComplete: 5,
-						Items: []Item{
-							{Type: "loyalty_status", Value: "bronze"},
-							{Type: "text", Value: "Галочка в Про"},
-							{Type: "text", Value: "Обратный звонок"},
-						},
-						KeyPerformanceIndicators: []KPI{
-							{
-								Type:   "monthly_success_orders_count",
-								Title:  "2000 поездок в месяц",
-								Status: "not_completed",
-								Value: KPIValue{
-									Type:    "numeric",
-									Current: 15.0,
-									Target:  2000.0,
-									Order:   "ascending",
-								},
-							},
-							{
-								Type:   "park_profile_filled",
-								Title:  "Заполнен профиль партнёра",
-								Status: "completed",
-								Value: KPIValue{
-									Type:    "binary",
-									Current: true,
-									Target:  true,
-									Order:   "ascending",
-								},
-							},
-							{
-								Type:   "legalization",
-								Title:  "Исполнители подтвердили занятость",
-								Status: "completed",
-								Value: KPIValue{
-									Type:    "binary",
-									Current: true,
-									Target:  true,
-									Order:   "ascending",
-								},
-							},
-						},
-					},
-					{
-						Title:          "Серебряный",
-						Subtitle:       "Необходимо выполнить 1 из 2 показателей",
-						IsCompleted:    false,
-						LoyaltyStatus:  "silver",
-						KpisToComplete: 1,
-						Items: []Item{
-							{Type: "loyalty_status", Value: "silver"},
-							{Type: "text", Value: "Скидка на Диспетчерскую"},
-						},
-						KeyPerformanceIndicators: []KPI{
-							{
-								Type:   "monthly_new_drivers_with_50_orders",
-								Title:  "20 новых водителей с 50 заказами",
-								Status: "not_completed",
-								Value: KPIValue{
-									Type:    "numeric",
-									Current: 0.0,
-									Target:  20.0,
-									Order:   "ascending",
-								},
-							},
-							{
-								Type:   "supply_hours_per_park_car",
-								Title:  "100 часов на линии с подтверждённым авто",
-								Status: "not_completed",
-								Value: KPIValue{
-									Type:    "numeric",
-									Current: 9.0,
-									Target:  100.0,
-									Order:   "ascending",
-								},
-							},
-						},
-					},
-					{
-						Title:          "Золотой",
-						Subtitle:       "Необходимо выполнить 1 из 2 показателей",
-						IsCompleted:    false,
-						LoyaltyStatus:  "gold",
-						KpisToComplete: 1,
-						Items: []Item{
-							{Type: "loyalty_status", Value: "gold"},
-							{Type: "text", Value: "Скидка на Диспетчерскую"},
-						},
-						KeyPerformanceIndicators: []KPI{
-							{
-								Type:   "monthly_new_drivers_with_50_orders",
-								Title:  "40 новых водителей с 50 заказами",
-								Status: "not_completed",
-								Value: KPIValue{
-									Type:    "numeric",
-									Current: 0.0,
-									Target:  40.0,
-									Order:   "ascending",
-								},
-							},
-							{
-								Type:   "supply_hours_per_park_car",
-								Title:  "140 часов на линии с подтверждённым авто",
-								Status: "not_completed",
-								Value: KPIValue{
-									Type:    "numeric",
-									Current: 9.0,
-									Target:  140.0,
-									Order:   "ascending",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		ParkInfo: ParkInfo{
-			LoyaltyStatus: "basic",
-		},
+	// Read request body
+	bodyBytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("Error reading request body: %v", err)
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
 	}
 
+	// Create request to Yandex Fleet API
+	yandexReq, err := http.NewRequest("POST", yandexFleetLoyaltyProgramURL, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		log.Printf("Error creating request to Yandex Fleet API: %v", err)
+		http.Error(w, "Failed to create request", http.StatusInternalServerError)
+		return
+	}
+
+	// Copy headers
+	yandexReq.Header.Set("Cookie", cookieHeader)
+	yandexReq.Header.Set("X-Park-ID", parkID)
+	yandexReq.Header.Set("Content-Type", "application/json")
+	yandexReq.Header.Set("Accept", "*/*")
+	yandexReq.Header.Set("Accept-Language", "ru")
+	yandexReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+
+	// Make request
+	client := &http.Client{}
+	resp, err := client.Do(yandexReq)
+	if err != nil {
+		log.Printf("Error making request to Yandex Fleet API: %v", err)
+		http.Error(w, "Failed to fetch data from Yandex Fleet API", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Read response
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Error reading response from Yandex Fleet API: %v", err)
+		http.Error(w, "Failed to read response", http.StatusInternalServerError)
+		return
+	}
+
+	// Log response for debugging
+	log.Printf("Yandex Fleet Loyalty Program API response status: %d", resp.StatusCode)
+	log.Printf("Yandex Fleet Loyalty Program API response body: %s", string(respBody))
+
+	// Check status code
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Yandex Fleet API returned non-200 status: %d, body: %s", resp.StatusCode, string(respBody))
+		http.Error(w, string(respBody), resp.StatusCode)
+		return
+	}
+
+	// Parse response
+	var response LoyaltyProgramResponse
+	if err := json.Unmarshal(respBody, &response); err != nil {
+		log.Printf("Error parsing response from Yandex Fleet API: %v", err)
+		http.Error(w, "Failed to parse response", http.StatusInternalServerError)
+		return
+	}
+
+	// Return response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -361,119 +300,68 @@ func (h *Handler) GetProblems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Read and discard body
-	ioutil.ReadAll(r.Body)
-
-	// TODO: Replace with actual data from Yandex Fleet API
-	value1 := 1
-	value3 := 3
-	value42 := 42
-	value103 := 103
-	value19 := 19
-	value1_2 := 1
-
-	response := ProblemsResponse{
-		Total: 8,
-		Badges: []ProblemBadge{
-			{
-				ID: "has_contract_issue_depriority",
-				Icon: ProblemIcon{
-					Value: &value1,
-				},
-				Text: "Проблема с контрактом",
-				Action: ProblemAction{
-					ActionType:    "url",
-					URL:           "/contractors?segment=active&group=has_contract_issue_depriority",
-					IsURLExternal: false,
-				},
-			},
-			{
-				ID: "has_violation_warning",
-				Icon: ProblemIcon{
-					Value: &value3,
-				},
-				Text: "С нарушениями",
-				Action: ProblemAction{
-					ActionType:    "url",
-					URL:           "/contractors?segment=active&group=has_violation_warning",
-					IsURLExternal: false,
-				},
-			},
-			{
-				ID: "contractors_one_trip_conversion",
-				Icon: ProblemIcon{
-					Picture: "ArrowDownRoundFill",
-				},
-				Text: "Низкая конверсия в 1 поездку",
-				Action: ProblemAction{
-					ActionType:   "scenario_popup",
-					ScenarioID:   "activation_conversion",
-					OpenScenario: false,
-				},
-			},
-			{
-				ID: "contractors_n_trips_conversion",
-				Icon: ProblemIcon{
-					Picture: "ArrowDownRoundFill",
-				},
-				Text: "Низкая конверсия в 50 поездок",
-				Action: ProblemAction{
-					ActionType:    "url",
-					URL:           "contractors-segments-dashboard?dateType=period&from=2026-03-29&to=2026-04-28",
-					IsURLExternal: false,
-				},
-			},
-			{
-				ID: "has_thermobag_photocheck_not_passed",
-				Icon: ProblemIcon{
-					Value: &value42,
-				},
-				Text: "Проверки фото термосумки не пройдены",
-				Action: ProblemAction{
-					ActionType:    "url",
-					URL:           "/contractors?segment=active&group=has_thermobag_photocheck_not_passed",
-					IsURLExternal: false,
-				},
-			},
-			{
-				ID: "has_photocheck_restrictions",
-				Icon: ProblemIcon{
-					Value: &value103,
-				},
-				Text: "Имеют проблемы с фотоконтролем",
-				Action: ProblemAction{
-					ActionType:    "url",
-					URL:           "/contractors?segment=active&group=has_photocheck_restrictions",
-					IsURLExternal: false,
-				},
-			},
-			{
-				ID: "attestation_depriority_status",
-				Icon: ProblemIcon{
-					Value: &value19,
-				},
-				Text: "Не прошли аттестацию",
-				Action: ProblemAction{
-					ActionType:    "url",
-					URL:           "/contractors?segment=active&group=attestation_depriority_status",
-					IsURLExternal: false,
-				},
-			},
-			{
-				ID: "has_osago_restriction",
-				Icon: ProblemIcon{
-					Value: &value1_2,
-				},
-				Text: "Нет ОСАГО для такси",
-				Action: ProblemAction{
-					ActionType:    "url",
-					URL:           "/contractors?segment=active&group=has_osago_restriction",
-					IsURLExternal: false,
-				},
-			},
-		},
+	// Read request body
+	bodyBytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("Error reading request body: %v", err)
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
 	}
 
+	// Create request to Yandex Fleet API
+	yandexReq, err := http.NewRequest("POST", yandexFleetProblemsWidgetURL, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		log.Printf("Error creating request to Yandex Fleet API: %v", err)
+		http.Error(w, "Failed to create request", http.StatusInternalServerError)
+		return
+	}
+
+	// Copy headers
+	yandexReq.Header.Set("Cookie", cookieHeader)
+	yandexReq.Header.Set("X-Park-ID", parkID)
+	yandexReq.Header.Set("Content-Type", "application/json")
+	yandexReq.Header.Set("Accept", "*/*")
+	yandexReq.Header.Set("Accept-Language", "ru")
+	yandexReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+
+	// Make request
+	client := &http.Client{}
+	resp, err := client.Do(yandexReq)
+	if err != nil {
+		log.Printf("Error making request to Yandex Fleet API: %v", err)
+		http.Error(w, "Failed to fetch data from Yandex Fleet API", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Read response
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Error reading response from Yandex Fleet API: %v", err)
+		http.Error(w, "Failed to read response", http.StatusInternalServerError)
+		return
+	}
+
+	// Log response for debugging
+	log.Printf("Yandex Fleet Problems API response status: %d", resp.StatusCode)
+	log.Printf("Yandex Fleet Problems API response body: %s", string(respBody))
+
+	// Check status code
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Yandex Fleet API returned non-200 status: %d, body: %s", resp.StatusCode, string(respBody))
+		http.Error(w, string(respBody), resp.StatusCode)
+		return
+	}
+
+	// Parse response
+	var response ProblemsResponse
+	if err := json.Unmarshal(respBody, &response); err != nil {
+		log.Printf("Error parsing response from Yandex Fleet API: %v", err)
+		http.Error(w, "Failed to parse response", http.StatusInternalServerError)
+		return
+	}
+
+	// Return response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }

@@ -7,6 +7,27 @@ type ContractorsListRequest struct {
 	Projection []string               `json:"projection,omitempty"`
 }
 
+type BulkUpdateSourceRequest struct {
+	ContractorIDs []string `json:"contractor_ids"`
+	Source        string   `json:"source"`
+}
+
+type BulkUpdateWorkConditionsRequest struct {
+	ContractorIDs []string `json:"contractor_ids"`
+	Condition     string   `json:"condition"`
+}
+
+type BulkUpdateWorkStatusRequest struct {
+	ContractorIDs []string `json:"contractor_ids"`
+	Status        string   `json:"status"`
+}
+
+type BulkMailingRequest struct {
+	ContractorIDs []string `json:"contractor_ids"`
+	MessageType   string   `json:"message_type"` // sms, push, email
+	Message       string   `json:"message"`
+}
+
 type YandexAPIRequest struct {
 	Query struct {
 		Park struct {

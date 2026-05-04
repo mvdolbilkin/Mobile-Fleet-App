@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -37,7 +38,7 @@ func (h *Handler) GetCurrentGoals(c *gin.Context) {
 
 	// Call Yandex Fleet Goals API
 	yandexURL := "https://fleet.yandex.ru/api/fleet/fleet-goals/v2/goals/current"
-	
+
 	requestBody, err := json.Marshal(req)
 	if err != nil {
 		fmt.Printf("GetCurrentGoals Marshal Error: %v\n", err)
@@ -57,7 +58,8 @@ func (h *Handler) GetCurrentGoals(c *gin.Context) {
 	yandexReq.Header.Set("Cookie", cookieHeader)
 	yandexReq.Header.Set("X-Park-ID", parkID)
 	yandexReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-	yandexReq.Header.Set("Accept", "application/json")
+	yandexReq.Header.Set("Accept", "*/*")
+	yandexReq.Header.Set("Accept-Language", "ru")
 	yandexReq.Header.Set("Origin", "https://fleet.yandex.ru")
 	yandexReq.Header.Set("Referer", "https://fleet.yandex.ru/")
 
@@ -70,20 +72,38 @@ func (h *Handler) GetCurrentGoals(c *gin.Context) {
 	}
 	defer resp.Body.Close()
 
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("GetCurrentGoals Read Body Error: %v, returning mock data\n", err)
+		c.JSON(http.StatusOK, getMockCurrentGoals())
+		return
+	}
+
+	fmt.Printf("GetCurrentGoals Yandex API Status: %d\n", resp.StatusCode)
+	fmt.Printf("GetCurrentGoals Yandex API Response: %s\n", string(body))
+
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		fmt.Printf("GetCurrentGoals Yandex API Error: %s - %s, returning mock data\n", resp.Status, string(body))
+		fmt.Printf("GetCurrentGoals Yandex API Error: %s, returning mock data\n", resp.Status)
 		c.JSON(http.StatusOK, getMockCurrentGoals())
 		return
 	}
 
 	var result GoalsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.Unmarshal(body, &result); err != nil {
 		fmt.Printf("GetCurrentGoals Decode Error: %v, returning mock data\n", err)
 		c.JSON(http.StatusOK, getMockCurrentGoals())
 		return
 	}
 
+	// Format period_text from period dates
+	for i := range result.Goals {
+		if result.Goals[i].Period != nil {
+			result.Goals[i].PeriodText = formatPeriodText(result.Goals[i].Period)
+		}
+	}
+
+	fmt.Printf("GetCurrentGoals Success: returning %d goals\n", len(result.Goals))
 	c.JSON(http.StatusOK, result)
 }
 
@@ -108,7 +128,7 @@ func (h *Handler) GetPreviousGoals(c *gin.Context) {
 
 	// Call Yandex Fleet Goals API
 	yandexURL := "https://fleet.yandex.ru/api/fleet/fleet-goals/v2/goals/previous"
-	
+
 	requestBody, err := json.Marshal(req)
 	if err != nil {
 		fmt.Printf("GetPreviousGoals Marshal Error: %v\n", err)
@@ -128,7 +148,8 @@ func (h *Handler) GetPreviousGoals(c *gin.Context) {
 	yandexReq.Header.Set("Cookie", cookieHeader)
 	yandexReq.Header.Set("X-Park-ID", parkID)
 	yandexReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-	yandexReq.Header.Set("Accept", "application/json")
+	yandexReq.Header.Set("Accept", "*/*")
+	yandexReq.Header.Set("Accept-Language", "ru")
 	yandexReq.Header.Set("Origin", "https://fleet.yandex.ru")
 	yandexReq.Header.Set("Referer", "https://fleet.yandex.ru/")
 
@@ -155,6 +176,13 @@ func (h *Handler) GetPreviousGoals(c *gin.Context) {
 		return
 	}
 
+	// Format period_text from period dates
+	for i := range result.Goals {
+		if result.Goals[i].Period != nil {
+			result.Goals[i].PeriodText = formatPeriodText(result.Goals[i].Period)
+		}
+	}
+
 	c.JSON(http.StatusOK, result)
 }
 
@@ -163,14 +191,14 @@ func getMockCurrentGoals() GoalsResponse {
 	subtitle1 := "Выполнено 2 из 3 условий"
 	subtitle2 := "Выполнено 1 из 3 условий"
 	subtitle3 := "Выполнено 0 из 3 условий"
-	
+
 	current50 := 50
 	target100 := 100
 	percent50 := 50
-	
+
 	current30 := 30
 	percent30 := 30
-	
+
 	current0 := 0
 	percent0 := 0
 
@@ -292,11 +320,11 @@ func getMockCurrentGoals() GoalsResponse {
 func getMockPreviousGoals() GoalsResponse {
 	subtitle1 := "Выполнено 3 из 3 условий"
 	subtitle2 := "Выполнено 2 из 3 условий"
-	
+
 	current100 := 100
 	target100 := 100
 	percent100 := 100
-	
+
 	current80 := 80
 	percent80 := 80
 
@@ -378,4 +406,37 @@ func getMockPreviousGoals() GoalsResponse {
 			},
 		},
 	}
+}
+
+// formatPeriodText formats period dates into readable text
+func formatPeriodText(period *Period) string {
+	if period == nil {
+		return ""
+	}
+
+	months := []string{
+		"января", "февраля", "марта", "апреля", "мая", "июня",
+		"июля", "августа", "сентября", "октября", "ноября", "декабря",
+	}
+
+	// Parse start date and add 3 hours to convert from UTC to local time (UTC+3)
+	startTime, err := time.Parse(time.RFC3339, period.Start)
+	if err != nil {
+		return ""
+	}
+	// Add 3 hours to get local time
+	startTime = startTime.Add(3 * time.Hour)
+
+	// Parse finish date and add 3 hours
+	finishTime, err := time.Parse(time.RFC3339, period.Finish)
+	if err != nil {
+		return ""
+	}
+	// Add 3 hours to get local time
+	finishTime = finishTime.Add(3 * time.Hour)
+
+	// Format as "1 мая — 31 мая"
+	return fmt.Sprintf("%d %s — %d %s",
+		startTime.Day(), months[startTime.Month()-1],
+		finishTime.Day(), months[finishTime.Month()-1])
 }

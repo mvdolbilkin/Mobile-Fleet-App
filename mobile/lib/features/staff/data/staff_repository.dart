@@ -332,4 +332,91 @@ class StaffRepository {
       throw Exception('Failed to load vehicle suggestions: $e');
     }
   }
+
+  Future<List<Map<String, dynamic>>> fetchWorkRules() async {
+    try {
+      final response = await _dio.post('/api/staff/work-rules');
+      final data = response.data;
+      if (data != null && data['light_work_rules'] != null) {
+        return List<Map<String, dynamic>>.from(data['light_work_rules']);
+      }
+      return [];
+    } catch (e) {
+      throw Exception('Failed to load work rules: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> bulkUpdateSource({
+    required List<String> contractorIds,
+    required String source,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/api/staff/bulk/update-source',
+        data: {
+          'contractor_ids': contractorIds,
+          'source': source,
+        },
+      );
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      throw Exception('Failed to update source: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> bulkUpdateWorkConditions({
+    required List<String> contractorIds,
+    required String condition,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/api/staff/bulk/update-work-conditions',
+        data: {
+          'contractor_ids': contractorIds,
+          'condition': condition,
+        },
+      );
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      throw Exception('Failed to update work conditions: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> bulkUpdateWorkStatus({
+    required List<String> contractorIds,
+    required String status,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/api/staff/bulk/update-work-status',
+        data: {
+          'contractor_ids': contractorIds,
+          'status': status,
+        },
+      );
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      throw Exception('Failed to update work status: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> bulkMailing({
+    required List<String> contractorIds,
+    required String messageType,
+    required String message,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/api/staff/bulk/mailing',
+        data: {
+          'contractor_ids': contractorIds,
+          'message_type': messageType,
+          'message': message,
+        },
+      );
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      throw Exception('Failed to send mailing: $e');
+    }
+  }
 }

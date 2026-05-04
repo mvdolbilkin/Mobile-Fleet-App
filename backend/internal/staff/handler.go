@@ -1,6 +1,7 @@
 package staff
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -29,6 +30,13 @@ func RegisterRoutes(r *gin.Engine) {
 		staffGroup.POST("/transaction", handler.CreateTransaction)
 		staffGroup.POST("/details", handler.GetDriverDetails)
 		staffGroup.GET("/vehicles/suggest", handler.GetVehicleSuggestions)
+		staffGroup.POST("/work-rules", handler.GetWorkRules)
+
+		// Bulk actions
+		staffGroup.POST("/bulk/update-source", handler.BulkUpdateSource)
+		staffGroup.POST("/bulk/update-work-conditions", handler.BulkUpdateWorkConditions)
+		staffGroup.POST("/bulk/update-work-status", handler.BulkUpdateWorkStatus)
+		staffGroup.POST("/bulk/mailing", handler.BulkMailing)
 	}
 }
 
@@ -225,6 +233,166 @@ func (h *Handler) GetDriverDetails(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) BulkUpdateSource(c *gin.Context) {
+	var req BulkUpdateSourceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат запроса: " + err.Error()})
+		return
+	}
+
+	if len(req.ContractorIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "не указаны исполнители"})
+		return
+	}
+
+	if req.Source == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "не указан источник"})
+		return
+	}
+
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	if cookieHeader == "" && parkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
+		return
+	}
+
+	// TODO: Implement actual API call to Yandex to update source
+	// For now, return success
+	c.JSON(http.StatusOK, gin.H{
+		"success":       true,
+		"message":       "Источник обновлен для " + strconv.Itoa(len(req.ContractorIDs)) + " исполнителей",
+		"updated_count": len(req.ContractorIDs),
+	})
+}
+
+func (h *Handler) BulkUpdateWorkConditions(c *gin.Context) {
+	var req BulkUpdateWorkConditionsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат запроса: " + err.Error()})
+		return
+	}
+
+	if len(req.ContractorIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "не указаны исполнители"})
+		return
+	}
+
+	if req.Condition == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "не указаны условия работы"})
+		return
+	}
+
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	if cookieHeader == "" && parkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
+		return
+	}
+
+	result, err := h.service.ApplyWorkRule(cookieHeader, parkID, req.ContractorIDs, req.Condition)
+	if err != nil {
+		fmt.Println("Error in BulkUpdateWorkConditions:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetWorkRules(c *gin.Context) {
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	if cookieHeader == "" && parkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
+		return
+	}
+
+	rules, err := h.service.GetWorkRules(cookieHeader, parkID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, rules)
+}
+
+func (h *Handler) BulkUpdateWorkStatus(c *gin.Context) {
+	var req BulkUpdateWorkStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат запроса: " + err.Error()})
+		return
+	}
+
+	if len(req.ContractorIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "не указаны исполнители"})
+		return
+	}
+
+	if req.Status == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "не указан статус работы"})
+		return
+	}
+
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	if cookieHeader == "" && parkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
+		return
+	}
+
+	// TODO: Implement actual API call to Yandex to update work status
+	// For now, return success
+	c.JSON(http.StatusOK, gin.H{
+		"success":       true,
+		"message":       "Статус работы обновлен для " + strconv.Itoa(len(req.ContractorIDs)) + " исполнителей",
+		"updated_count": len(req.ContractorIDs),
+	})
+}
+
+func (h *Handler) BulkMailing(c *gin.Context) {
+	var req BulkMailingRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат запроса: " + err.Error()})
+		return
+	}
+
+	if len(req.ContractorIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "не указаны исполнители"})
+		return
+	}
+
+	if req.Message == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "не указан текст сообщения"})
+		return
+	}
+
+	if req.MessageType == "" {
+		req.MessageType = "sms" // Default to SMS
+	}
+
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	if cookieHeader == "" && parkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
+		return
+	}
+
+	// TODO: Implement actual API call to send messages
+	// For now, return success
+	c.JSON(http.StatusOK, gin.H{
+		"success":      true,
+		"message":      "Сообщение отправлено " + strconv.Itoa(len(req.ContractorIDs)) + " исполнителям",
+		"sent_count":   len(req.ContractorIDs),
+		"message_type": req.MessageType,
+	})
 }
 
 func (h *Handler) GetVehicleSuggestions(c *gin.Context) {

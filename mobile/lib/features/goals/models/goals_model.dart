@@ -45,6 +45,7 @@ class Reward {
   final String title;
   final String? subtitle;
   final bool isCompleted;
+  final String loyaltyStatus;
   final List<BenefitItem> benefitItems;
   final List<KeyPerformanceIndicator> keyPerformanceIndicators;
 
@@ -53,6 +54,7 @@ class Reward {
     required this.title,
     this.subtitle,
     required this.isCompleted,
+    required this.loyaltyStatus,
     this.benefitItems = const [],
     this.keyPerformanceIndicators = const [],
   });
@@ -61,19 +63,27 @@ class Reward {
     var benefitsList = json['benefit_items'] as List? ?? [];
     var kpiList = json['key_performance_indicators'] as List? ?? [];
     
+    // Parse items to extract benefit items (only text type items)
+    var itemsList = json['items'] as List? ?? [];
+    var textItems = itemsList
+        .where((item) => item['type'] == 'text')
+        .map((item) => BenefitItem(value: item['value'] ?? ''))
+        .toList();
+    
     return Reward(
       id: json['id'] ?? '',
       title: json['title'] ?? '',
       subtitle: json['subtitle'],
       isCompleted: json['is_completed'] ?? false,
-      benefitItems: benefitsList.map((e) => BenefitItem.fromJson(e)).toList(),
+      loyaltyStatus: json['loyalty_status'] ?? '',
+      benefitItems: benefitsList.isNotEmpty ? benefitsList.map((e) => BenefitItem.fromJson(e)).toList() : textItems,
       keyPerformanceIndicators: kpiList.map((e) => KeyPerformanceIndicator.fromJson(e)).toList(),
     );
   }
 
   // Helper to get icon asset based on reward level
   String get iconAsset {
-    switch (id.toLowerCase()) {
+    switch (loyaltyStatus.toLowerCase()) {
       case 'basic':
         return 'assets/images/menu_loyalty_base.svg';
       case 'bronze':
@@ -118,10 +128,14 @@ class KeyPerformanceIndicator {
   });
 
   factory KeyPerformanceIndicator.fromJson(Map<String, dynamic> json) {
+    // Parse status to determine if completed
+    String status = json['status'] ?? '';
+    bool completed = status == 'completed';
+    
     return KeyPerformanceIndicator(
-      id: json['id'] ?? '',
+      id: json['id'] ?? json['type'] ?? '',
       title: json['title'] ?? '',
-      isCompleted: json['is_completed'] ?? false,
+      isCompleted: json['is_completed'] ?? completed,
       current: json['current'],
       target: json['target'],
       percent: json['percent'],

@@ -45,7 +45,8 @@ class Goal {
   }
 
   String get periodText {
-    final start = DateTime.parse(period.start);
+    // Use finish date to determine the month, as start date might be in previous month due to timezone
+    final finish = DateTime.parse(period.finish);
     final months = [
       'январе',
       'феврале',
@@ -60,7 +61,7 @@ class Goal {
       'ноябре',
       'декабре',
     ];
-    return 'Прогресс в ${months[start.month - 1]}';
+    return 'Прогресс в ${months[finish.month - 1]}';
   }
 }
 

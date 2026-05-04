@@ -5,6 +5,10 @@ import 'package:mobile/features/staff/domain/staff.dart';
 import 'package:mobile/features/staff/widgets/staff_filter_section.dart';
 import 'package:mobile/features/staff/widgets/staff_list_item.dart';
 import 'package:mobile/features/staff/staff_details_screen.dart';
+import 'package:mobile/features/staff/widgets/source_action_bottom_sheet.dart';
+import 'package:mobile/features/staff/widgets/work_conditions_action_bottom_sheet.dart';
+import 'package:mobile/features/staff/widgets/work_status_action_bottom_sheet.dart';
+import 'package:mobile/features/staff/widgets/mailing_action_bottom_sheet.dart';
 import '../../../../app/theme.dart';
 
 class StaffScreen extends ConsumerStatefulWidget {
@@ -238,19 +242,19 @@ class _StaffScreenState extends ConsumerState<StaffScreen> {
           // Всплывающая панель при выделении
           if (_isSelectionMode)
             Positioned(
-              left: 16,
-              right: 16,
-              bottom: 16,
+              left: 0,
+              right: 0,
+              bottom: 0,
               child: Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.only(top: 16, bottom: 32, left: 16, right: 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
                     ),
                   ],
                 ),
@@ -261,29 +265,45 @@ class _StaffScreenState extends ConsumerState<StaffScreen> {
                       '${_selectedStaff.length} выбранных исполнителей',
                       style: const TextStyle(
                         fontFamily: 'Yandex Sans Text',
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
                         color: Color(0xFF21201F),
                       ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Некоторые действия недоступны, так как они применимы только для парковых автомобилей',
+                      style: TextStyle(
+                        fontFamily: 'Yandex Sans Text',
+                        fontSize: 14,
+                        color: Color(0xFF9E9B98),
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFCE000),
-                              foregroundColor: const Color(0xFF21201F),
-                              elevation: 0,
-                            ),
-                            onPressed: _selectedStaff.isEmpty
-                                ? null
-                                : () {
-                                    // Действие для выбранных исполнителей
-                                  },
-                            child: const Text('Действие'),
+                          _buildPillButton(
+                            label: 'Источник',
+                            onTap: () => _showSourceAction(),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildPillButton(
+                            label: 'Условия',
+                            onTap: () => _showWorkConditionsAction(),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildPillButton(
+                            label: 'Статус',
+                            onTap: () => _showWorkStatusAction(),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildPillButton(
+                            label: 'Рассылка',
+                            onTap: () => _showMailingAction(),
                           ),
                         ],
                       ),
@@ -295,5 +315,100 @@ class _StaffScreenState extends ConsumerState<StaffScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildPillButton({
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    final isEnabled = _selectedStaff.isNotEmpty;
+    return Material(
+      color: isEnabled ? const Color(0xFFFCE000) : const Color(0xFFF0F0F0),
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: isEnabled ? onTap : null,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Yandex Sans Text',
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: isEnabled ? const Color(0xFF21201F) : const Color(0xFF9E9B98),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showSourceAction() async {
+    final selectedIds = _selectedStaff.toList();
+    final result = await SourceActionBottomSheet.show(
+      context: context,
+      selectedCount: selectedIds.length,
+      selectedStaffIds: selectedIds,
+    );
+
+    if (result == true && mounted) {
+      ref.invalidate(staffListProvider);
+      setState(() {
+        _isSelectionMode = false;
+        _selectedStaff.clear();
+      });
+    }
+  }
+
+  Future<void> _showWorkConditionsAction() async {
+    final selectedIds = _selectedStaff.toList();
+    final result = await WorkConditionsActionBottomSheet.show(
+      context: context,
+      selectedCount: selectedIds.length,
+      selectedStaffIds: selectedIds,
+    );
+
+    if (result == true && mounted) {
+      ref.invalidate(staffListProvider);
+      setState(() {
+        _isSelectionMode = false;
+        _selectedStaff.clear();
+      });
+    }
+  }
+
+  Future<void> _showWorkStatusAction() async {
+    final selectedIds = _selectedStaff.toList();
+    final result = await WorkStatusActionBottomSheet.show(
+      context: context,
+      selectedCount: selectedIds.length,
+      selectedStaffIds: selectedIds,
+    );
+
+    if (result == true && mounted) {
+      ref.invalidate(staffListProvider);
+      setState(() {
+        _isSelectionMode = false;
+        _selectedStaff.clear();
+      });
+    }
+  }
+
+  Future<void> _showMailingAction() async {
+    final selectedIds = _selectedStaff.toList();
+    final result = await MailingActionBottomSheet.show(
+      context: context,
+      selectedCount: selectedIds.length,
+      selectedStaffIds: selectedIds,
+    );
+
+    if (result == true && mounted) {
+      ref.invalidate(staffListProvider);
+      setState(() {
+        _isSelectionMode = false;
+        _selectedStaff.clear();
+      });
+    }
   }
 }

@@ -7,6 +7,7 @@ import 'package:mobile/features/menu/widgets/cars_card.dart';
 import 'package:mobile/features/menu/widgets/executors_card.dart';
 import 'package:mobile/features/menu/widgets/loyalty_program_card.dart';
 import 'package:mobile/features/menu/widgets/problems_card.dart';
+import 'package:mobile/features/menu/widgets/date_range_selector.dart';
 import 'package:mobile/features/auth/auth_service.dart';
 
 class MenuScreen extends ConsumerWidget {
@@ -128,6 +129,7 @@ class MenuScreen extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             children: [
+              const DateRangeSelector(),
               const ExecutorsCard(),
               const SizedBox(height: 16),
               const CarsCard(),
