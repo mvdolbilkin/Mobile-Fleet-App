@@ -3,6 +3,7 @@ package main
 import (
 	"backend/internal/auth"
 	"backend/internal/expenses"
+	"backend/internal/garage"
 	"backend/internal/goals"
 	"backend/internal/menu"
 	"backend/internal/summary"
@@ -41,6 +42,9 @@ func main() {
 
 	// Register summary routes
 	summary.RegisterRoutes(r)
+
+	// Register garage routes
+	garage.RegisterRoutes(r)
 
 	// Register goals routes
 	goals.RegisterRoutes(r)
