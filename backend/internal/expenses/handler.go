@@ -13,6 +13,7 @@ import (
 )
 
 const yandexFleetAPIBase = "https://fleet.yandex.ru/api/fleet"
+const yandexDriverBalanceHistoryURL = "https://fleet.yandex.ru/api/api/v1/cards/driver/balances/history"
 
 // ─── Middleware ──────────────────────────────────────────────────────────────
 
@@ -117,6 +118,10 @@ func updateCost(c *gin.Context) {
 
 func createCost(c *gin.Context) {
 	proxyToYandex(c, yandexFleetAPIBase+"/fleet-vehicles-economy/v1/costs", http.MethodPost)
+}
+
+func getDriverBalanceHistory(c *gin.Context) {
+	proxyToYandex(c, yandexDriverBalanceHistoryURL, http.MethodPost)
 }
 
 // ─── Report Generation Handlers ──────────────────────────────────────────────
@@ -292,6 +297,8 @@ func RegisterRoutes(r *gin.Engine) {
 		g.POST("/costs", createCost)
 		g.GET("/cost-types", getAvailableCostTypes)
 		g.GET("/cars/suggest", getCarsSuggest)
+
+		g.POST("/driver/balance-history", getDriverBalanceHistory)
 
 		// Report generation endpoints
 		g.POST("/reports/initiate", initiateReportGeneration)

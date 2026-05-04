@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/app/theme.dart';
 import 'package:mobile/features/fleet/providers/rents_filters_provider.dart';
+import 'package:mobile/shared/widgets/custom_switch.dart';
+import 'package:mobile/shared/widgets/filter_chip.dart';
 import 'package:mobile/shared/widgets/fading_button.dart';
 
 class RentsFiltersSheet extends ConsumerStatefulWidget {
@@ -16,6 +18,7 @@ class RentsFiltersSheet extends ConsumerStatefulWidget {
   }) {
     return showModalBottomSheet<RentsFilter>(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => RentsFiltersSheet(initialFilter: initialFilter),
@@ -30,6 +33,9 @@ class _RentsFiltersSheetState extends ConsumerState<RentsFiltersSheet> {
   late List<String> _selectedCategories;
   late List<String> _selectedStatuses;
   late bool _isRental;
+  late int _selectedPageSize;
+
+  static const List<int> _pageSizeOptions = [25, 50, 100];
 
   @override
   void initState() {
@@ -37,6 +43,7 @@ class _RentsFiltersSheetState extends ConsumerState<RentsFiltersSheet> {
     _selectedCategories = List.from(widget.initialFilter.categories);
     _selectedStatuses = List.from(widget.initialFilter.statuses);
     _isRental = widget.initialFilter.isRental;
+    _selectedPageSize = widget.initialFilter.pageSize;
   }
 
   @override
@@ -51,6 +58,7 @@ class _RentsFiltersSheetState extends ConsumerState<RentsFiltersSheet> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SafeArea(
+        top: true,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -91,7 +99,7 @@ class _RentsFiltersSheetState extends ConsumerState<RentsFiltersSheet> {
                             color: AppTheme.textPrimary,
                           ),
                         ),
-                        Switch(
+                        CustomSwitch(
                           value: _isRental,
                           onChanged: (value) {
                             setState(() => _isRental = value);
@@ -119,7 +127,9 @@ class _RentsFiltersSheetState extends ConsumerState<RentsFiltersSheet> {
                         runSpacing: 8,
                         children: categories.map((category) {
                           final isSelected = _selectedCategories.contains(category.id);
-                          return GestureDetector(
+                          return CustomFilterChip(
+                            label: category.name,
+                            isSelected: isSelected,
                             onTap: () {
                               setState(() {
                                 if (isSelected) {
@@ -129,28 +139,6 @@ class _RentsFiltersSheetState extends ConsumerState<RentsFiltersSheet> {
                                 }
                               });
                             },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppTheme.buttonColor
-                                    : AppTheme.controlsColor,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                category.name,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: isSelected
-                                      ? Colors.black
-                                      : AppTheme.textPrimary,
-                                ),
-                              ),
-                            ),
                           );
                         }).toList(),
                       ),
@@ -184,7 +172,9 @@ class _RentsFiltersSheetState extends ConsumerState<RentsFiltersSheet> {
                         runSpacing: 8,
                         children: statuses.map((status) {
                           final isSelected = _selectedStatuses.contains(status.id);
-                          return GestureDetector(
+                          return CustomFilterChip(
+                            label: status.name,
+                            isSelected: isSelected,
                             onTap: () {
                               setState(() {
                                 if (isSelected) {
@@ -194,28 +184,6 @@ class _RentsFiltersSheetState extends ConsumerState<RentsFiltersSheet> {
                                 }
                               });
                             },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppTheme.buttonColor
-                                    : AppTheme.controlsColor,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                status.name,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: isSelected
-                                      ? Colors.black
-                                      : AppTheme.textPrimary,
-                                ),
-                              ),
-                            ),
                           );
                         }).toList(),
                       ),
@@ -229,6 +197,29 @@ class _RentsFiltersSheetState extends ConsumerState<RentsFiltersSheet> {
                         'Ошибка загрузки статусов',
                         style: TextStyle(color: Colors.red.shade700),
                       ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Page size
+                    const Text(
+                      'Показывать по',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: _pageSizeOptions.map((size) {
+                        return CustomFilterChip(
+                          label: '$size',
+                          isSelected: _selectedPageSize == size,
+                          onTap: () => setState(() => _selectedPageSize = size),
+                        );
+                      }).toList(),
                     ),
 
                     const SizedBox(height: 24),
@@ -247,6 +238,7 @@ class _RentsFiltersSheetState extends ConsumerState<RentsFiltersSheet> {
                     categories: _selectedCategories,
                     statuses: _selectedStatuses,
                     isRental: _isRental,
+                    pageSize: _selectedPageSize,
                   ),
                 ),
                 child: Container(
@@ -261,7 +253,7 @@ class _RentsFiltersSheetState extends ConsumerState<RentsFiltersSheet> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                       color: Colors.black,
                     ),
                   ),

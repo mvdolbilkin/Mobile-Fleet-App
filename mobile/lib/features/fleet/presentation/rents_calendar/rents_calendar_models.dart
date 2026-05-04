@@ -92,6 +92,43 @@ class VehicleWithRents {
   }
 }
 
+class DriverBalanceItem {
+  final String date;
+  final double balance;
+
+  DriverBalanceItem({required this.date, required this.balance});
+
+  factory DriverBalanceItem.fromJson(Map<String, dynamic> json) {
+    return DriverBalanceItem(
+      date: json['date'] as String,
+      balance: (json['balance'] as num).toDouble(),
+    );
+  }
+}
+
+class DriverBalanceHistoryResponse {
+  final List<DriverBalanceItem> balances;
+  final int total;
+  final int pageSize;
+
+  DriverBalanceHistoryResponse({
+    required this.balances,
+    required this.total,
+    required this.pageSize,
+  });
+
+  factory DriverBalanceHistoryResponse.fromJson(Map<String, dynamic> json) {
+    final balancesJson = json['balances'] as List<dynamic>? ?? [];
+    return DriverBalanceHistoryResponse(
+      balances: balancesJson
+          .map((e) => DriverBalanceItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      total: json['total'] as int? ?? 0,
+      pageSize: json['page_size'] as int? ?? 25,
+    );
+  }
+}
+
 class RentsCalendarResponse {
   final List<VehicleWithRents> vehicles;
   final int total;

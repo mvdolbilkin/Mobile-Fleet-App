@@ -8,6 +8,8 @@ import 'package:mobile/features/fleet/presentation/rents_calendar/rents_calendar
 import 'package:mobile/features/fleet/presentation/rents_calendar/rents_filters_sheet.dart';
 import 'package:mobile/features/fleet/providers/rents_filters_provider.dart';
 import 'package:mobile/shared/services/secure_storage_service.dart';
+import 'package:mobile/features/fleet/presentation/rents_calendar/expense_detail_bottom_sheet.dart';
+import 'package:mobile/shared/widgets/badge.dart';
 import 'package:mobile/shared/widgets/search_field.dart';
 
 class RentsCalendarScreen extends ConsumerStatefulWidget {
@@ -24,6 +26,8 @@ class _RentsCalendarScreenState extends ConsumerState<RentsCalendarScreen> {
   RentsCalendarResponse? _data;
   String _searchQuery = '';
   RentsFilter _filter = RentsFilter.defaultFilter;
+  int _currentPage = 0;
+  Map<String, String> _statusNames = {};
   Timer? _debounce;
 
   @override
@@ -54,6 +58,8 @@ class _RentsCalendarScreenState extends ConsumerState<RentsCalendarScreen> {
         parkId: parkId,
         dateFrom: _currentDate,
         days: _daysToShow,
+        limit: _filter.pageSize,
+        offset: _currentPage * _filter.pageSize,
         searchText: _searchQuery.isNotEmpty ? _searchQuery : null,
         isRental: _filter.isRental,
         categories: _filter.categories.isNotEmpty ? _filter.categories : null,
@@ -107,6 +113,15 @@ class _RentsCalendarScreenState extends ConsumerState<RentsCalendarScreen> {
     return '$wd, ${date.day}';
   }
 
+  BadgeType _getStatusBadgeType(String? status) {
+    switch (status) {
+      case 'working': return BadgeType.working;
+      case 'service': return BadgeType.service;
+      case 'no_driver': return BadgeType.noDriver;
+      default: return BadgeType.preparation;
+    }
+  }
+
   RentDriver? _findDriver(String id) {
     if (_data == null) return null;
     for (var d in _data!.drivers) {
@@ -147,6 +162,18 @@ class _RentsCalendarScreenState extends ConsumerState<RentsCalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Поддерживаем провайдеры кэшированными (живыми), пока открыт этот экран.
+    // При выходе с экрана они автоматически очистятся из-за .autoDispose
+    ref.watch(carCategoriesProvider);
+    final statusesAsync = ref.watch(carStatusesProvider);
+    ref.watch(regularChargeTariffsProvider);
+
+    statusesAsync.when(
+      data: (statuses) => _statusNames = { for (final s in statuses) s.id: s.name },
+      error: (_, __) {},
+      loading: () {},
+    );
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
@@ -176,6 +203,7 @@ class _RentsCalendarScreenState extends ConsumerState<RentsCalendarScreen> {
                       if (_debounce?.isActive ?? false) _debounce?.cancel();
                       _debounce = Timer(const Duration(milliseconds: 500), () {
                         if (mounted) {
+                          setState(() => _currentPage = 0);
                           _loadData();
                         }
                       });
@@ -204,7 +232,10 @@ class _RentsCalendarScreenState extends ConsumerState<RentsCalendarScreen> {
                         initialFilter: _filter,
                       );
                       if (result != null) {
-                        setState(() => _filter = result);
+                        setState(() {
+                          _filter = result;
+                          _currentPage = 0;
+                        });
                         _loadData();
                       }
                     },
@@ -274,6 +305,112 @@ class _RentsCalendarScreenState extends ConsumerState<RentsCalendarScreen> {
             child: _isLoading 
               ? const Center(child: CircularProgressIndicator())
               : _buildTable(),
+          ),
+
+          // Пагинация
+          if (!_isLoading && _data != null)
+            _buildPagination(),
+        ],
+      ),
+    );
+  }
+
+  List<int?> _buildPageRange(int current, int total) {
+    if (total <= 7) return List.generate(total, (i) => i);
+    final Set<int> pages = {0, total - 1};
+    for (int i = current - 2; i <= current + 2; i++) {
+      if (i >= 0 && i < total) pages.add(i);
+    }
+    final sorted = pages.toList()..sort();
+    final result = <int?>[];
+    for (int i = 0; i < sorted.length; i++) {
+      result.add(sorted[i]);
+      if (i + 1 < sorted.length && sorted[i + 1] - sorted[i] > 1) {
+        result.add(null);
+      }
+    }
+    return result;
+  }
+
+  Widget _buildPagination() {
+    final total = _data?.total ?? 0;
+    final totalPages = (total / _filter.pageSize).ceil();
+    if (totalPages <= 1) return const SizedBox.shrink();
+
+    final pageRange = _buildPageRange(_currentPage, totalPages);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: AppTheme.borderColor)),
+      ),
+      child: Row(
+        children: [
+          // Стрелка влево
+          _PageButton(
+            label: '<',
+            enabled: _currentPage > 0,
+            onTap: () {
+              setState(() => _currentPage--);
+              _loadData();
+            },
+          ),
+          const SizedBox(width: 2),
+
+          // Номера страниц
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: pageRange.map((page) {
+                  if (page == null) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 6),
+                      child: Text('...', style: TextStyle(fontSize: 14, color: AppTheme.textSecondary)),
+                    );
+                  }
+                  final isCurrent = page == _currentPage;
+                  return GestureDetector(
+                    onTap: isCurrent ? null : () {
+                      setState(() => _currentPage = page);
+                      _loadData();
+                    },
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      decoration: isCurrent
+                          ? BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppTheme.buttonColor, width: 2),
+                            )
+                          : null,
+                      child: Center(
+                        child: Text(
+                          '${page + 1}',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 2),
+          // Стрелка вправо
+          _PageButton(
+            label: '>',
+            enabled: _currentPage < totalPages - 1,
+            onTap: () {
+              setState(() => _currentPage++);
+              _loadData();
+            },
           ),
         ],
       ),
@@ -370,9 +507,9 @@ class _RentsCalendarScreenState extends ConsumerState<RentsCalendarScreen> {
                               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              vehicle.status == 'working' ? 'Работает' : (vehicle.status ?? '—'),
-                              style: const TextStyle(fontSize: 11),
+                            CustomBadge(
+                              type: _getStatusBadgeType(vehicle.status),
+                              text: _statusNames[vehicle.status] ?? vehicle.status ?? '—',
                             ),
                           ],
                         ),
@@ -398,7 +535,7 @@ class _RentsCalendarScreenState extends ConsumerState<RentsCalendarScreen> {
                                   padding: const EdgeInsets.only(right: 8.0, top: 8, bottom: 8),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: dayData.rents.map((r) => _buildRentCell(r, currentCellDate)).toList(),
+                                    children: dayData.rents.map((r) => _buildRentCell(r, currentCellDate, vehicle)).toList(),
                                   ),
                                 ),
                               );
@@ -417,7 +554,7 @@ class _RentsCalendarScreenState extends ConsumerState<RentsCalendarScreen> {
     );
   }
 
-  Widget _buildRentCell(RentInfo rent, DateTime cellDate) {
+  Widget _buildRentCell(RentInfo rent, DateTime cellDate, VehicleWithRents vehicle) {
     final driver = _findDriver(rent.driverId);
     
     // Определяем статус списания: будущее (серые часы) или нет (черная галочка)
@@ -428,7 +565,15 @@ class _RentsCalendarScreenState extends ConsumerState<RentsCalendarScreen> {
     final String clockSvg = '''<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22ZM12 20C14.1217 20 16.1566 19.1571 17.6569 17.6569C19.1571 16.1566 20 14.1217 20 12C20 9.87827 19.1571 7.84344 17.6569 6.34315C16.1566 4.84285 14.1217 4 12 4C9.87827 4 7.84344 4.84285 6.34315 6.34315C4.84285 7.84344 4 9.87827 4 12C4 14.1217 4.84285 16.1566 6.34315 17.6569C7.84344 19.1571 9.87827 20 12 20ZM16.42 14.894C16.4717 14.7733 16.4991 14.6435 16.5006 14.5122C16.5022 14.3808 16.4778 14.2505 16.429 14.1285C16.3801 14.0066 16.3078 13.8955 16.216 13.8015C16.1242 13.7076 16.0148 13.6327 15.894 13.581L13 12.34V7C13 6.73478 12.8946 6.48043 12.7071 6.29289C12.5196 6.10536 12.2652 6 12 6C11.7348 6 11.4804 6.10536 11.2929 6.29289C11.1054 6.48043 11 6.73478 11 7V12.67C11 13.27 11.358 13.813 11.91 14.049L15.106 15.419C15.3497 15.5235 15.625 15.5268 15.8712 15.4284C16.1174 15.3299 16.3145 15.1377 16.419 14.894H16.42Z"></path></svg>''';
     final String checkSvg = '''<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22ZM12 20C14.1217 20 16.1566 19.1571 17.6569 17.6569C19.1571 16.1566 20 14.1217 20 12C20 9.87827 19.1571 7.84344 17.6569 6.34315C16.1566 4.84285 14.1217 4 12 4C9.87827 4 7.84344 4.84285 6.34315 6.34315C4.84285 7.84344 4 9.87827 4 12C4 14.1217 4.84285 16.1566 6.34315 17.6569C7.84344 19.1571 9.87827 20 12 20ZM16.66 8.251C16.4605 8.07668 16.1999 7.98867 15.9356 8.0063C15.6712 8.02392 15.4246 8.14574 15.25 8.345L10.733 13.8L8.737 11.325C8.5554 11.14 8.30908 11.0328 8.04997 11.026C7.79085 11.0191 7.5392 11.1131 7.34805 11.2882C7.1569 11.4632 7.0412 11.7057 7.02533 11.9644C7.00946 12.2231 7.09468 12.4779 7.263 12.675L9.636 15.5C9.90455 15.7934 10.272 16.0335 10.733 16.0335C11.2565 16.0335 11.7881 15.7493 12 15.5C12.2119 15.2507 16.754 9.662 16.754 9.662C16.9284 9.4626 17.0166 9.20212 16.9992 8.93776C16.9817 8.6734 16.8601 8.42676 16.661 8.252L16.66 8.251Z"></path></svg>''';
 
-    return Container(
+    return GestureDetector(
+      onTap: () => ExpenseDetailBottomSheet.show(
+        context: context,
+        rent: rent,
+        driver: driver,
+        vehicle: vehicle,
+        cellDate: cellDate,
+      ),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 4),
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
@@ -463,6 +608,40 @@ class _RentsCalendarScreenState extends ConsumerState<RentsCalendarScreen> {
             style: const TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
           ),
         ],
+      ),
+      ),
+    );
+  }
+}
+
+class _PageButton extends StatelessWidget {
+  final String label;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _PageButton({required this.label, required this.enabled, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: AppTheme.controlsColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: enabled ? AppTheme.textPrimary : AppTheme.textSecondary,
+            ),
+          ),
+        ),
       ),
     );
   }

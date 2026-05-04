@@ -8,35 +8,41 @@ class RentsFilter {
   final List<String> categories;
   final List<String> statuses;
   final bool isRental;
+  final int pageSize;
 
   const RentsFilter({
     this.categories = const [],
     this.statuses = const [],
     this.isRental = true,
+    this.pageSize = 25,
   });
 
   static RentsFilter get defaultFilter => const RentsFilter(
         categories: [],
         statuses: [],
         isRental: true,
+        pageSize: 25,
       );
 
   bool get isModified {
     final def = defaultFilter;
     return categories.isNotEmpty ||
         statuses.isNotEmpty ||
-        isRental != def.isRental;
+        isRental != def.isRental ||
+        pageSize != def.pageSize;
   }
 
   RentsFilter copyWith({
     List<String>? categories,
     List<String>? statuses,
     bool? isRental,
+    int? pageSize,
   }) {
     return RentsFilter(
       categories: categories ?? this.categories,
       statuses: statuses ?? this.statuses,
       isRental: isRental ?? this.isRental,
+      pageSize: pageSize ?? this.pageSize,
     );
   }
 }
@@ -108,6 +114,7 @@ final carCategoriesProvider = FutureProvider.autoDispose<List<CarCategory>>((ref
   
   return categoriesJson
       .map((e) => CarCategory.fromJson(e as Map<String, dynamic>))
+      .where((c) => c.id != 'none')
       .toList();
 });
 

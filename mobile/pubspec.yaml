@@ -83,11 +83,31 @@ flutter:
   fonts:
     - family: Yandex Sans Text
       fonts:
+        - asset: assets/fonts/YandexSansText-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/YandexSansText-Light.ttf
+          weight: 300
         - asset: assets/fonts/YandexSansText-Regular.ttf
           weight: 400
+        - asset: assets/fonts/YandexSansText-RegularItalic.ttf
+          weight: 400
+          style: italic
         - asset: assets/fonts/YandexSansText-Medium.ttf
           weight: 500
         - asset: assets/fonts/YandexSansText-Bold.ttf
+          weight: 700
+    - family: Yandex Sans Display
+      fonts:
+        - asset: assets/fonts/YandexSansDisplay-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/YandexSansDisplay-Light.ttf
+          weight: 300
+        - asset: assets/fonts/YandexSansDisplay-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/YandexSansDisplay-RegularItalic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/YandexSansDisplay-Bold.ttf
           weight: 700
 
   # An image asset can refer to one or more resolution-specific "variants", see
