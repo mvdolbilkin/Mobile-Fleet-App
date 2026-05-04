@@ -36,39 +36,35 @@ class WorkStatusActionBottomSheet extends ConsumerStatefulWidget {
 class _WorkStatusActionBottomSheetState extends ConsumerState<WorkStatusActionBottomSheet> {
   String? _selectedStatus;
   bool _isLoading = false;
+  bool _isLoadingStatuses = true;
 
-  final List<Map<String, dynamic>> _statuses = [
-    {
-      'id': 'working',
-      'name': 'Работает',
-      'icon': Icons.check_circle_outline,
-      'color': AppTheme.statusGreen,
-    },
-    {
-      'id': 'on_vacation',
-      'name': 'В отпуске',
-      'icon': Icons.beach_access_outlined,
-      'color': AppTheme.statusOrange,
-    },
-    {
-      'id': 'sick_leave',
-      'name': 'На больничном',
-      'icon': Icons.local_hospital_outlined,
-      'color': AppTheme.statusOrange,
-    },
-    {
-      'id': 'suspended',
-      'name': 'Приостановлен',
-      'icon': Icons.pause_circle_outline,
-      'color': AppTheme.statusRed,
-    },
-    {
-      'id': 'fired',
-      'name': 'Уволен',
-      'icon': Icons.cancel_outlined,
-      'color': AppTheme.statusRed,
-    },
-  ];
+  List<Map<String, dynamic>> _statuses = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDriverStatuses();
+  }
+
+  Future<void> _loadDriverStatuses() async {
+    try {
+      final repository = ref.read(staffRepositoryProvider);
+      final statuses = await repository.fetchDriverStatuses();
+      if (mounted) {
+        setState(() {
+          _statuses = statuses.map((s) => {
+            'id': s['id'],
+            'name': s['name'] ?? 'Неизвестно',
+          }).toList();
+          _isLoadingStatuses = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingStatuses = false);
+      }
+    }
+  }
 
   Future<void> _applyStatus() async {
     if (_selectedStatus == null) return;
@@ -162,15 +158,63 @@ class _WorkStatusActionBottomSheetState extends ConsumerState<WorkStatusActionBo
             const SizedBox(height: 24),
             
             // Status options
-            ..._statuses.map((status) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _buildStatusOption(
-                id: status['id'],
-                name: status['name'],
-                icon: status['icon'],
-                color: status['color'],
+            if (_isLoadingStatuses)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(color: AppTheme.primaryColor),
+                ),
+              )
+            else if (_statuses.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: Text(
+                    'Нет доступных статусов',
+                    style: TextStyle(
+                      fontFamily: 'Yandex Sans Text',
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ),
+              )
+            else
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.4,
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: _statuses.map((status) {
+                      IconData icon = Icons.person;
+                      Color color = AppTheme.textSecondary;
+                      
+                      // Customize icon based on id
+                      switch (status['id']) {
+                        case 'working':
+                          icon = Icons.check_circle_outline;
+                          color = AppTheme.statusGreen;
+                          break;
+                        case 'not_working':
+                          icon = Icons.remove_circle_outline;
+                          break;
+                        case 'fired':
+                          icon = Icons.block;
+                          color = Colors.red[900]!;
+                          break;
+                      }
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _buildStatusOption(
+                          id: status['id'] as String,
+                          name: status['name'] as String,
+                          icon: icon,
+                          color: color,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
               ),
-            )),
             
             const SizedBox(height: 24),
             

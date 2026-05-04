@@ -37,10 +37,6 @@ func RegisterRoutes(r *gin.Engine) {
 		staffGroup.POST("/bulk/update-source", handler.BulkUpdateSource)
 		staffGroup.POST("/bulk/update-work-conditions", handler.BulkUpdateWorkConditions)
 		staffGroup.POST("/bulk/update-work-status", handler.BulkUpdateWorkStatus)
-
-		staffGroup.GET("/mailings/blanks", handler.GetMailingBlanks)
-		staffGroup.GET("/mailings/limits", handler.GetMailingLimits)
-		staffGroup.POST("/contractors/count", handler.GetContractorsCount)
 		staffGroup.POST("/bulk/mailing", handler.BulkMailing)
 	}
 }
@@ -436,51 +432,6 @@ func (h *Handler) GetVehicleSuggestions(c *gin.Context) {
 	}
 
 	result, err := h.service.GetVehicleSuggestions(cookieHeader, parkID, limit)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
-func (h *Handler) GetMailingBlanks(c *gin.Context) {
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	result, err := h.service.GetMailingBlanks(cookieHeader, parkID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
-func (h *Handler) GetMailingLimits(c *gin.Context) {
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	result, err := h.service.GetMailingLimits(cookieHeader, parkID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
-func (h *Handler) GetContractorsCount(c *gin.Context) {
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	var reqBody map[string]interface{}
-	if err := c.ShouldBindJSON(&reqBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "неверное тело запроса: " + err.Error()})
-		return
-	}
-
-	result, err := h.service.GetContractorsCount(cookieHeader, parkID, reqBody)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/app/theme.dart';
-import 'package:mobile/features/staff/data/staff_repository.dart';
+import 'package:mobile/shared/api/dio_provider.dart';
 
 class MailingActionBottomSheet extends ConsumerStatefulWidget {
   final int selectedCount;
@@ -22,9 +22,14 @@ class MailingActionBottomSheet extends ConsumerStatefulWidget {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => MailingActionBottomSheet(
-        selectedCount: selectedCount,
-        selectedStaffIds: selectedStaffIds,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: MailingActionBottomSheet(
+          selectedCount: selectedCount,
+          selectedStaffIds: selectedStaffIds,
+        ),
       ),
     );
   }
@@ -34,267 +39,225 @@ class MailingActionBottomSheet extends ConsumerStatefulWidget {
 }
 
 class _MailingActionBottomSheetState extends ConsumerState<MailingActionBottomSheet> {
-  final TextEditingController _messageController = TextEditingController();
-  String _selectedType = 'sms';
-  bool _isLoading = false;
+  bool _isLoading = true;
+  bool _isPreview = false;
+  String _blankName = "Свой";
+  int _contractorCount = 0;
+  int _maxMessageLength = 1500;
+  
+  final _titleController = TextEditingController();
+  final _textController = TextEditingController();
 
   @override
-  void dispose() {
-    _messageController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _fetchInitialData();
   }
 
-  Future<void> _sendMessage() async {
-    if (_messageController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Введите текст сообщения',
-            style: TextStyle(fontFamily: 'Yandex Sans Text'),
-          ),
-          backgroundColor: AppTheme.statusRed,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
+  Future<void> _fetchInitialData() async {
     try {
-      final repository = ref.read(staffRepositoryProvider);
-      await repository.bulkMailing(
-        contractorIds: widget.selectedStaffIds,
-        messageType: _selectedType,
-        message: _messageController.text.trim(),
-      );
-      
+      final dio = ref.read(dioProvider);
+
+      // We parallelize to make it faster
+      final futures = await Future.wait<dynamic>([
+        dio.get('/api/staff/mailings/blanks'),
+        dio.get('/api/staff/mailings/limits'),
+        dio.post('/api/staff/contractors/count', data: {
+          "filter": {
+            "contractor_ids": widget.selectedStaffIds,
+            "profile_exists": true
+          }
+        }),
+      ]);
+
+      final blanksData = futures[0].data;
+      final limitsData = futures[1].data;
+      final countData = futures[2].data;
+
       if (mounted) {
-        Navigator.of(context).pop(true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Сообщение отправлено ${widget.selectedCount} исполнителям',
-              style: const TextStyle(fontFamily: 'Yandex Sans Text'),
-            ),
-            backgroundColor: AppTheme.statusGreen,
-          ),
-        );
+        setState(() {
+          if (blanksData != null && blanksData['empty_blank_name'] != null) {
+            _blankName = blanksData['empty_blank_name'];
+          }
+          if (limitsData != null && limitsData['pro']?['restriction']?['max_message_length'] != null) {
+            _maxMessageLength = limitsData['pro']['restriction']['max_message_length'];
+          }
+          if (countData != null && countData['count'] != null) {
+            _contractorCount = countData['count'];
+          }
+          _isLoading = false;
+        });
       }
     } catch (e) {
+      debugPrint("Mailing Data Error: $e");
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Ошибка: $e',
-              style: const TextStyle(fontFamily: 'Yandex Sans Text'),
-            ),
-            backgroundColor: AppTheme.statusRed,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        height: 300,
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      padding: EdgeInsets.only(
-        top: 24,
-        left: 16,
-        right: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-      ),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Header
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE0E0E0),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Рассылка',
-                style: const TextStyle(
+              const Text(
+                'Новая рассылка',
+                style: TextStyle(
                   fontFamily: 'Yandex Sans Text',
                   fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF21201F),
+                  fontWeight: FontWeight.bold,
                 ),
-                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Выбрано исполнителей: ${widget.selectedCount}',
-                style: const TextStyle(
-                  fontFamily: 'Yandex Sans Text',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                  color: AppTheme.textSecondary,
-                ),
-                textAlign: TextAlign.center,
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.black),
+                onPressed: () => Navigator.pop(context),
+              )
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              _blankName,
+              style: const TextStyle(
+                fontFamily: 'Yandex Sans Text',
+                fontSize: 14,
               ),
-              const SizedBox(height: 24),
-              
-              // Message type selector
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTypeButton(
-                      type: 'sms',
-                      label: 'SMS',
-                      icon: Icons.sms_outlined,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildTypeButton(
-                      type: 'push',
-                      label: 'Push',
-                      icon: Icons.notifications_outlined,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildTypeButton(
-                      type: 'email',
-                      label: 'Email',
-                      icon: Icons.email_outlined,
-                    ),
-                  ),
-                ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Текст',
+            style: TextStyle(
+              fontFamily: 'Yandex Sans Text',
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _titleController,
+            decoration: InputDecoration(
+              hintText: 'Заголовок',
+              filled: true,
+              fillColor: const Color(0xFFF5F5F5),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
               ),
-              const SizedBox(height: 24),
-              
-              // Message input
-              TextField(
-                controller: _messageController,
-                maxLines: 5,
-                maxLength: 500,
-                decoration: InputDecoration(
-                  hintText: 'Введите текст сообщения...',
-                  hintStyle: const TextStyle(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              IconButton(icon: const Icon(Icons.format_bold), onPressed: () {}),
+              IconButton(icon: const Icon(Icons.format_italic), onPressed: () {}),
+              IconButton(icon: const Icon(Icons.link), onPressed: () {}),
+              IconButton(icon: const Icon(Icons.format_list_bulleted), onPressed: () {}),
+            ],
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _textController,
+            maxLines: 6,
+            maxLength: _maxMessageLength,
+            decoration: InputDecoration(
+              hintText: 'Введите текст',
+              filled: true,
+              fillColor: const Color(0xFFF5F5F5),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Предпросмотр',
+                  style: TextStyle(
                     fontFamily: 'Yandex Sans Text',
-                    color: AppTheme.textSecondary,
+                    fontSize: 14,
                   ),
-                  filled: true,
-                  fillColor: const Color(0xFFF5F4F2),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.all(16),
                 ),
+                Switch(
+                  value: _isPreview,
+                  activeThumbColor: AppTheme.buttonColor,
+                  onChanged: (val) {
+                    setState(() {
+                      _isPreview = val;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.buttonColor,
+                foregroundColor: Colors.black,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              onPressed: () {
+                // Here we would call the Send Mailing API
+                Navigator.pop(context, true);
+              },
+              child: Text(
+                'Отправить ($_contractorCount)',
                 style: const TextStyle(
                   fontFamily: 'Yandex Sans Text',
                   fontSize: 16,
-                  color: Color(0xFF21201F),
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 24),
-              
-              // Send button
-              ElevatedButton(
-                onPressed: _isLoading ? null : _sendMessage,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
-                  foregroundColor: const Color(0xFF21201F),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF21201F)),
-                        ),
-                      )
-                    : const Text(
-                        'Отправить',
-                        style: TextStyle(
-                          fontFamily: 'Yandex Sans Text',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-              ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-                child: const Text(
-                  'Отмена',
-                  style: TextStyle(
-                    fontFamily: 'Yandex Sans Text',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTypeButton({
-    required String type,
-    required String label,
-    required IconData icon,
-  }) {
-    final isSelected = _selectedType == type;
-    
-    return Material(
-      color: isSelected ? AppTheme.primaryColor : const Color(0xFFF5F4F2),
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: () => setState(() => _selectedType = type),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Column(
-            children: [
-              Icon(
-                icon,
-                color: isSelected ? const Color(0xFF21201F) : AppTheme.textSecondary,
-                size: 24,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: 'Yandex Sans Text',
-                  fontSize: 14,
-                  fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
-                  color: isSelected ? const Color(0xFF21201F) : AppTheme.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }

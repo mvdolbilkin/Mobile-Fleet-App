@@ -346,6 +346,19 @@ class StaffRepository {
     }
   }
 
+  Future<List<Map<String, dynamic>>> fetchDriverStatuses() async {
+    try {
+      final response = await _dio.post('/api/staff/driver-statuses');
+      final data = response.data;
+      if (data != null && data['driver_statuses'] != null) {
+        return List<Map<String, dynamic>>.from(data['driver_statuses']);
+      }
+      return [];
+    } catch (e) {
+      throw Exception('Failed to load driver statuses: $e');
+    }
+  }
+
   Future<Map<String, dynamic>> bulkUpdateSource({
     required List<String> contractorIds,
     required String source,
