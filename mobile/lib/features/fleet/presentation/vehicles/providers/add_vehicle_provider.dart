@@ -424,12 +424,18 @@ class AddVehicleFormData {
   }
 
   String _mapTransmission(String transmission) {
+    const validIds = ['unknown', 'mechanical', 'automatic', 'robotic', 'variator'];
+    if (validIds.contains(transmission)) return transmission;
+
     switch (transmission.toLowerCase()) {
       case 'механическая':
+      case 'механика':
         return 'mechanical';
       case 'автоматическая':
+      case 'автомат':
         return 'automatic';
       case 'роботизированная':
+      case 'робот':
         return 'robotic';
       case 'вариатор':
         return 'variator';
@@ -664,6 +670,88 @@ final addVehicleFormProvider =
     NotifierProvider<AddVehicleFormNotifier, AddVehicleFormData>(
       () => AddVehicleFormNotifier(),
     );
+
+// ─── Справочники (references) ────────────────────────────────────────────
+
+class ReferenceItem {
+  final String id;
+  final String name;
+  const ReferenceItem({required this.id, required this.name});
+}
+
+class VehicleReferences {
+  final List<ReferenceItem> transmissions;
+  final List<ReferenceItem> categories;
+  final List<ReferenceItem> colors;
+  final List<String> years;
+
+  const VehicleReferences({
+    this.transmissions = const [],
+    this.categories = const [],
+    this.colors = const [],
+    this.years = const [],
+  });
+
+  factory VehicleReferences.fromJson(Map<String, dynamic> json) {
+    List<ReferenceItem> parseItems(String key) {
+      final list = json[key] as List<dynamic>? ?? [];
+      return list
+          .map((e) => ReferenceItem(
+                id: (e as Map<String, dynamic>)['id']?.toString() ?? '',
+                name: (e['name'] as String?) ?? '',
+              ))
+          .where((item) => item.id.isNotEmpty)
+          .toList();
+    }
+
+    final yearsList = (json['car_years'] as List<dynamic>? ?? [])
+        .map((e) => e.toString())
+        .toList();
+
+    return VehicleReferences(
+      transmissions: parseItems('car_transmissions'),
+      categories: parseItems('car_categories'),
+      colors: parseItems('colors'),
+      years: yearsList,
+    );
+  }
+
+  String? transmissionName(String id) {
+    for (final t in transmissions) {
+      if (t.id == id) return t.name;
+    }
+    return null;
+  }
+
+  String? transmissionId(String name) {
+    for (final t in transmissions) {
+      if (t.name == name) return t.id;
+    }
+    return null;
+  }
+
+  String? colorName(String id) {
+    for (final c in colors) {
+      if (c.id == id) return c.name;
+    }
+    return null;
+  }
+
+  String? colorId(String name) {
+    for (final c in colors) {
+      if (c.name == name) return c.id;
+    }
+    return null;
+  }
+}
+
+final vehicleReferencesProvider = FutureProvider<VehicleReferences>((ref) async {
+  final dio = ref.read(dioProvider);
+  final secureStorage = ref.read(secureStorageServiceProvider);
+  final service = VehiclesService(dio, secureStorage);
+  final json = await service.getReferences();
+  return VehicleReferences.fromJson(json);
+});
 
 // Провайдер для загрузки списка марок
 final brandsProvider = FutureProvider<List<String>>((ref) async {

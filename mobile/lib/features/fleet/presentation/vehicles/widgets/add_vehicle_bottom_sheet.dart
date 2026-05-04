@@ -9,40 +9,6 @@ import '../providers/add_vehicle_provider.dart';
 
 // Константы для выпадающих списков
 class VehicleFormConstants {
-  // Годы от текущего до 1970
-  static List<String> get years {
-    final currentYear = DateTime.now().year;
-    return List.generate(
-      currentYear - 1969,
-      (index) => (currentYear - index).toString(),
-    );
-  }
-
-  // Типы КПП
-  static const List<String> transmissions = [
-    'Механическая',
-    'Автоматическая',
-    'Роботизированная',
-    'Вариатор',
-  ];
-
-  // Цвета (из API Яндекса)
-  static const List<String> colors = [
-    'Белый',
-    'Желтый',
-    'Бежевый',
-    'Черный',
-    'Голубой',
-    'Серый',
-    'Красный',
-    'Оранжевый',
-    'Синий',
-    'Зеленый',
-    'Коричневый',
-    'Фиолетовый',
-    'Розовый',
-  ];
-
   // Типы топлива
   static const List<String> fuelTypes = [
     'Бензин',
@@ -213,12 +179,11 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
           fieldName: 'model',
         ),
         const SizedBox(height: 8),
-        _buildDropdownField(
+        _buildRefsDropdown(
           'Год',
-          value: formData.year,
+          selectedValue: formData.year,
           onChanged: (v) => notifier.updateField(year: v),
           fieldName: 'year',
-          items: VehicleFormConstants.years,
         ),
         const SizedBox(height: 8),
         _buildDateField(
@@ -241,12 +206,11 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
           onChanged: (v) => notifier.updateField(bodyNumber: v),
         ),
         const SizedBox(height: 8),
-        _buildDropdownField(
+        _buildRefsDropdown(
           'Цвет',
-          value: formData.color,
+          selectedValue: formData.color,
           onChanged: (v) => notifier.updateField(color: v),
           fieldName: 'color',
-          items: VehicleFormConstants.colors,
         ),
         const SizedBox(height: 8),
         _buildDropdownField(
@@ -257,12 +221,11 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
           items: VehicleFormConstants.fuelTypes,
         ),
         const SizedBox(height: 8),
-        _buildDropdownField(
+        _buildRefsDropdown(
           'КПП',
-          value: formData.transmission,
+          selectedValue: formData.transmission,
           onChanged: (v) => notifier.updateField(transmission: v),
           fieldName: 'transmission',
-          items: VehicleFormConstants.transmissions,
         ),
       ],
     );
@@ -583,6 +546,133 @@ class _AddVehicleBottomSheetState extends ConsumerState<AddVehicleBottomSheet> {
                                 : AppTheme.textSecondary),
                     ),
                   ),
+                ),
+                Icon(
+                  Icons.keyboard_arrow_down,
+                  color: showError ? Colors.red.shade300 : AppTheme.textPrimary,
+                  size: 24,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (showError)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, left: 16, right: 16),
+            child: Text(
+              'Обязательное поле',
+              style: TextStyle(fontSize: 12, color: Colors.red.shade700),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildRefsDropdown(
+    String hint, {
+    String? selectedValue,
+    ValueChanged<String?>? onChanged,
+    String? fieldName,
+  }) {
+    final formData = ref.watch(addVehicleFormProvider);
+    final refsAsync = ref.watch(vehicleReferencesProvider);
+    final refs = refsAsync.whenData((v) => v).value;
+    final showError =
+        formData.showValidationErrors &&
+        fieldName != null &&
+        !formData.isFieldValid(fieldName);
+
+    // Resolve items and display value based on field type
+    List<String> displayItems = [];
+    String? displayValue;
+
+    if (refs != null) {
+      switch (fieldName) {
+        case 'year':
+          displayItems = refs.years;
+          displayValue = selectedValue;
+          break;
+        case 'color':
+          displayItems = refs.colors.map((c) => c.name).toList();
+          displayValue = (selectedValue != null && selectedValue.isNotEmpty)
+              ? refs.colorName(selectedValue) ?? selectedValue
+              : null;
+          break;
+        case 'transmission':
+          displayItems = refs.transmissions.map((t) => t.name).toList();
+          displayValue = (selectedValue != null && selectedValue.isNotEmpty)
+              ? refs.transmissionName(selectedValue) ?? selectedValue
+              : null;
+          break;
+        default:
+          displayItems = [];
+          displayValue = selectedValue;
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: displayItems.isNotEmpty
+              ? () async {
+                  final selected = await CustomSelectorBottomSheet.show(
+                    context: context,
+                    title: hint,
+                    items: displayItems,
+                    selectedValue: displayValue,
+                    showSearch: displayItems.length > 10,
+                  );
+                  if (selected != null && onChanged != null) {
+                    // Map display name back to id
+                    String storedValue = selected;
+                    if (refs != null) {
+                      if (fieldName == 'color') {
+                        storedValue = refs.colorId(selected) ?? selected;
+                      } else if (fieldName == 'transmission') {
+                        storedValue = refs.transmissionId(selected) ?? selected;
+                      }
+                    }
+                    onChanged(storedValue);
+                  }
+                }
+              : null,
+          child: Container(
+            height: 56,
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF2F2F2),
+              borderRadius: BorderRadius.circular(16),
+              border: showError
+                  ? Border.all(color: Colors.red, width: 1.5)
+                  : null,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: refsAsync.isLoading
+                      ? Text(
+                          'Загрузка...',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppTheme.textSecondary,
+                          ),
+                        )
+                      : Text(
+                          displayValue != null && displayValue.isNotEmpty
+                              ? displayValue
+                              : hint,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: showError
+                                ? Colors.red.shade300
+                                : (displayValue != null && displayValue.isNotEmpty
+                                      ? AppTheme.textPrimary
+                                      : AppTheme.textSecondary),
+                          ),
+                        ),
                 ),
                 Icon(
                   Icons.keyboard_arrow_down,

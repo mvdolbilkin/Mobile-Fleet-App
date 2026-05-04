@@ -60,6 +60,7 @@ class MainWrapper extends ConsumerWidget {
               ) ?? false;
 
           if (download.status == ReportDownloadStatus.ready && !wasReady) {
+            ScaffoldMessenger.of(context).clearSnackBars();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Отчет "${download.displayName}" готов к скачиванию'),

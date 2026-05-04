@@ -609,6 +609,26 @@ class VehiclesService {
     }
   }
 
+  Future<Map<String, dynamic>> getReferences() async {
+    try {
+      final response = await _dio.post(
+        '/api/vehicles/references',
+        data: {
+          'references': ['car_categories', 'colors', 'car_transmissions', 'car_years'],
+        },
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data as Map<String, dynamic>;
+      }
+
+      throw Exception('Failed to load references');
+    } catch (e) {
+      print('Error fetching references: $e');
+      throw e;
+    }
+  }
+
   Future<Map<String, String>> getCarCategories() async {
     try {
       final response = await _dio.post(

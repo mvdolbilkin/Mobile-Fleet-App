@@ -238,6 +238,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                     );
 
                     if (mounted) {
+                      ScaffoldMessenger.of(context).clearSnackBars();
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Создание отчета начато'),

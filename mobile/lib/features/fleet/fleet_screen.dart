@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:mobile/features/fleet/presentation/vehicles/vehicles_screen.dart';
 import 'package:mobile/features/fleet/presentation/expenses/expenses_screen.dart';
 import 'package:mobile/features/fleet/presentation/rents_calendar/rents_calendar_screen.dart';
@@ -13,14 +14,6 @@ class FleetScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // Стиль для заголовков разделов
-    final sectionStyle = theme.textTheme.labelLarge?.copyWith(
-      fontWeight: FontWeight.bold,
-      color: theme.colorScheme.primary,
-      letterSpacing: 1.0,
-      fontFamily: 'Yandex Sans Text',
-    );
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Автопарк'),
@@ -30,103 +23,78 @@ class FleetScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-            child: Text('ОБЪЕКТЫ', style: sectionStyle),
-          ),
-          AnimatedMenuRow(
-            title: 'Автомобили',
-            subtitle: 'Список всех ТС',
-            icon: Icons.directions_car_filled_rounded,
-            iconColor: const Color(0xFF007AFF),
-            onTap: () {
-              Navigator.of(
-                context,
-                rootNavigator: true,
-              ).push(MaterialPageRoute(builder: (_) => VehiclesScreen()));
-            },
-          ),
-          const SizedBox(height: 8),
-          AnimatedMenuRow(
-            title: 'Гараж',
-            subtitle: 'Обслуживание и хранение',
-            icon: Icons.garage_rounded,
-            iconColor: const Color(0xFF5856D6),
-            onTap: () {
-              Navigator.of(
-                context,
-                rootNavigator: true,
-              ).push(MaterialPageRoute(builder: (_) => const GarageScreen()));
-            },
+          _SectionHeader(title: 'ОБЪЕКТЫ'),
+          _SectionCard(
+            children: [
+              _MenuRow(
+                title: 'Автомобили',
+                subtitle: 'Список всех ТС',
+                icon: HugeIcons.strokeRoundedCar01,
+                onTap: () => Navigator.of(context, rootNavigator: true)
+                    .push(MaterialPageRoute(builder: (_) => VehiclesScreen())),
+              ),
+              const _RowDivider(),
+              _MenuRow(
+                title: 'Гараж',
+                subtitle: 'Обслуживание и хранение',
+                icon: HugeIcons.strokeRoundedGarage,
+                onTap: () => Navigator.of(context, rootNavigator: true)
+                    .push(MaterialPageRoute(builder: (_) => const GarageScreen())),
+              ),
+            ],
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-            child: Text('ФИНАНСЫ', style: sectionStyle),
-          ),
-          AnimatedMenuRow(
-            title: 'Расходы по автомобилям',
-            icon: Icons.payments_rounded,
-            iconColor: const Color(0xFFFF9500),
-            onTap: () {
-              Navigator.of(
-                context,
-                rootNavigator: true,
-              ).push(MaterialPageRoute(builder: (_) => const ExpensesScreen()));
-            },
-          ),
-          const SizedBox(height: 8),
-          AnimatedMenuRow(
-            title: 'Штрафы ГИБДД',
-            icon: Icons.warning_rounded,
-            iconColor: const Color(0xFFFF3B30),
-            onTap: () {},
-          ),
-          const SizedBox(height: 8),
-          AnimatedMenuRow(
-            title: 'Календарь списаний',
-            icon: Icons.calendar_today_rounded,
-            iconColor: const Color(0xFF34C759),
-            onTap: () {
-              Navigator.of(
-                context,
-                rootNavigator: true,
-              ).push(MaterialPageRoute(builder: (_) => const RentsCalendarScreen()));
-            },
-          ),
-          const SizedBox(height: 8),
-          AnimatedMenuRow(
-            title: 'Периодические списания',
-            icon: Icons.loop_rounded,
-            iconColor: const Color(0xFF30B0C7),
-            onTap: () {
-              Navigator.of(
-                context,
-                rootNavigator: true,
-              ).push(MaterialPageRoute(builder: (_) => const RegularChargesScreen()));
-            },
+          _SectionHeader(title: 'ФИНАНСЫ'),
+          _SectionCard(
+            children: [
+              _MenuRow(
+                title: 'Расходы по автомобилям',
+                icon: HugeIcons.strokeRoundedMoney02,
+                onTap: () => Navigator.of(context, rootNavigator: true)
+                    .push(MaterialPageRoute(builder: (_) => const ExpensesScreen())),
+              ),
+              const _RowDivider(),
+              _MenuRow(
+                title: 'Штрафы ГИБДД',
+                icon: HugeIcons.strokeRoundedAlert02,
+                onTap: () {},
+              ),
+              const _RowDivider(),
+              _MenuRow(
+                title: 'Календарь списаний',
+                icon: HugeIcons.strokeRoundedCalendar03,
+                onTap: () => Navigator.of(context, rootNavigator: true)
+                    .push(MaterialPageRoute(builder: (_) => const RentsCalendarScreen())),
+              ),
+              const _RowDivider(),
+              _MenuRow(
+                title: 'Периодические списания',
+                icon: HugeIcons.strokeRoundedRepeat,
+                onTap: () => Navigator.of(context, rootNavigator: true)
+                    .push(MaterialPageRoute(builder: (_) => const RegularChargesScreen())),
+              ),
+            ],
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-            child: Text('АНАЛИТИКА', style: sectionStyle),
-          ),
-          AnimatedMenuRow(
-            title: 'Сводка по ТС',
-            icon: Icons.summarize_rounded,
-            iconColor: const Color(0xFFAF52DE),
-            onTap: () {},
-          ),
-          const SizedBox(height: 8),
-          AnimatedMenuRow(
-            title: 'Отчёт по ТС',
-            icon: Icons.description_rounded,
-            iconColor: Colors.blueGrey,
-            onTap: () {},
+          _SectionHeader(title: 'АНАЛИТИКА'),
+          _SectionCard(
+            children: [
+              _MenuRow(
+                title: 'Сводка по ТС',
+                icon: HugeIcons.strokeRoundedAnalytics02,
+                onTap: () {},
+              ),
+              const _RowDivider(),
+              _MenuRow(
+                title: 'Отчёт по ТС',
+                icon: HugeIcons.strokeRoundedFile02,
+                onTap: () {},
+              ),
+            ],
           ),
 
           const SizedBox(height: 40),
@@ -136,18 +104,74 @@ class FleetScreen extends StatelessWidget {
   }
 }
 
-class AnimatedMenuRow extends StatelessWidget {
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+      child: Text(
+        title,
+        style: theme.textTheme.labelMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: theme.colorScheme.onSurfaceVariant,
+          letterSpacing: 0.8,
+          fontFamily: 'Yandex Sans Text',
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  final List<Widget> children;
+  const _SectionCard({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: children,
+      ),
+    );
+  }
+}
+
+class _RowDivider extends StatelessWidget {
+  const _RowDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 60),
+      child: Divider(
+        height: 1,
+        color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.4),
+      ),
+    );
+  }
+}
+
+class _MenuRow extends StatelessWidget {
   final String title;
   final String? subtitle;
-  final IconData icon;
-  final Color iconColor;
+  final dynamic icon;
   final VoidCallback onTap;
 
-  const AnimatedMenuRow({
-    super.key,
+  const _MenuRow({
     required this.title,
     required this.icon,
-    required this.iconColor,
     required this.onTap,
     this.subtitle,
   });
@@ -155,21 +179,18 @@ class AnimatedMenuRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final iconColor = theme.colorScheme.onSurfaceVariant;
 
     return FadingButton(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         child: Row(
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: iconColor,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: Colors.white, size: 24),
+            HugeIcon(
+              icon: icon,
+              color: iconColor,
+              size: 24,
             ),
 
             const SizedBox(width: 16),
@@ -186,7 +207,7 @@ class AnimatedMenuRow extends StatelessWidget {
                     ),
                   ),
                   if (subtitle != null) ...[
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       subtitle!,
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -201,7 +222,8 @@ class AnimatedMenuRow extends StatelessWidget {
 
             Icon(
               Icons.chevron_right_rounded,
-              color: theme.colorScheme.outline.withOpacity(0.5),
+              size: 20,
+              color: theme.colorScheme.outline.withOpacity(0.4),
             ),
           ],
         ),
