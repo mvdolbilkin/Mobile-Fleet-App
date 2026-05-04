@@ -27,21 +27,23 @@ class RentDriver {
 class RentInfo {
   final String id;
   final String driverId;
-  final String dailyPrice;
+  final String? dailyPrice;
   final String debitTime;
 
   RentInfo({
     required this.id,
     required this.driverId,
-    required this.dailyPrice,
+    this.dailyPrice,
     required this.debitTime,
   });
+
+  bool get isDayOff => dailyPrice == null;
 
   factory RentInfo.fromJson(Map<String, dynamic> json) {
     return RentInfo(
       id: json['id'] as String,
       driverId: json['driver_id'] as String,
-      dailyPrice: json['daily_price'] as String,
+      dailyPrice: json['daily_price'] as String?,
       debitTime: json['debit_time'] as String,
     );
   }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/fleet/domain/report_download.dart';
 import 'package:mobile/features/fleet/data/expenses_repository.dart';
+import 'package:mobile/features/fleet/presentation/regular_charges/regular_charges_repository.dart';
 import 'package:mobile/shared/services/secure_storage_service.dart';
 import 'package:mobile/shared/providers/logger_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -61,17 +62,27 @@ class ReportDownloadsNotifier extends StateNotifier<List<ReportDownload>> {
         throw Exception('Park ID not found');
       }
 
-      final repository = ref.read(expensesRepositoryProvider);
-
-      // Initiate report generation
-      await repository.initiateReportGeneration(
-        parkId: parkId,
-        operationId: operationId,
-        reportType: reportType,
-        filters: filters,
-        dateFrom: dateFrom,
-        dateTo: dateTo,
-      );
+      // Initiate report generation based on type
+      if (reportType == 'regular_charges') {
+        final regularChargesRepo = ref.read(regularChargesRepositoryProvider);
+        await regularChargesRepo.initiateReportGeneration(
+          parkId: parkId,
+          operationId: operationId,
+          dateType: filters['date_type'] as String? ?? 'date_from',
+          dateFrom: dateFrom,
+          dateTo: dateTo,
+        );
+      } else {
+        final repository = ref.read(expensesRepositoryProvider);
+        await repository.initiateReportGeneration(
+          parkId: parkId,
+          operationId: operationId,
+          reportType: reportType,
+          filters: filters,
+          dateFrom: dateFrom,
+          dateTo: dateTo,
+        );
+      }
 
       logger.i('✅ Report generation initiated: $operationId');
 

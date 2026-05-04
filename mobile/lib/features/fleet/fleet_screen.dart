@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile/features/fleet/presentation/vehicles/vehicles_screen.dart';
 import 'package:mobile/features/fleet/presentation/expenses/expenses_screen.dart';
 import 'package:mobile/features/fleet/presentation/rents_calendar/rents_calendar_screen.dart';
+import 'package:mobile/features/fleet/presentation/regular_charges/regular_charges_screen.dart';
 import 'package:mobile/shared/widgets/fading_button.dart';
 
 class FleetScreen extends StatelessWidget {
@@ -94,7 +95,12 @@ class FleetScreen extends StatelessWidget {
             title: 'Периодические списания',
             icon: Icons.loop_rounded,
             iconColor: const Color(0xFF30B0C7),
-            onTap: () {},
+            onTap: () {
+              Navigator.of(
+                context,
+                rootNavigator: true,
+              ).push(MaterialPageRoute(builder: (_) => const RegularChargesScreen()));
+            },
           ),
 
           const SizedBox(height: 24),

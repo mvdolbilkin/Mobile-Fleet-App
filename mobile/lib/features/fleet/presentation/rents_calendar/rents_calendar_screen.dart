@@ -604,8 +604,12 @@ class _RentsCalendarScreenState extends ConsumerState<RentsCalendarScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            '${rent.dailyPrice} ₽',
-            style: const TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
+            rent.isDayOff ? 'Выходной' : '${rent.dailyPrice} ₽',
+            style: TextStyle(
+              fontWeight: FontWeight.normal,
+              fontSize: 13,
+              color: rent.isDayOff ? Colors.grey.shade600 : null,
+            ),
           ),
         ],
       ),

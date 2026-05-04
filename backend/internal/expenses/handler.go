@@ -286,7 +286,66 @@ func getReportDownloadLink(c *gin.Context) {
 	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
 }
 
-// ─── Routes ──────────────────────────────────────────────────────────────────
+func initiateRegularChargesReport(c *gin.Context) {
+	var body map[string]interface{}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	operationID, ok := body["operation_id"].(string)
+	if !ok || operationID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "operation_id is required"})
+		return
+	}
+
+	requestBody := map[string]interface{}{
+		"charset":     "utf-8-sig",
+		"date_type":   body["date_type"],
+		"date_period": body["date_period"],
+	}
+
+	bodyJSON, _ := json.Marshal(requestBody)
+
+	targetURL := "https://fleet.yandex.ru/api/reports-api/v1/regular-charges/download-async?operation_id=" + operationID
+	log.Printf("[REPORT] Initiating regular charges report: %s with body: %s", targetURL, string(bodyJSON))
+
+	s := getSession(c)
+
+	req, err := http.NewRequest(http.MethodPost, targetURL, bytes.NewBuffer(bodyJSON))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7")
+	req.Header.Set("x-park-id", s.ParkID)
+
+	cookieValue := "Session_id=" + s.SessionID + "; sessionid2=" + s.SessionID2
+	if s.LoginToken != "" {
+		cookieValue += "; L=" + s.LoginToken
+	}
+	if s.Login != "" {
+		cookieValue += "; yandex_login=" + s.Login
+	}
+	if s.UID != "" {
+		cookieValue += "; yandexuid=" + s.UID
+	}
+	req.Header.Set("Cookie", cookieValue)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to reach Yandex Fleet API"})
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	log.Printf("[REPORT] Regular charges report response: status=%d body=%s", resp.StatusCode, string(respBody))
+
+	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
+}
 
 func RegisterRoutes(r *gin.Engine) {
 	g := r.Group("/api/expenses", authMiddleware)
@@ -302,6 +361,7 @@ func RegisterRoutes(r *gin.Engine) {
 
 		// Report generation endpoints
 		g.POST("/reports/initiate", initiateReportGeneration)
+		g.POST("/reports/regular-charges/initiate", initiateRegularChargesReport)
 		g.GET("/reports/status", checkReportStatus)
 		g.GET("/reports/download", getReportDownloadLink)
 	}

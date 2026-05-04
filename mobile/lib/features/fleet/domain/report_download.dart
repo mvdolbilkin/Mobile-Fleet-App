@@ -72,6 +72,8 @@ class ReportDownload {
     switch (reportType) {
       case 'costs':
         return 'Отчет по расходам';
+      case 'regular_charges':
+        return 'Периодические списания';
       default:
         return 'Отчет';
     }

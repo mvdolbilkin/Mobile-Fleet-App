@@ -22,6 +22,7 @@ const yandexFleetCategoriesURL = "https://fleet.yandex.ru/api/fleet/vehicles-man
 const yandexFleetReferencesURL = "https://fleet.yandex.ru/api/fleet/router/v1/references/list"
 const yandexFleetVehiclesByDaysURL = "https://fleet.yandex.ru/api/fleet/rent/v1/vehicles/by-days"
 const yandexFleetAvailableStatusesURL = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/cars/available-statuses"
+const yandexFleetRegularChargesListURL = "https://fleet.yandex.ru/api/api/v1/regular-charges/list"
 
 // ─── Middleware: проверка auth + получение сессии ────────────────────────────
 
@@ -210,6 +211,10 @@ func getAvailableStatusesProxy(c *gin.Context) {
 	proxyToYandex(c, yandexFleetAvailableStatusesURL, http.MethodGet)
 }
 
+func listRegularChargesProxy(c *gin.Context) {
+	proxyToYandex(c, yandexFleetRegularChargesListURL, http.MethodPost, withJSONContentType())
+}
+
 // ─── Роутинг ────────────────────────────────────────────────────────────────
 
 // RegisterRoutes registers the vehicle routes onto the provided gin.Engine
@@ -228,5 +233,6 @@ func RegisterRoutes(r *gin.Engine) {
 		g.POST("/references", listReferencesProxy)
 		g.POST("/by-days", getVehiclesByDaysProxy)
 		g.GET("/available-statuses", getAvailableStatusesProxy)
+		g.POST("/regular-charges", listRegularChargesProxy)
 	}
 }
