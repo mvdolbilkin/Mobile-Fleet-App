@@ -4,6 +4,7 @@ import (
 	"backend/internal/auth"
 	"backend/internal/expenses"
 	"backend/internal/fines"
+	"backend/internal/fleetmap"
 	"backend/internal/garage"
 	"backend/internal/goals"
 	"backend/internal/menu"
@@ -52,6 +53,9 @@ func main() {
 
 	// Register fines routes
 	fines.RegisterRoutes(r)
+
+	// Register map routes
+	fleetmap.RegisterRoutes(r)
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
