@@ -432,4 +432,19 @@ class StaffRepository {
       throw Exception('Failed to send mailing: $e');
     }
   }
+
+  Future<void> sendMailing(Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.post(
+        '/api/staff/mailings',
+        data: data,
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Failed to send mailing');
+      }
+    } catch (e) {
+      throw Exception('Ошибка при отправке рассылки: $e');
+    }
+  }
 }

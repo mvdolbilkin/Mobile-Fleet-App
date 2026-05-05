@@ -562,6 +562,7 @@ func (s *Service) GetMailingBlanks(cookieHeader string, parkID string) (interfac
 
 	req.Header.Set("Cookie", cookieHeader)
 	req.Header.Set("X-Park-ID", parkID)
+	req.Header.Set("Accept-Language", "ru")
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
@@ -571,6 +572,7 @@ func (s *Service) GetMailingBlanks(cookieHeader string, parkID string) (interfac
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
+		fmt.Println("GetMailingBlanks error:", string(body))
 		return nil, fmt.Errorf("ошибка API: %s - %s", resp.Status, string(body))
 	}
 
@@ -590,6 +592,7 @@ func (s *Service) GetMailingLimits(cookieHeader string, parkID string) (interfac
 
 	req.Header.Set("Cookie", cookieHeader)
 	req.Header.Set("X-Park-ID", parkID)
+	req.Header.Set("Accept-Language", "ru")
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
@@ -626,6 +629,44 @@ func (s *Service) GetContractorsCount(cookieHeader string, parkID string, reqBod
 	req.Header.Set("Cookie", cookieHeader)
 	req.Header.Set("X-Park-ID", parkID)
 	req.Header.Set("X-Idempotency-Token", uuid.New().String())
+	req.Header.Set("Accept-Language", "ru")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("ошибка API: %s - %s", resp.Status, string(body))
+	}
+
+	var result interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("ошибка десериализации: %w", err)
+	}
+	return result, nil
+}
+
+func (s *Service) SendMailing(cookieHeader string, parkID string, reqBody map[string]interface{}) (interface{}, error) {
+	url := "https://fleet.yandex.ru/api/fleet/fleet-operations/v1/contractor-profiles-manager/communications"
+
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка сериализации: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Cookie", cookieHeader)
+	req.Header.Set("X-Park-ID", parkID)
+	req.Header.Set("X-Idempotency-Token", uuid.New().String())
+	req.Header.Set("Accept-Language", "ru")
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {

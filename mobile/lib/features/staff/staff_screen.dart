@@ -401,6 +401,7 @@ class _StaffScreenState extends ConsumerState<StaffScreen> {
       context: context,
       selectedCount: selectedIds.length,
       selectedStaffIds: selectedIds,
+      searchQuery: _searchQuery,
     );
 
     if (result == true && mounted) {

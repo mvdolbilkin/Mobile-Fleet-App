@@ -40,6 +40,7 @@ func RegisterRoutes(r *gin.Engine) {
 
 		staffGroup.GET("/mailings/blanks", handler.GetMailingBlanks)
 		staffGroup.GET("/mailings/limits", handler.GetMailingLimits)
+		staffGroup.POST("/mailings", handler.SendMailing)
 		staffGroup.POST("/contractors/count", handler.GetContractorsCount)
 		staffGroup.POST("/bulk/mailing", handler.BulkMailing)
 	}
@@ -481,6 +482,25 @@ func (h *Handler) GetContractorsCount(c *gin.Context) {
 	}
 
 	result, err := h.service.GetContractorsCount(cookieHeader, parkID, reqBody)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) SendMailing(c *gin.Context) {
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	var reqBody map[string]interface{}
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат запроса"})
+		return
+	}
+
+	result, err := h.service.SendMailing(cookieHeader, parkID, reqBody)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

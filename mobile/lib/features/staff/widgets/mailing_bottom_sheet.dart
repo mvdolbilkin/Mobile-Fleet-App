@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
-import '../../../shared/providers/dio_provider.dart';
-import '../../../shared/providers/auth_provider.dart';
+import 'package:mobile/shared/api/dio_provider.dart';
 
 class MailingBottomSheet extends ConsumerStatefulWidget {
   final List<String> selectedContractorIds;
