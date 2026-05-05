@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/app/theme.dart';
 import 'package:mobile/features/fleet/domain/vehicle.dart';
 import 'package:mobile/features/fleet/data/vehicles_service.dart';
+import 'package:mobile/shared/widgets/filter_chip.dart';
 import '../providers/vehicles_provider.dart';
 
 class FiltersBottomSheet extends ConsumerStatefulWidget {
@@ -50,7 +51,7 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       decoration: const BoxDecoration(
-        color: AppTheme.backgroundColor,
+        color: Colors.white,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
@@ -225,21 +226,26 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
               ),
               // Footer
               Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _applyFilters,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                padding: EdgeInsets.fromLTRB(
+                  16, 12, 16, 12 + MediaQuery.of(context).padding.bottom,
+                ),
+                child: GestureDetector(
+                  onTap: _applyFilters,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.buttonColor,
+                      borderRadius: BorderRadius.circular(14),
                     ),
+                    alignment: Alignment.center,
                     child: const Text(
                       'Применить',
-                      style: TextStyle(color: Colors.white, fontSize: 16),
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -273,28 +279,26 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
+              runSpacing: 8,
               children: items.map((entry) {
                 final cat = entry.value;
                 final isSelected = selectedCategories.contains(cat);
-                return FilterChip(
-                  label: Text(categoryNames[entry.key] ?? entry.key),
-                  selected: isSelected,
-                  onSelected: (selected) {
+                return CustomFilterChip(
+                  label: categoryNames[entry.key] ?? entry.key,
+                  isSelected: isSelected,
+                  onTap: () {
                     final newSelected = List<VehicleCategory>.from(
                       selectedCategories,
                     );
-                    if (selected) {
-                      newSelected.add(cat);
-                    } else {
+                    if (isSelected) {
                       newSelected.remove(cat);
+                    } else {
+                      newSelected.add(cat);
                     }
                     setState(
                       () => _filter = _filter.copyWith(categories: newSelected),
                     );
                   },
-                  backgroundColor: AppTheme.controlsColor,
-                  selectedColor: Colors.black12,
-                  checkmarkColor: Colors.black,
                 );
               }).toList(),
             ),
@@ -341,23 +345,21 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
+          runSpacing: 8,
           children: items.map((item) {
             final isSelected = selectedItems.contains(item);
-            return FilterChip(
-              label: Text(labelBuilder(item)),
-              selected: isSelected,
-              onSelected: (selected) {
+            return CustomFilterChip(
+              label: labelBuilder(item),
+              isSelected: isSelected,
+              onTap: () {
                 final newSelected = List<T>.from(selectedItems);
-                if (selected) {
-                  newSelected.add(item);
-                } else {
+                if (isSelected) {
                   newSelected.remove(item);
+                } else {
+                  newSelected.add(item);
                 }
                 onChanged(newSelected);
               },
-              backgroundColor: AppTheme.controlsColor,
-              selectedColor: Colors.black12,
-              checkmarkColor: Colors.black,
             );
           }).toList(),
         ),
@@ -380,15 +382,13 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
+          runSpacing: 8,
           children: items.map((item) {
             final isSelected = selected == item;
-            return FilterChip(
-              label: Text(labelBuilder(item)),
-              selected: isSelected,
-              onSelected: (value) => onChanged(value ? item : null),
-              backgroundColor: AppTheme.controlsColor,
-              selectedColor: Colors.black12,
-              checkmarkColor: Colors.black,
+            return CustomFilterChip(
+              label: labelBuilder(item),
+              isSelected: isSelected,
+              onTap: () => onChanged(isSelected ? null : item),
             );
           }).toList(),
         ),
@@ -404,16 +404,13 @@ class _FiltersBottomSheetState extends ConsumerState<FiltersBottomSheet> {
       children: [
         const Text('Прочее', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         const SizedBox(height: 8),
-        FilterChip(
-          label: const Text('Архив'),
-          selected: isSelected,
-          onSelected: (value) => setState(() => _filter = _filter.copyWith(
-            archived: value ? true : null,
-            clearArchived: !value,
+        CustomFilterChip(
+          label: 'Архив',
+          isSelected: isSelected,
+          onTap: () => setState(() => _filter = _filter.copyWith(
+            archived: isSelected ? null : true,
+            clearArchived: isSelected,
           )),
-          backgroundColor: AppTheme.controlsColor,
-          selectedColor: Colors.black12,
-          checkmarkColor: Colors.black,
         ),
         const SizedBox(height: 24),
       ],

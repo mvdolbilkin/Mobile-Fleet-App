@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/fleet/data/vehicles_service.dart';
 import 'package:mobile/features/fleet/domain/vehicle.dart';
+import 'package:mobile/shared/widgets/custom_selector_bottom_sheet.dart';
 import 'package:mobile/shared/widgets/fading_button.dart';
 import 'package:mobile/shared/widgets/filter_chip.dart';
 import 'package:mobile/shared/widgets/search_field.dart';
@@ -63,95 +64,235 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
     }
   }
 
-  void _showStatusUpdateDialog() {
+  Future<void> _showStatusUpdateDialog() async {
+    final statusNames = VehicleStatus.values
+        .map((s) => _getStatusName(s))
+        .toList();
+
+    final selected = await CustomSelectorBottomSheet.show(
+      context: context,
+      title: 'Изменить статус',
+      items: statusNames,
+      showSearch: false,
+    );
+
+    if (selected == null || !mounted) return;
+
+    final status = VehicleStatus.values.firstWhere(
+      (s) => _getStatusName(s) == selected,
+    );
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(SnackBar(
+      content: Text('Обновление статуса ${_selectedVehicles.length} авто...'),
+      duration: const Duration(seconds: 30),
+    ));
+
+    try {
+      final service = ref.read(vehiclesServiceProvider);
+      await service.updateVehiclesStatus(_selectedVehicles.toList(), status);
+      ref.invalidate(vehiclesProvider);
+      if (mounted) {
+        messenger.hideCurrentSnackBar();
+        messenger.showSnackBar(SnackBar(
+          content: Text(
+            'Статус "$selected" применён к ${_selectedVehicles.length} авто',
+          ),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 3),
+        ));
+        _toggleSelectionMode();
+      }
+    } catch (e) {
+      if (mounted) {
+        messenger.hideCurrentSnackBar();
+        messenger.showSnackBar(SnackBar(
+          content: Text('Ошибка: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ));
+      }
+    }
+  }
+
+  void _showOsagoConfirmation() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: EdgeInsets.fromLTRB(
+          24, 24, 24, 24 + MediaQuery.of(ctx).padding.bottom,
+        ),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                const Text(
-                  'Изменить статус',
-                  style: AppTheme.listTitle,
-                  textAlign: TextAlign.center,
+                const Expanded(
+                  child: Text(
+                    'Компенсация ОСАГО',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                  ),
                 ),
-                const SizedBox(height: 16),
-                ...VehicleStatus.values.map(
-                  (status) => ListTile(
-                    title: Text(_getStatusName(status)),
+                GestureDetector(
+                  onTap: () => Navigator.pop(ctx),
+                  child: const Icon(Icons.close, size: 24, color: AppTheme.textSecondary),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'После включения опции парк будет компенсировать исполнителю стоимость подневного полиса ОСАГО, который тот купит через Про',
+              style: TextStyle(fontSize: 15, color: AppTheme.textPrimary, height: 1.45),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: _actionConfirmButton(
+                    label: 'Включить',
+                    yellow: true,
                     onTap: () async {
-                      Navigator.pop(context);
-
-                      // Сохраняем ScaffoldMessenger до async операции
-                      final messenger = ScaffoldMessenger.of(context);
-
-                      // Показываем индикатор загрузки
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Обновление статуса ${_selectedVehicles.length} автомобилей...',
-                          ),
-                          duration: const Duration(seconds: 30),
-                        ),
-                      );
-
-                      try {
-                        final service = ref.read(vehiclesServiceProvider);
-                        await service.updateVehiclesStatus(
-                          _selectedVehicles.toList(),
-                          status,
-                        );
-
-                        // Обновляем список автомобилей
-                        ref.invalidate(vehiclesProvider);
-
-                        if (mounted) {
-                          messenger.hideCurrentSnackBar();
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Статус "${_getStatusName(status)}" применен к ${_selectedVehicles.length} автомобилям',
-                              ),
-                              backgroundColor: Colors.green,
-                              duration: const Duration(seconds: 3),
-                            ),
-                          );
-                          _toggleSelectionMode();
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          messenger.hideCurrentSnackBar();
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Ошибка: ${e.toString().replaceAll('Exception: ', '')}',
-                              ),
-                              backgroundColor: Colors.red,
-                              duration: const Duration(seconds: 5),
-                            ),
-                          );
-                        }
-                      }
+                      Navigator.pop(ctx);
+                      await _doOsagoAction(true);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _actionConfirmButton(
+                    label: 'Выключить',
+                    yellow: false,
+                    onTap: () async {
+                      Navigator.pop(ctx);
+                      await _doOsagoAction(false);
                     },
                   ),
                 ),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _actionConfirmButton({
+    required String label,
+    required bool yellow,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: yellow ? AppTheme.buttonColor : const Color(0xFFF2F2F2),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: yellow ? Colors.black : AppTheme.textPrimary,
           ),
-        );
-      },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _doOsagoAction(bool enable) async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(SnackBar(
+      content: Text(
+        '${enable ? "Включение" : "Выключение"} ОСАГО для ${_selectedVehicles.length} авто...',
+      ),
+      duration: const Duration(seconds: 30),
+    ));
+    try {
+      final service = ref.read(vehiclesServiceProvider);
+      await service.updateOsagoCompensation(_selectedVehicles.toList(), enable);
+      if (mounted) {
+        messenger.hideCurrentSnackBar();
+        messenger.showSnackBar(SnackBar(
+          content: Text(
+            'Компенсация ОСАГО ${enable ? "включена" : "выключена"} для ${_selectedVehicles.length} авто',
+          ),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 3),
+        ));
+        _toggleSelectionMode();
+      }
+    } catch (e) {
+      if (mounted) {
+        messenger.hideCurrentSnackBar();
+        messenger.showSnackBar(SnackBar(
+          content: Text('Ошибка: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ));
+      }
+    }
+  }
+
+  Future<void> _showAddressSelector() async {
+    final offices = ref.read(officeAddressesProvider).value ?? [];
+    if (offices.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Адреса не загружены')),
+      );
+      return;
+    }
+
+    final items = offices
+        .map((o) => o['address'] as String? ?? o['office_id'] as String? ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList();
+
+    await CustomSelectorBottomSheet.show(
+      context: context,
+      title: 'Выбрать адрес',
+      items: items,
+      showSearch: items.length > 5,
+    );
+  }
+
+  Widget _buildFilterPill(String label, VoidCallback onClear) {
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFDDDDDD)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary)),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: onClear,
+            child: const Icon(Icons.close, size: 14, color: AppTheme.textSecondary),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Preload office addresses while screen is open
+    ref.watch(officeAddressesProvider);
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
@@ -278,18 +419,29 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
                 ),
               ),
             ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 4),
 
           // Список автомобилей
           Expanded(
             child: Stack(
               children: [
-                ref
+                RefreshIndicator(
+                    color: AppTheme.primaryColor,
+                    onRefresh: () async {
+                      ref.invalidate(vehiclesProvider);
+                      await ref.read(vehiclesProvider.future);
+                    },
+                    child: ref
                     .watch(vehiclesProvider)
                     .when(
                       data: (vehicles) {
                         if (vehicles.isEmpty) {
-                          return const Center(child: Text('Ничего не найдено'));
+                          return ListView(
+                            padding: const EdgeInsets.all(16),
+                            children: const [
+                              Center(child: Text('Ничего не найдено')),
+                            ],
+                          );
                         }
                         return ListView.builder(
                           padding: EdgeInsets.only(
@@ -309,6 +461,10 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
                               ),
                               onSelect: (val) =>
                                   _onVehicleSelect(vehicle.id, val),
+                              onLongPress: () {
+                                if (!_isSelectionMode) _toggleSelectionMode();
+                                _onVehicleSelect(vehicle.id, true);
+                              },
                               onTap: () {
                                 if (_isSelectionMode) {
                                   _onVehicleSelect(
@@ -333,79 +489,67 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
                       error: (err, stack) =>
                           Center(child: Text('Ошибка: $err')),
                     ),
+                ),
 
                 // Всплывающая панель при выделении
                 if (_isSelectionMode)
                   Positioned(
-                    left: 16,
-                    right: 16,
-                    bottom: 16,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
                     child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
+                      padding: EdgeInsets.fromLTRB(
+                        16, 14, 16, 14 + MediaQuery.of(context).padding.bottom,
+                      ),
+                      decoration: const BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.15),
-                            blurRadius: 15,
-                            offset: const Offset(0, 5),
+                            color: Color(0x1A000000),
+                            blurRadius: 16,
+                            offset: Offset(0, -4),
                           ),
                         ],
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${_selectedVehicles.length} выбранных автомобиля',
-                            style: AppTheme.listTitle,
+                            '${_selectedVehicles.length} авто выбрано',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.textSecondary,
+                            ),
                           ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Некоторые действия недоступны, так как они применимы только для парковых автомобилей',
-                            style: AppTheme.captionSecondary,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
+                          const SizedBox(height: 10),
+                          IntrinsicHeight(
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppTheme.primaryColor,
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
+                                Expanded(
+                                  child: _selectionChipButton(
+                                    label: 'Статус',
+                                    enabled: _selectedVehicles.isNotEmpty,
+                                    onTap: _selectedVehicles.isEmpty ? null : _showStatusUpdateDialog,
                                   ),
-                                  onPressed: _selectedVehicles.isEmpty
-                                      ? null
-                                      : _showStatusUpdateDialog,
-                                  child: const Text('Статус'),
                                 ),
                                 const SizedBox(width: 8),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppTheme.controlsColor,
-                                    foregroundColor: AppTheme.textPrimary,
-                                    elevation: 0,
+                                Expanded(
+                                  child: _selectionChipButton(
+                                    label: 'Компенсация ОСАГО',
+                                    enabled: _selectedVehicles.isNotEmpty,
+                                    onTap: _selectedVehicles.isEmpty ? null : _showOsagoConfirmation,
                                   ),
-                                  onPressed: _selectedVehicles.isEmpty
-                                      ? null
-                                      : () {},
-                                  child: const Text('Адрес'),
                                 ),
                                 const SizedBox(width: 8),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppTheme.controlsColor,
-                                    foregroundColor: AppTheme.textPrimary,
-                                    elevation: 0,
+                                Expanded(
+                                  child: _selectionChipButton(
+                                    label: 'Адрес',
+                                    enabled: _selectedVehicles.isNotEmpty,
+                                    onTap: _selectedVehicles.isEmpty ? null : _showAddressSelector,
                                   ),
-                                  onPressed: _selectedVehicles.isEmpty
-                                      ? null
-                                      : () {},
-                                  child: const Text('Условия аренды'),
                                 ),
                               ],
                             ),
@@ -422,126 +566,94 @@ class _VehiclesScreenState extends ConsumerState<VehiclesScreen> {
     );
   }
 
+  Widget _selectionChipButton({
+    required String label,
+    required bool enabled,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: enabled ? const Color(0xFFF2F2F2) : const Color(0xFFF7F7F7),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: enabled ? const Color(0xFFDDDDDD) : const Color(0xFFEEEEEE),
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: enabled ? AppTheme.textPrimary : AppTheme.textSecondary,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+  }
+
   List<Widget> _buildActiveFilterChips() {
     final filter = ref.watch(vehiclesFilterProvider);
     final categoryNames = ref.watch(carCategoriesProvider).value ?? {};
     final chips = <Widget>[];
 
+    void add(String label, VoidCallback onClear) {
+      chips.add(_buildFilterPill(label, onClear));
+      chips.add(const SizedBox(width: 8));
+    }
+
     if (filter.searchQuery != null && filter.searchQuery!.isNotEmpty) {
-      chips.add(CustomFilterChip(
-        label: '"${filter.searchQuery}"',
-        isSelected: true,
-        onTap: () {
-          _searchController.clear();
-          ref.read(vehiclesFilterProvider.notifier).updateSearch('');
-        },
-      ));
-      chips.add(const SizedBox(width: 8));
+      add('"${filter.searchQuery}"', () {
+        _searchController.clear();
+        ref.read(vehiclesFilterProvider.notifier).updateSearch('');
+      });
     }
-
     if (filter.types != null && filter.types!.isNotEmpty) {
-      chips.add(CustomFilterChip(
-        label: 'Тип ТС: ${filter.types!.length}',
-        isSelected: true,
-        onTap: () {
-          ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(types: []));
-        },
-      ));
-      chips.add(const SizedBox(width: 8));
+      add('Тип ТС: ${filter.types!.length}',
+          () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(types: [])));
     }
-    
     if (filter.owners != null && filter.owners!.isNotEmpty) {
-      chips.add(CustomFilterChip(
-        label: 'Владелец: ${filter.owners!.length}',
-        isSelected: true,
-        onTap: () {
-          ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(owners: []));
-        },
-      ));
-      chips.add(const SizedBox(width: 8));
+      add('Владелец: ${filter.owners!.length}',
+          () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(owners: [])));
     }
-
     if (filter.usageRights != null && filter.usageRights!.isNotEmpty) {
-      chips.add(CustomFilterChip(
-        label: 'Право: ${filter.usageRights!.length}',
-        isSelected: true,
-        onTap: () {
-          ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(usageRights: []));
-        },
-      ));
-      chips.add(const SizedBox(width: 8));
+      add('Право: ${filter.usageRights!.length}',
+          () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(usageRights: [])));
     }
-
     if (filter.statuses != null && filter.statuses!.isNotEmpty) {
-      chips.add(CustomFilterChip(
-        label: 'Статус: ${filter.statuses!.length}',
-        isSelected: true,
-        onTap: () {
-          ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(statuses: []));
-        },
-      ));
-      chips.add(const SizedBox(width: 8));
+      add('Статус: ${filter.statuses!.length}',
+          () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(statuses: [])));
     }
-
     if (filter.categories != null && filter.categories!.isNotEmpty) {
       final names = filter.categories!.map((c) => categoryNames[c.id] ?? c.name).join(', ');
-      chips.add(CustomFilterChip(
-        label: names,
-        isSelected: true,
-        onTap: () {
-          ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(categories: []));
-        },
-      ));
-      chips.add(const SizedBox(width: 8));
+      add(names,
+          () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(categories: [])));
     }
-
     if (filter.branding != null) {
-      final label = filter.branding == VehicleBrandingFilter.confirmed ? 'Брендинг подтверждён' : 'Без брендинга';
-      chips.add(CustomFilterChip(
-        label: label,
-        isSelected: true,
-        onTap: () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(clearBranding: true)),
-      ));
-      chips.add(const SizedBox(width: 8));
+      add(filter.branding == VehicleBrandingFilter.confirmed ? 'Брендинг подтверждён' : 'Без брендинга',
+          () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(clearBranding: true)));
     }
-
     if (filter.osago != null) {
-      final label = filter.osago == VehicleOsagoFilter.restricted ? 'Ограничить без ОСАГО' : 'Без ограничений (ОСАГО)';
-      chips.add(CustomFilterChip(
-        label: label,
-        isSelected: true,
-        onTap: () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(clearOsago: true)),
-      ));
-      chips.add(const SizedBox(width: 8));
+      add(filter.osago == VehicleOsagoFilter.restricted ? 'Ограничить без ОСАГО' : 'Без ограничений (ОСАГО)',
+          () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(clearOsago: true)));
     }
-
     if (filter.osagoCompensation != null) {
-      final label = filter.osagoCompensation == VehicleOsagoCompensationFilter.compensate ? 'Компенсировать ОСАГО' : 'Без компенсаций';
-      chips.add(CustomFilterChip(
-        label: label,
-        isSelected: true,
-        onTap: () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(clearOsagoCompensation: true)),
-      ));
-      chips.add(const SizedBox(width: 8));
+      add(filter.osagoCompensation == VehicleOsagoCompensationFilter.compensate ? 'Компенсировать ОСАГО' : 'Без компенсаций',
+          () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(clearOsagoCompensation: true)));
     }
-
     if (filter.otherParks != null) {
-      final label = filter.otherParks == VehicleOtherParksFilter.restricted ? 'Ограничить другие парки' : 'Без ограничений (парки)';
-      chips.add(CustomFilterChip(
-        label: label,
-        isSelected: true,
-        onTap: () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(clearOtherParks: true)),
-      ));
-      chips.add(const SizedBox(width: 8));
+      add(filter.otherParks == VehicleOtherParksFilter.restricted ? 'Ограничить другие парки' : 'Без ограничений (парки)',
+          () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(clearOtherParks: true)));
     }
-
     if (filter.archived == true) {
-      chips.add(CustomFilterChip(
-        label: 'Архив',
-        isSelected: true,
-        onTap: () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(clearArchived: true)),
-      ));
-      chips.add(const SizedBox(width: 8));
+      add('Архив',
+          () => ref.read(vehiclesFilterProvider.notifier).updateFilter(filter.copyWith(clearArchived: true)));
     }
 
     return chips;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile/app/theme.dart';
 import 'package:mobile/features/fleet/domain/traffic_fine.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -30,8 +31,8 @@ class FineDetailBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.75,
-      minChildSize: 0.4,
+      initialChildSize: 0.9,
+      minChildSize: 0.5,
       maxChildSize: 0.95,
       expand: false,
       builder: (context, scrollController) {
@@ -55,168 +56,178 @@ class FineDetailBottomSheet extends StatelessWidget {
 
               return SingleChildScrollView(
                 controller: scrollController,
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Handle
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Title
-                    const Text(
-                      'Штраф',
-                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, height: 1.1),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Amount
-                    Text(
-                      formatMoney(fd.payment),
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w700,
-                        height: 1.1,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // UIN
-                    _DetailRow(label: 'Постановление (УИН)', value: fd.uin),
-
-                    // Article
-                    if (fd.article != null)
-                      _DetailRow(label: 'Вид', value: fd.article!),
-
-                    // Status + Payment button
-                    const SizedBox(height: 12),
+                    // Header
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const SizedBox(
-                          width: 140,
-                          child: Text(
-                            'Статус оплаты',
-                            style: TextStyle(fontSize: 14, color: AppTheme.textSecondary, height: 1.3),
+                        const Text(
+                          'Штраф',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            height: 1.1,
                           ),
                         ),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                fd.statusDisplayName,
-                                style: const TextStyle(fontSize: 14, height: 1.3),
-                              ),
-                              if (fd.paymentLink != null) ...[
-                                const SizedBox(height: 8),
-                                GestureDetector(
-                                  onTap: () async {
-                                    final url = Uri.parse(fd.paymentLink!);
-                                    if (await canLaunchUrl(url)) {
-                                      await launchUrl(url, mode: LaunchMode.externalApplication);
-                                    }
-                                  },
-                                  child: Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.buttonColor,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          'Оплатить через ЮMoney',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                        SizedBox(width: 6),
-                                        Icon(
-                                          Icons.arrow_forward,
-                                          size: 18,
-                                          color: Colors.black,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: const Icon(Icons.close, size: 28),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 24),
 
-                    const SizedBox(height: 16),
-                    const Divider(height: 1),
-                    const SizedBox(height: 16),
+                    // Amount
+                    _DetailItem(
+                      label: 'Сумма',
+                      value: formatMoney(fd.payment),
+                    ),
+
+                    // UIN
+                    _DetailItem(
+                      label: 'Постановление (УИН)',
+                      value: fd.uin,
+                      trailing: GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(ClipboardData(text: fd.uin));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('УИН скопирован')),
+                          );
+                        },
+                        child: const Icon(Icons.copy_outlined, size: 20, color: Colors.black),
+                      ),
+                    ),
+
+                    // Article
+                    if (fd.article != null)
+                      _DetailItem(
+                        label: 'Вид',
+                        value: fd.article!,
+                        valueMaxLines: 3,
+                      ),
+
+                    // Status / Payment button
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 6),
+                      child: Text(
+                        'Статус оплаты',
+                        style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.3),
+                      ),
+                    ),
+                    if (fd.paymentLink != null)
+                      GestureDetector(
+                        onTap: () async {
+                          final url = Uri.parse(fd.paymentLink!);
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFD400), // Яндекс Деньги / ЮMoney yellow
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Оплатить через ЮMoney',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Icon(Icons.open_in_new, size: 18, color: Colors.black),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      Text(
+                        fd.statusDisplayName,
+                        style: const TextStyle(fontSize: 16, color: Colors.black, height: 1.3),
+                      ),
+
+                    const SizedBox(height: 24),
+                    const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                    const SizedBox(height: 24),
 
                     // Vehicle
                     if (detail.vehicle != null)
-                      _InfoRow(
-                        icon: Icons.directions_car_outlined,
-                        label: detail.vehicle!.displayName,
-                        sublabel: detail.vehicle!.licensePlate,
+                      _NavigationItem(
+                        label: 'Автомобиль',
+                        title: detail.vehicle!.brand,
+                        subtitle: detail.vehicle!.model,
                       ),
 
                     // Driver
-                    _InfoRow(
-                      icon: Icons.person_outline,
-                      label: detail.contractor.displayName,
-                      sublabel: detail.contractor.name ?? 'Водитель',
+                    _NavigationItem(
+                      label: 'Водитель',
+                      title: detail.contractor.displayName,
                     ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 16),
 
                     // Action buttons
                     _ActionButton(
                       label: 'Провести списание с баланса водителя',
                       onTap: () {},
                     ),
-                    const SizedBox(height: 8),
-                    _ActionButton(
-                      label: 'Назначить исполнителя',
-                      onTap: () {},
-                    ),
-                    const SizedBox(height: 8),
-                    _ActionButton(
-                      label: 'Удалить водителя',
-                      onTap: () {},
-                      isDestructive: true,
+                    const SizedBox(height: 12),
+                    IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: _ActionButton(
+                              label: 'Назначить исполнителя',
+                              onTap: () {},
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _ActionButton(
+                              label: 'Удалить водителя',
+                              onTap: () {},
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
 
-                    const SizedBox(height: 20),
-                    const Divider(height: 1),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
+                    const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                    const SizedBox(height: 24),
 
                     // Dates & location
-                    _DetailRow(
+                    _DetailItem(
                       label: 'Дата и время нарушения',
                       value: _formatDateTime(fd.offenseAt),
                     ),
-                    _DetailRow(
+                    _DetailItem(
                       label: 'Дата и время постановления',
                       value: _formatDateTime(fd.issuedAt),
                     ),
                     if (fd.offenseAddress != null)
-                      _DetailRow(label: 'Место', value: fd.offenseAddress!),
+                      _DetailItem(
+                        label: 'Место',
+                        value: fd.offenseAddress!,
+                        valueMaxLines: 4,
+                      ),
                     if (fd.issuedBy != null)
-                      _DetailRow(label: 'Орган власти', value: fd.issuedBy!),
+                      _DetailItem(
+                        label: 'Орган власти',
+                        value: fd.issuedBy!,
+                        valueMaxLines: 3,
+                      ),
                   ],
                 ),
               );
@@ -228,31 +239,46 @@ class FineDetailBottomSheet extends StatelessWidget {
   }
 }
 
-class _DetailRow extends StatelessWidget {
+class _DetailItem extends StatelessWidget {
   final String label;
   final String value;
+  final Widget? trailing;
+  final int valueMaxLines;
 
-  const _DetailRow({required this.label, required this.value});
+  const _DetailItem({
+    required this.label,
+    required this.value,
+    this.trailing,
+    this.valueMaxLines = 1,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 140,
-            child: Text(
-              label,
-              style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary, height: 1.3),
-            ),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.3),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 14, height: 1.3),
-            ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  value,
+                  style: const TextStyle(fontSize: 16, color: Colors.black, height: 1.3),
+                  maxLines: valueMaxLines,
+                  overflow: valueMaxLines == 1 ? TextOverflow.ellipsis : null,
+                ),
+              ),
+              if (trailing != null) ...[
+                const SizedBox(width: 8),
+                trailing!,
+              ],
+            ],
           ),
         ],
       ),
@@ -260,40 +286,48 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
+class _NavigationItem extends StatelessWidget {
   final String label;
-  final String? sublabel;
+  final String title;
+  final String? subtitle;
 
-  const _InfoRow({
-    required this.icon,
+  const _NavigationItem({
     required this.label,
-    this.sublabel,
+    required this.title,
+    this.subtitle,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: AppTheme.textSecondary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                ),
-                if (sublabel != null)
-                  Text(
-                    sublabel!,
-                    style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.3),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Expanded(
+                child: RichText(
+                  text: TextSpan(
+                    style: const TextStyle(fontSize: 16, color: Colors.black, height: 1.3, fontFamily: 'Roboto'), // or your default font
+                    children: [
+                      TextSpan(text: title),
+                      if (subtitle != null && subtitle!.isNotEmpty)
+                        TextSpan(
+                          text: ' $subtitle',
+                          style: const TextStyle(color: AppTheme.textSecondary),
+                        ),
+                    ],
                   ),
-              ],
-            ),
+                ),
+              ),
+              const Icon(Icons.chevron_right, size: 24, color: Colors.black54),
+            ],
           ),
         ],
       ),
@@ -304,12 +338,10 @@ class _InfoRow extends StatelessWidget {
 class _ActionButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
-  final bool isDestructive;
 
   const _ActionButton({
     required this.label,
     required this.onTap,
-    this.isDestructive = false,
   });
 
   @override
@@ -321,20 +353,19 @@ class _ActionButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
           decoration: BoxDecoration(
-            border: Border.all(
-              color: isDestructive ? Colors.red.shade200 : Colors.grey.shade300,
-            ),
+            color: const Color(0xFFF2F2F2),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             label,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: isDestructive ? Colors.red.shade700 : AppTheme.textPrimary,
+              fontWeight: FontWeight.w400,
+              color: Colors.black,
+              height: 1.2,
             ),
           ),
         ),

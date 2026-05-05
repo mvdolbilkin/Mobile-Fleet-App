@@ -340,68 +340,49 @@ class VehiclesService {
     List<String> vehicleIds,
     VehicleStatus status,
   ) async {
-    try {
-      final parkId = await _secureStorage.getParkId();
-      if (parkId == null || parkId.isEmpty) {
-        throw Exception('Park ID is not available. Please login again.');
-      }
+    String apiStatus;
+    switch (status) {
+      case VehicleStatus.working:
+        apiStatus = 'working';
+        break;
+      case VehicleStatus.notWorking:
+        apiStatus = 'not_working';
+        break;
+      case VehicleStatus.service:
+        apiStatus = 'repairing';
+        break;
+      case VehicleStatus.noDriver:
+        apiStatus = 'no_driver';
+        break;
+      case VehicleStatus.preparation:
+        apiStatus = 'pending';
+        break;
+      case VehicleStatus.other:
+        apiStatus = 'unknown';
+        break;
+    }
 
-      // Преобразуем статус в формат API
-      String apiStatus;
-      switch (status) {
-        case VehicleStatus.working:
-          apiStatus = 'working';
-          break;
-        case VehicleStatus.notWorking:
-          apiStatus = 'not_working';
-          break;
-        case VehicleStatus.service:
-          apiStatus = 'repairing';
-          break;
-        case VehicleStatus.noDriver:
-          apiStatus = 'no_driver';
-          break;
-        case VehicleStatus.preparation:
-          apiStatus = 'pending';
-          break;
-        case VehicleStatus.other:
-          apiStatus = 'unknown';
-          break;
-      }
-
-      // Формируем payload для нового API fleet-operations/vehicle-status
-      final Map<String, dynamic> payload = {
-        'filters': {
-          'car': {
-            'status': <String>[],
-            'categories': <String>[],
-            'owner': 'park',
-            'car_ids': vehicleIds,
-          },
-        },
-        'action': {'status': apiStatus},
-      };
-
-      await _dio.post('/api/vehicles/status', data: payload);
-    } on DioException catch (e) {
-      print('DioException updating vehicles status:');
-      print('Status code: ${e.response?.statusCode}');
-      print('Response data: ${e.response?.data}');
-
-      if (e.response?.data != null) {
-        final errorData = e.response!.data;
+    final errors = <String>[];
+    for (final id in vehicleIds) {
+      try {
+        await _dio.post(
+          '/api/vehicles/vehicle-status',
+          queryParameters: {'vehicle_id': id},
+          data: {'status': apiStatus},
+        );
+      } on DioException catch (e) {
+        final errorData = e.response?.data;
         if (errorData is Map) {
-          final code = errorData['code'] as String?;
-          final message = errorData['message'] as String?;
-          final userMessage = _getErrorMessage(code, message);
-          throw Exception(userMessage);
+          final msg = errorData['message'] as String?;
+          errors.add(msg ?? 'Ошибка для $id');
+        } else {
+          errors.add('Ошибка для $id: ${e.message}');
         }
       }
+    }
 
-      throw Exception('Не удалось обновить статус автомобилей: ${e.message}');
-    } catch (e) {
-      print('Error updating vehicles status: $e');
-      throw e;
+    if (errors.isNotEmpty) {
+      throw Exception(errors.join('\n'));
     }
   }
 
@@ -626,6 +607,50 @@ class VehiclesService {
     } catch (e) {
       print('Error fetching references: $e');
       throw e;
+    }
+  }
+
+  Future<void> updateOsagoCompensation(
+    List<String> vehicleIds,
+    bool enable,
+  ) async {
+    try {
+      await _dio.post(
+        '/api/vehicles/osago-compensation',
+        data: {
+          'filters': {
+            'car': {
+              'status': <String>[],
+              'categories': <String>[],
+              'owner': 'park',
+              'car_ids': vehicleIds,
+            },
+          },
+          'action': {'park_osago_compensation': enable},
+        },
+      );
+    } on DioException catch (e) {
+      if (e.response?.data != null) {
+        final errorData = e.response!.data;
+        if (errorData is Map) {
+          final message = errorData['message'] as String?;
+          throw Exception(message ?? 'Ошибка обновления компенсации ОСАГО');
+        }
+      }
+      throw Exception('Не удалось обновить компенсацию ОСАГО: ${e.message}');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getOfficeAddresses() async {
+    try {
+      final response = await _dio.post('/api/vehicles/office-addresses', data: {});
+      if (response.statusCode == 200 && response.data != null) {
+        final offices = response.data['offices'] as List<dynamic>? ?? [];
+        return offices.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      return [];
     }
   }
 

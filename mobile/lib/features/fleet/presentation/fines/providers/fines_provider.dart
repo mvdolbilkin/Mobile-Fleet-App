@@ -14,12 +14,24 @@ final finesTotalProvider = FutureProvider<TrafficFinesTotal>((ref) async {
   return service.getTotal();
 });
 
+final finesSuggestCarsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  return ref.read(finesServiceProvider).getSuggestCars();
+});
+
+final finesSuggestDriversProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  return ref.read(finesServiceProvider).getSuggestDrivers();
+});
+
 class FinesFilter {
   final FineStatusFilter statusFilter;
   final String searchQuery;
   final DateTime? dateFrom;
   final DateTime? dateTo;
   final String? carId;
+  final String? driverId;
+  final List<String>? contractorPaymentStatuses;
+  final List<String>? contractorAssignmentStatuses;
+  final bool? wasLoadedBankClient;
 
   const FinesFilter({
     this.statusFilter = FineStatusFilter.all,
@@ -27,7 +39,19 @@ class FinesFilter {
     this.dateFrom,
     this.dateTo,
     this.carId,
+    this.driverId,
+    this.contractorPaymentStatuses,
+    this.contractorAssignmentStatuses,
+    this.wasLoadedBankClient,
   });
+
+  bool get hasAdvancedFilters =>
+      carId != null ||
+      driverId != null ||
+      dateFrom != null ||
+      (contractorPaymentStatuses?.isNotEmpty ?? false) ||
+      (contractorAssignmentStatuses?.isNotEmpty ?? false) ||
+      wasLoadedBankClient != null;
 
   FinesFilter copyWith({
     FineStatusFilter? statusFilter,
@@ -35,8 +59,16 @@ class FinesFilter {
     DateTime? dateFrom,
     DateTime? dateTo,
     String? carId,
+    String? driverId,
+    List<String>? contractorPaymentStatuses,
+    List<String>? contractorAssignmentStatuses,
+    bool? wasLoadedBankClient,
     bool clearDates = false,
     bool clearCarId = false,
+    bool clearDriverId = false,
+    bool clearPaymentStatuses = false,
+    bool clearAssignmentStatuses = false,
+    bool clearBankClient = false,
   }) {
     return FinesFilter(
       statusFilter: statusFilter ?? this.statusFilter,
@@ -44,6 +76,10 @@ class FinesFilter {
       dateFrom: clearDates ? null : (dateFrom ?? this.dateFrom),
       dateTo: clearDates ? null : (dateTo ?? this.dateTo),
       carId: clearCarId ? null : (carId ?? this.carId),
+      driverId: clearDriverId ? null : (driverId ?? this.driverId),
+      contractorPaymentStatuses: clearPaymentStatuses ? null : (contractorPaymentStatuses ?? this.contractorPaymentStatuses),
+      contractorAssignmentStatuses: clearAssignmentStatuses ? null : (contractorAssignmentStatuses ?? this.contractorAssignmentStatuses),
+      wasLoadedBankClient: clearBankClient ? null : (wasLoadedBankClient ?? this.wasLoadedBankClient),
     );
   }
 }
@@ -72,7 +108,11 @@ class FinesNotifier extends Notifier<FinesState> {
         dateFrom: _filter.dateFrom,
         dateTo: _filter.dateTo,
         carId: _filter.carId,
+        driverId: _filter.driverId,
         fineUin: _filter.searchQuery.isNotEmpty ? _filter.searchQuery : null,
+        contractorPaymentStatuses: _filter.contractorPaymentStatuses,
+        contractorAssignmentStatuses: _filter.contractorAssignmentStatuses,
+        wasLoadedBankClient: _filter.wasLoadedBankClient,
         cursor: cursor,
         logger: logger,
       );
@@ -148,6 +188,16 @@ class FinesNotifier extends Notifier<FinesState> {
 
   void setDateRange(DateTime? from, DateTime? to) {
     _filter = _filter.copyWith(dateFrom: from, dateTo: to, clearDates: from == null);
+    _loadFines();
+  }
+
+  void applyAdvancedFilter(FinesFilter newFilter) {
+    _filter = newFilter;
+    _loadFines();
+  }
+
+  void resetAdvancedFilters() {
+    _filter = FinesFilter(statusFilter: _filter.statusFilter, searchQuery: _filter.searchQuery);
     _loadFines();
   }
 
