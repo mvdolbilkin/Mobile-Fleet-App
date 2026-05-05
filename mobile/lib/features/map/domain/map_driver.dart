@@ -435,3 +435,54 @@ class MapCombinedData {
     }).toList();
   }
 }
+
+// ─── Surge ───────────────────────────────────────────────────────────────────
+
+class SurgeFeature {
+  final double lat;
+  final double lon;
+  final double surge;
+  final double surgeRaw;
+
+  const SurgeFeature({
+    required this.lat,
+    required this.lon,
+    required this.surge,
+    required this.surgeRaw,
+  });
+
+  factory SurgeFeature.fromJson(Map<String, dynamic> json) {
+    final coords = json['coordinates'] as List<dynamic>;
+    return SurgeFeature(
+      lon: (coords[0] as num).toDouble(),
+      lat: (coords[1] as num).toDouble(),
+      surge: (json['surge'] as num).toDouble(),
+      surgeRaw: (json['surge_raw'] as num? ?? 1.0).toDouble(),
+    );
+  }
+}
+
+class SurgeResponse {
+  final double legendMin;
+  final double legendMax;
+  final String legend;
+  final List<SurgeFeature> features;
+
+  const SurgeResponse({
+    required this.legendMin,
+    required this.legendMax,
+    required this.legend,
+    required this.features,
+  });
+
+  factory SurgeResponse.fromJson(Map<String, dynamic> json) {
+    return SurgeResponse(
+      legendMin: (json['legend_min'] as num).toDouble(),
+      legendMax: (json['legend_max'] as num).toDouble(),
+      legend: json['legend'] as String,
+      features: (json['surge_features'] as List<dynamic>? ?? [])
+          .map((e) => SurgeFeature.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}

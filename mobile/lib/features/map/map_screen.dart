@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
 
@@ -32,6 +33,13 @@ class _MapScreenState extends ConsumerState<MapScreen>
   final List<yandex.MapObjectTapListener> _listeners = [];
   final Map<String, yandex_img.ImageProvider> _statusIcons = {};
   String? _selectedDriverId;
+  bool _surgeActive = false;
+  bool _surgeLoading = false;
+  SurgeResponse? _surgeData;
+  yandex.MapObjectCollection? _surgeCollection;
+  final List<yandex.MapObjectTapListener> _surgeListeners = [];
+  double? _surgePopupValue;
+  Timer? _surgePopupTimer;
 
   @override
   void initState() {
@@ -187,6 +195,87 @@ class _MapScreenState extends ConsumerState<MapScreen>
     _updateMarkerVisibility();
   }
 
+  Future<void> _toggleSurge() async {
+    if (_surgeActive) {
+      setState(() {
+        _surgeActive = false;
+        _surgeData = null;
+      });
+      _surgeCollection?.clear();
+      _surgeListeners.clear();
+      return;
+    }
+    final center = _mapWindow?.map.cameraPosition.target;
+    if (center == null) return;
+    setState(() => _surgeLoading = true);
+    try {
+      final repo = ref.read(mapRepositoryProvider);
+      final surge = await repo.fetchSurge(center.latitude, center.longitude);
+      if (!mounted) return;
+      setState(() {
+        _surgeLoading = false;
+        _surgeActive = true;
+        _surgeData = surge;
+      });
+      _drawSurgeHexagons(surge);
+    } catch (_) {
+      if (mounted) setState(() => _surgeLoading = false);
+    }
+  }
+
+  void _showSurgePopup(double value) {
+    _surgePopupTimer?.cancel();
+    setState(() => _surgePopupValue = value);
+    _surgePopupTimer = Timer(const Duration(milliseconds: 2500), () {
+      if (mounted) setState(() => _surgePopupValue = null);
+    });
+  }
+
+  void _drawSurgeHexagons(SurgeResponse data) {
+    _surgeCollection?.clear();
+    if (_surgeCollection == null) return;
+    const hexRadius = 0.0021;
+    const surgeColor = Color(0xFF9B30D0);
+    if (data.features.isEmpty) return;
+    final actualMin =
+        data.features.map((f) => f.surgeRaw).reduce((a, b) => a < b ? a : b);
+    final actualMax =
+        data.features.map((f) => f.surgeRaw).reduce((a, b) => a > b ? a : b);
+    final actualRange = actualMax - actualMin;
+
+    for (final f in data.features) {
+      final t = actualRange > 0
+          ? ((f.surgeRaw - actualMin) / actualRange).clamp(0.0, 1.0)
+          : 0.5;
+      final opacity = 0.04 + 0.81 * pow(t, 2);
+      final vertices = _hexagonVertices(f.lat, f.lon, hexRadius);
+      final polygon = _surgeCollection!.addPolygon(
+        yandex.Polygon(yandex.LinearRing(vertices), const []),
+      );
+      polygon.fillColor = surgeColor.withOpacity(opacity);
+      polygon.strokeColor = Colors.white.withOpacity(0.25);
+      polygon.strokeWidth = 1.0;
+      final surgeRaw = f.surgeRaw;
+      final listener = _SurgeTapListener(
+        surgeRaw: surgeRaw,
+        onTap: () => _showSurgePopup(surgeRaw),
+      );
+      _surgeListeners.add(listener);
+      polygon.addTapListener(listener);
+    }
+  }
+
+  List<yandex.Point> _hexagonVertices(double lat, double lon, double r) {
+    final lonScale = cos(lat * pi / 180);
+    return List.generate(6, (i) {
+      final angle = i * 60.0 * pi / 180.0;
+      return yandex.Point(
+        latitude: lat + r * sin(angle),
+        longitude: lon + (r / lonScale) * cos(angle),
+      );
+    });
+  }
+
   void _updateDriverPosition(MapCoordinates coords) {
     if (_selectedDriverId == null) return;
     final placemark = _placemarksMap[_selectedDriverId];
@@ -265,6 +354,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
           YandexMap(
             onMapCreated: (mapWindow) {
               _mapWindow = mapWindow;
+              _surgeCollection =
+                  mapWindow.map.mapObjects.addCollection();
               _mapWindow!.map.move(
                 yandex.CameraPosition(
                   const yandex.Point(
@@ -297,10 +388,56 @@ class _MapScreenState extends ConsumerState<MapScreen>
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.only(top: 60),
-                child: _MapButton(
-                  icon: HugeIcons.strokeRoundedFlash,
-                  onTap: () {},
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_surgeActive && _surgeData != null) ...
+                      [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.92),
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.10),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            'x${_surgeData!.legend}',
+                            style: const TextStyle(
+                              fontFamily: 'Yandex Sans Text',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF7B2FBE),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                    _MapButton(
+                      icon: HugeIcons.strokeRoundedFlash,
+                      onTap: () => _toggleSurge(),
+                      active: _surgeActive,
+                      loading: _surgeLoading,
+                    ),
+                  ],
                 ),
+              ),
+            ),
+          ),
+          // ─── Surge popup ──────────────────────────────────────
+          Align(
+            alignment: const Alignment(0, -0.35),
+            child: AnimatedOpacity(
+              opacity: _surgePopupValue != null ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 220),
+              child: IgnorePointer(
+                child: _SurgePopup(value: _surgePopupValue ?? 0.0),
               ),
             ),
           ),
@@ -475,43 +612,173 @@ class _Chip extends StatelessWidget {
 class _MapButton extends StatefulWidget {
   final List<List<dynamic>> icon;
   final VoidCallback? onTap;
+  final bool active;
+  final bool loading;
 
-  const _MapButton({required this.icon, this.onTap});
+  const _MapButton({
+    required this.icon,
+    this.onTap,
+    this.active = false,
+    this.loading = false,
+  });
 
   @override
   State<_MapButton> createState() => _MapButtonState();
 }
 
-class _MapButtonState extends State<_MapButton> {
+class _MapButtonState extends State<_MapButton>
+    with SingleTickerProviderStateMixin {
   bool _pressed = false;
+  late final AnimationController _pulseCtrl;
+  late final Animation<double> _pulseAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+    );
+    _pulseAnim = Tween<double>(begin: 0.30, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void didUpdateWidget(_MapButton old) {
+    super.didUpdateWidget(old);
+    if (widget.loading && !old.loading) {
+      _pulseCtrl.repeat(reverse: true);
+    } else if (!widget.loading && old.loading) {
+      _pulseCtrl.stop();
+      _pulseCtrl.value = 1.0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 80),
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(_pressed ? 0.55 : 0.90),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(_pressed ? 0.05 : 0.12),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+    return AnimatedBuilder(
+      animation: _pulseAnim,
+      builder: (context, _) {
+        return Opacity(
+          opacity: widget.loading ? _pulseAnim.value : 1.0,
+          child: GestureDetector(
+            onTap: widget.loading ? null : widget.onTap,
+            onTapDown: widget.loading ? null : (_) => setState(() => _pressed = true),
+            onTapUp: widget.loading ? null : (_) => setState(() => _pressed = false),
+            onTapCancel: widget.loading ? null : () => setState(() => _pressed = false),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 80),
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(_pressed ? 0.55 : 0.90),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(_pressed ? 0.05 : 0.12),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: HugeIcon(
+                  icon: widget.icon,
+                  size: 22,
+                  color: widget.active
+                      ? const Color(0xFF7B2FBE)
+                      : Colors.black87.withOpacity(_pressed ? 0.5 : 1.0),
+                ),
+              ),
             ),
-          ],
-        ),
-        child: Center(
-          child: HugeIcon(
-            icon: widget.icon,
-            size: 22,
-            color: Colors.black87.withOpacity(_pressed ? 0.5 : 1.0),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─── Surge popup ──────────────────────────────────────────────────────────────
+
+class _SurgePopup extends StatelessWidget {
+  final double value;
+  const _SurgePopup({required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.88),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: const Color(0xFF9B30D0).withOpacity(0.18),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF9B30D0).withOpacity(0.12),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF9B30D0).withOpacity(0.10),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: HugeIcon(
+                    icon: HugeIcons.strokeRoundedFlash,
+                    size: 20,
+                    color: Color(0xFF7B2FBE),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Коэффициент surge',
+                    style: TextStyle(
+                      fontFamily: 'Yandex Sans Text',
+                      fontSize: 12,
+                      color: Color(0xFF9E9B98),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'x${value.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontFamily: 'Yandex Sans Text',
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF7B2FBE),
+                      height: 1.1,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -532,6 +799,19 @@ class _DriverTapListener implements yandex.MapObjectTapListener {
   @override
   bool onMapObjectTap(yandex.MapObject mapObject, yandex.Point point) {
     onTap?.call();
+    return true;
+  }
+}
+
+class _SurgeTapListener implements yandex.MapObjectTapListener {
+  final double surgeRaw;
+  final VoidCallback onTap;
+
+  _SurgeTapListener({required this.surgeRaw, required this.onTap});
+
+  @override
+  bool onMapObjectTap(yandex.MapObject mapObject, yandex.Point point) {
+    onTap();
     return true;
   }
 }

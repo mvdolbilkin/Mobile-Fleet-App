@@ -134,6 +134,10 @@ func driverStatusHistoryProxy(c *gin.Context) {
 	proxyToYandex(c, url, http.MethodGet)
 }
 
+func surgeProxy(c *gin.Context) {
+	proxyToYandex(c, "https://fleet.yandex.ru/api/fleet/map/v1/surge", http.MethodPost)
+}
+
 // ─── Роутинг ─────────────────────────────────────────────────────────────────
 
 func RegisterRoutes(r *gin.Engine) {
@@ -143,5 +147,6 @@ func RegisterRoutes(r *gin.Engine) {
 		g.POST("/drivers/list", driverListProxy)
 		g.GET("/driver/item", driverItemProxy)
 		g.GET("/driver/status-history", driverStatusHistoryProxy)
+		g.POST("/surge", surgeProxy)
 	}
 }

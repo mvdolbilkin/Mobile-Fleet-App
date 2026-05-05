@@ -77,4 +77,12 @@ class MapRepository {
       response.data as Map<String, dynamic>,
     );
   }
+
+  Future<SurgeResponse> fetchSurge(double lat, double lon) async {
+    final response = await _dio.post(
+      'api/map/surge',
+      data: {'lat': lat, 'lon': lon, 'options': ['surge_raw']},
+    );
+    return SurgeResponse.fromJson(response.data as Map<String, dynamic>);
+  }
 }

@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/app/theme.dart';
+import 'package:mobile/features/staff/domain/staff.dart';
+import 'package:mobile/features/staff/staff_details_screen.dart';
 import 'package:mobile/features/map/data/map_repository.dart';
 import 'package:mobile/features/map/domain/map_driver.dart';
 
@@ -108,6 +110,40 @@ class _DriverDetailSheetState extends ConsumerState<DriverDetailSheet> {
     );
   }
 
+  Staff _toStaff(MapDriverItemDriver d) {
+    StaffStatus status;
+    switch (d.status) {
+      case 'free':
+        status = StaffStatus.free;
+        break;
+      case 'in_order':
+        status = StaffStatus.onOrder;
+        break;
+      case 'busy':
+        status = StaffStatus.busy;
+        break;
+      default:
+        status = StaffStatus.offline;
+    }
+    final parts = d.fullName.trim().split(' ').where((p) => p.isNotEmpty).toList();
+    final initials = parts.length >= 2
+        ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
+        : (parts.isNotEmpty ? parts[0][0].toUpperCase() : '?');
+    final h = d.statusDurationSeconds ~/ 3600;
+    final m = (d.statusDurationSeconds % 3600) ~/ 60;
+    final timeOnShift = h > 0 ? '${h}ч ${m}м' : '${m}м';
+    return Staff(
+      id: d.id,
+      name: d.fullName,
+      initials: initials,
+      status: status,
+      timeOnShift: timeOnShift,
+      phoneNumber: d.phone,
+      avatarUrl: d.avatarUrl ?? '',
+      balance: '${d.balance.toStringAsFixed(2)} ₽',
+    );
+  }
+
   Widget _defaultAvatar() => Container(
         width: 48,
         height: 48,
@@ -130,7 +166,7 @@ class _DriverDetailSheetState extends ConsumerState<DriverDetailSheet> {
             ),
           ),
           Positioned(
-            right: 12,
+            right: 4,
             child: GestureDetector(
               onTap: widget.onClose,
               child: Container(
@@ -168,7 +204,13 @@ class _DriverDetailSheetState extends ConsumerState<DriverDetailSheet> {
       children: [
         _buildHandleRow(),
         // ─── Карточка водителя ───────────────────────────────────────────
-        Container(
+        GestureDetector(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => StaffDetailsScreen(staff: _toStaff(driver)),
+            ),
+          ),
+          child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: AppTheme.cardColor,
@@ -261,6 +303,7 @@ class _DriverDetailSheetState extends ConsumerState<DriverDetailSheet> {
                   size: 18, color: AppTheme.textSecondary),
             ],
           ),
+        ),
         ),
         const SizedBox(height: 12),
         // ─── Кнопка заказов ──────────────────────────────────────────────
