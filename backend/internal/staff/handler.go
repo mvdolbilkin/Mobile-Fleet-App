@@ -31,11 +31,17 @@ func RegisterRoutes(r *gin.Engine) {
 		staffGroup.POST("/details", handler.GetDriverDetails)
 		staffGroup.GET("/vehicles/suggest", handler.GetVehicleSuggestions)
 		staffGroup.POST("/work-rules", handler.GetWorkRules)
+		staffGroup.POST("/driver-statuses", handler.GetDriverStatuses)
 
 		// Bulk actions
 		staffGroup.POST("/bulk/update-source", handler.BulkUpdateSource)
 		staffGroup.POST("/bulk/update-work-conditions", handler.BulkUpdateWorkConditions)
 		staffGroup.POST("/bulk/update-work-status", handler.BulkUpdateWorkStatus)
+
+		staffGroup.GET("/mailings/blanks", handler.GetMailingBlanks)
+		staffGroup.GET("/mailings/limits", handler.GetMailingLimits)
+		staffGroup.POST("/mailings", handler.SendMailing)
+		staffGroup.POST("/contractors/count", handler.GetContractorsCount)
 		staffGroup.POST("/bulk/mailing", handler.BulkMailing)
 	}
 }
@@ -347,13 +353,32 @@ func (h *Handler) BulkUpdateWorkStatus(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement actual API call to Yandex to update work status
-	// For now, return success
-	c.JSON(http.StatusOK, gin.H{
-		"success":       true,
-		"message":       "Статус работы обновлен для " + strconv.Itoa(len(req.ContractorIDs)) + " исполнителей",
-		"updated_count": len(req.ContractorIDs),
-	})
+	result, err := h.service.ApplyWorkStatus(cookieHeader, parkID, req.ContractorIDs, req.Status)
+	if err != nil {
+		fmt.Println("Error in BulkUpdateWorkStatus:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetDriverStatuses(c *gin.Context) {
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	if cookieHeader == "" && parkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
+		return
+	}
+
+	statuses, err := h.service.GetDriverStatuses(cookieHeader, parkID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, statuses)
 }
 
 func (h *Handler) BulkMailing(c *gin.Context) {
@@ -412,6 +437,70 @@ func (h *Handler) GetVehicleSuggestions(c *gin.Context) {
 	}
 
 	result, err := h.service.GetVehicleSuggestions(cookieHeader, parkID, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetMailingBlanks(c *gin.Context) {
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	result, err := h.service.GetMailingBlanks(cookieHeader, parkID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetMailingLimits(c *gin.Context) {
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	result, err := h.service.GetMailingLimits(cookieHeader, parkID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetContractorsCount(c *gin.Context) {
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	var reqBody map[string]interface{}
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверное тело запроса: " + err.Error()})
+		return
+	}
+
+	result, err := h.service.GetContractorsCount(cookieHeader, parkID, reqBody)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) SendMailing(c *gin.Context) {
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	var reqBody map[string]interface{}
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат запроса"})
+		return
+	}
+
+	result, err := h.service.SendMailing(cookieHeader, parkID, reqBody)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

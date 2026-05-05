@@ -346,6 +346,19 @@ class StaffRepository {
     }
   }
 
+  Future<List<Map<String, dynamic>>> fetchDriverStatuses() async {
+    try {
+      final response = await _dio.post('/api/staff/driver-statuses');
+      final data = response.data;
+      if (data != null && data['driver_statuses'] != null) {
+        return List<Map<String, dynamic>>.from(data['driver_statuses']);
+      }
+      return [];
+    } catch (e) {
+      throw Exception('Failed to load driver statuses: $e');
+    }
+  }
+
   Future<Map<String, dynamic>> bulkUpdateSource({
     required List<String> contractorIds,
     required String source,
@@ -417,6 +430,21 @@ class StaffRepository {
       return response.data as Map<String, dynamic>;
     } catch (e) {
       throw Exception('Failed to send mailing: $e');
+    }
+  }
+
+  Future<void> sendMailing(Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.post(
+        '/api/staff/mailings',
+        data: data,
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Failed to send mailing');
+      }
+    } catch (e) {
+      throw Exception('Ошибка при отправке рассылки: $e');
     }
   }
 }

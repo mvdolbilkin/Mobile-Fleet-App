@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	"backend/internal/session"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -312,13 +314,468 @@ func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[:len(substr)] == substr || contains(s[1:], substr)))
 }
 
+// ─── Middleware: проверка auth + получение сессии ────────────────────────────
+
+func authMiddleware(c *gin.Context) {
+	userID := c.GetHeader("X-Park-ID")
+	if userID == "" {
+		userID = c.GetHeader("x-park-id")
+	}
+	if userID == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "X-Park-ID header is required"})
+		return
+	}
+
+	store := session.GetStore()
+	userSession, exists := store.Get(userID)
+	if !exists {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Session not found. Please login again."})
+		return
+	}
+
+	c.Set("session", userSession)
+	c.Next()
+}
+
+// Получить сессию из контекста (ставится middleware)
+func getSession(c *gin.Context) *session.UserSession {
+	s, _ := c.Get("session")
+	return s.(*session.UserSession)
+}
+
+func (h *Handler) GetCarsSummary(c *gin.Context) {
+	s := getSession(c)
+
+	// Read request body
+	var reqBody struct {
+		DatePeriod struct {
+			From string `json:"from"`
+			To   string `json:"to"`
+		} `json:"date_period"`
+		Filters struct {
+			FleetCarsOnly bool `json:"fleet_cars_only"`
+		} `json:"filters"`
+	}
+	
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	// Prepare request to Yandex Fleet API
+	targetURL := "https://fleet.yandex.ru/api/fleet/fleet-reports/v1/dashboard/widget/cars/summary"
+	
+	requestBody := map[string]interface{}{
+		"date_period": map[string]string{
+			"from": reqBody.DatePeriod.From,
+			"to":   reqBody.DatePeriod.To,
+		},
+		"filters": map[string]bool{
+			"fleet_cars_only": reqBody.Filters.FleetCarsOnly,
+		},
+	}
+
+	jsonBody, _ := json.Marshal(requestBody)
+	req, err := http.NewRequest("POST", targetURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept-Language", "ru")
+	req.Header.Set("Cookie", "Session_id="+s.SessionID)
+	req.Header.Set("X-Park-ID", s.ParkID)
+
+	// Make request
+	client := &http.Client{Timeout: 20 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to make request"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		c.JSON(resp.StatusCode, gin.H{"error": "Yandex API error", "details": string(body)})
+		return
+	}
+
+	// Parse response
+	var result struct {
+		Total struct {
+			Value     int `json:"value"`
+			DiffValue int `json:"diff_value"`
+		} `json:"total"`
+		Online struct {
+			Value     int `json:"value"`
+			DiffValue int `json:"diff_value"`
+		} `json:"online"`
+		Offline struct {
+			Value     int `json:"value"`
+			DiffValue int `json:"diff_value"`
+		} `json:"offline"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse response"})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetCarsStatuses(c *gin.Context) {
+	s := getSession(c)
+
+	var reqBody struct {
+		DatePeriod struct {
+			From string `json:"from"`
+			To   string `json:"to"`
+		} `json:"date_period"`
+		Filters struct {
+			FleetCarsOnly bool `json:"fleet_cars_only"`
+		} `json:"filters"`
+	}
+
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	targetURL := "https://fleet.yandex.ru/api/fleet/fleet-reports/v1/dashboard/widget/cars/statuses"
+
+	requestBody := map[string]interface{}{
+		"date_period": map[string]string{
+			"from": reqBody.DatePeriod.From,
+			"to":   reqBody.DatePeriod.To,
+		},
+		"filters": map[string]bool{
+			"fleet_cars_only": reqBody.Filters.FleetCarsOnly,
+		},
+	}
+
+	jsonBody, _ := json.Marshal(requestBody)
+	req, err := http.NewRequest("POST", targetURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept-Language", "ru")
+	req.Header.Set("Cookie", "Session_id="+s.SessionID)
+	req.Header.Set("X-Park-ID", s.ParkID)
+
+	client := &http.Client{Timeout: 20 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to make request"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		c.JSON(resp.StatusCode, gin.H{"error": "Yandex API error", "details": string(body)})
+		return
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse response"})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetCarsMileage(c *gin.Context) {
+	s := getSession(c)
+
+	var reqBody struct {
+		DatePeriod struct {
+			From string `json:"from"`
+			To   string `json:"to"`
+		} `json:"date_period"`
+		Filters struct {
+			FleetCarsOnly bool `json:"fleet_cars_only"`
+		} `json:"filters"`
+	}
+
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	targetURL := "https://fleet.yandex.ru/api/fleet/fleet-reports/v1/dashboard/widget/cars/mileage"
+
+	requestBody := map[string]interface{}{
+		"date_period": map[string]string{
+			"from": reqBody.DatePeriod.From,
+			"to":   reqBody.DatePeriod.To,
+		},
+		"filters": map[string]bool{
+			"fleet_cars_only": reqBody.Filters.FleetCarsOnly,
+		},
+	}
+
+	jsonBody, _ := json.Marshal(requestBody)
+	req, err := http.NewRequest("POST", targetURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept-Language", "ru")
+	req.Header.Set("Cookie", "Session_id="+s.SessionID)
+	req.Header.Set("X-Park-ID", s.ParkID)
+
+	client := &http.Client{Timeout: 20 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to make request"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		c.JSON(resp.StatusCode, gin.H{"error": "Yandex API error", "details": string(body)})
+		return
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse response"})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetCarsHoursOnline(c *gin.Context) {
+	s := getSession(c)
+
+	var reqBody struct {
+		DatePeriod struct {
+			From string `json:"from"`
+			To   string `json:"to"`
+		} `json:"date_period"`
+		Filters struct {
+			FleetCarsOnly bool `json:"fleet_cars_only"`
+		} `json:"filters"`
+	}
+
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	targetURL := "https://fleet.yandex.ru/api/fleet/fleet-reports/v1/dashboard/widget/cars/hours-online"
+
+	requestBody := map[string]interface{}{
+		"date_period": map[string]string{
+			"from": reqBody.DatePeriod.From,
+			"to":   reqBody.DatePeriod.To,
+		},
+		"filters": map[string]bool{
+			"fleet_cars_only": reqBody.Filters.FleetCarsOnly,
+		},
+	}
+
+	jsonBody, _ := json.Marshal(requestBody)
+	req, err := http.NewRequest("POST", targetURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept-Language", "ru")
+	req.Header.Set("Cookie", "Session_id="+s.SessionID)
+	req.Header.Set("X-Park-ID", s.ParkID)
+
+	client := &http.Client{Timeout: 20 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to make request"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		c.JSON(resp.StatusCode, gin.H{"error": "Yandex API error", "details": string(body)})
+		return
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse response"})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetCarsAcceptanceRate(c *gin.Context) {
+	s := getSession(c)
+
+	var reqBody struct {
+		DatePeriod struct {
+			From string `json:"from"`
+			To   string `json:"to"`
+		} `json:"date_period"`
+		Filters struct {
+			FleetCarsOnly bool `json:"fleet_cars_only"`
+		} `json:"filters"`
+	}
+
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	targetURL := "https://fleet.yandex.ru/api/fleet/fleet-reports/v1/dashboard/widget/cars/acceptance-rate"
+
+	requestBody := map[string]interface{}{
+		"date_period": map[string]string{
+			"from": reqBody.DatePeriod.From,
+			"to":   reqBody.DatePeriod.To,
+		},
+		"filters": map[string]bool{
+			"fleet_cars_only": reqBody.Filters.FleetCarsOnly,
+		},
+	}
+
+	jsonBody, _ := json.Marshal(requestBody)
+	req, err := http.NewRequest("POST", targetURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept-Language", "ru")
+	req.Header.Set("Cookie", "Session_id="+s.SessionID)
+	req.Header.Set("X-Park-ID", s.ParkID)
+
+	client := &http.Client{Timeout: 20 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to make request"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		c.JSON(resp.StatusCode, gin.H{"error": "Yandex API error", "details": string(body)})
+		return
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse response"})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetCarsTrips(c *gin.Context) {
+	s := getSession(c)
+
+	var reqBody struct {
+		DatePeriod struct {
+			From string `json:"from"`
+			To   string `json:"to"`
+		} `json:"date_period"`
+		Filters struct {
+			FleetCarsOnly bool `json:"fleet_cars_only"`
+		} `json:"filters"`
+	}
+
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	targetURL := "https://fleet.yandex.ru/api/fleet/fleet-reports/v1/dashboard/widget/cars/trips"
+
+	requestBody := map[string]interface{}{
+		"date_period": map[string]string{
+			"from": reqBody.DatePeriod.From,
+			"to":   reqBody.DatePeriod.To,
+		},
+		"filters": map[string]bool{
+			"fleet_cars_only": reqBody.Filters.FleetCarsOnly,
+		},
+	}
+
+	jsonBody, _ := json.Marshal(requestBody)
+	req, err := http.NewRequest("POST", targetURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept-Language", "ru")
+	req.Header.Set("Cookie", "Session_id="+s.SessionID)
+	req.Header.Set("X-Park-ID", s.ParkID)
+
+	client := &http.Client{Timeout: 20 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to make request"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		c.JSON(resp.StatusCode, gin.H{"error": "Yandex API error", "details": string(body)})
+		return
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse response"})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 func RegisterRoutes(r *gin.Engine) {
 	service := NewService()
 	handler := NewHandler(service)
 
-	summaryGroup := r.Group("/api/summary")
+	summaryGroup := r.Group("/api/summary", authMiddleware)
 	{
 		summaryGroup.GET("/profile", handler.GetProfile)
 		summaryGroup.POST("/active-drivers", handler.GetActiveDrivers)
+	}
+
+	// Fleet reports routes
+	fleetReportsGroup := r.Group("/api/fleet/fleet-reports/v1/dashboard/widget", authMiddleware)
+	{
+		fleetReportsGroup.POST("/cars/summary", handler.GetCarsSummary)
+		fleetReportsGroup.POST("/cars/statuses", handler.GetCarsStatuses)
+		fleetReportsGroup.POST("/cars/mileage", handler.GetCarsMileage)
+		fleetReportsGroup.POST("/cars/hours-online", handler.GetCarsHoursOnline)
+		fleetReportsGroup.POST("/cars/acceptance-rate", handler.GetCarsAcceptanceRate)
+		fleetReportsGroup.POST("/cars/trips", handler.GetCarsTrips)
 	}
 }

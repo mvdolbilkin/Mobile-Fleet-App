@@ -453,3 +453,235 @@ func (s *Service) ApplyWorkRule(cookieHeader string, parkID string, contractorID
 	}
 	return result, nil
 }
+
+func (s *Service) GetDriverStatuses(cookieHeader string, parkID string) (interface{}, error) {
+	url := "https://fleet.yandex.ru/api/fleet/router/v1/references/list"
+
+	reqBody := map[string]interface{}{
+		"references": []string{"driver_statuses"},
+	}
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Cookie", cookieHeader)
+	req.Header.Set("Accept-Language", "ru")
+	req.Header.Set("X-Park-ID", parkID)
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
+	}
+
+	var result interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
+	}
+	return result, nil
+}
+
+func (s *Service) ApplyWorkStatus(cookieHeader string, parkID string, contractorIDs []string, workStatus string) (interface{}, error) {
+	url := "https://fleet.yandex.ru/api/fleet/fleet-operations/v1/contractor-profiles-manager/work-status"
+
+	reqBody := map[string]interface{}{
+		"filters": map[string]interface{}{
+			"contractor_ids": contractorIDs,
+			"profile_exists": true,
+		},
+		"action": map[string]interface{}{
+			"work_status": workStatus,
+		},
+	}
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Cookie", cookieHeader)
+	req.Header.Set("Accept-Language", "ru")
+	req.Header.Set("X-Park-ID", parkID)
+	req.Header.Set("X-Idempotency-Token", uuid.New().String())
+
+	fmt.Println("Sending ApplyWorkStatus to Yandex API:")
+	fmt.Println("  URL:", url)
+	fmt.Println("  Body:", string(jsonData))
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		fmt.Println("HTTP request error:", err.Error())
+		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка чтения ответа: %w", err)
+	}
+
+	fmt.Println("Yandex API response (ApplyWorkStatus):")
+	fmt.Println("  Status:", resp.StatusCode)
+	fmt.Println("  Body:", string(body))
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
+	}
+
+	var result interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
+	}
+	return result, nil
+}
+
+
+func (s *Service) GetMailingBlanks(cookieHeader string, parkID string) (interface{}, error) {
+	url := "https://fleet.yandex.ru/api/fleet/communications/v1/mailings/blanks"
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
+	}
+
+	req.Header.Set("Cookie", cookieHeader)
+	req.Header.Set("X-Park-ID", parkID)
+	req.Header.Set("Accept-Language", "ru")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		fmt.Println("GetMailingBlanks error:", string(body))
+		return nil, fmt.Errorf("ошибка API: %s - %s", resp.Status, string(body))
+	}
+
+	var result interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("ошибка десериализации: %w", err)
+	}
+	return result, nil
+}
+
+func (s *Service) GetMailingLimits(cookieHeader string, parkID string) (interface{}, error) {
+	url := "https://fleet.yandex.ru/api/fleet/communications/v2/mailings/limits"
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
+	}
+
+	req.Header.Set("Cookie", cookieHeader)
+	req.Header.Set("X-Park-ID", parkID)
+	req.Header.Set("Accept-Language", "ru")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("ошибка API: %s - %s", resp.Status, string(body))
+	}
+
+	var result interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("ошибка десериализации: %w", err)
+	}
+	return result, nil
+}
+
+func (s *Service) GetContractorsCount(cookieHeader string, parkID string, reqBody map[string]interface{}) (interface{}, error) {
+	url := "https://fleet.yandex.ru/api/fleet/contractor-profiles-manager/v2/contractors/count"
+	
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка сериализации: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Cookie", cookieHeader)
+	req.Header.Set("X-Park-ID", parkID)
+	req.Header.Set("X-Idempotency-Token", uuid.New().String())
+	req.Header.Set("Accept-Language", "ru")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("ошибка API: %s - %s", resp.Status, string(body))
+	}
+
+	var result interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("ошибка десериализации: %w", err)
+	}
+	return result, nil
+}
+
+func (s *Service) SendMailing(cookieHeader string, parkID string, reqBody map[string]interface{}) (interface{}, error) {
+	url := "https://fleet.yandex.ru/api/fleet/fleet-operations/v1/contractor-profiles-manager/communications"
+
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка сериализации: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Cookie", cookieHeader)
+	req.Header.Set("X-Park-ID", parkID)
+	req.Header.Set("X-Idempotency-Token", uuid.New().String())
+	req.Header.Set("Accept-Language", "ru")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("ошибка API: %s - %s", resp.Status, string(body))
+	}
+
+	var result interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("ошибка десериализации: %w", err)
+	}
+	return result, nil
+}
