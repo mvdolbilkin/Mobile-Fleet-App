@@ -6,6 +6,7 @@ import 'package:mobile/shared/widgets/badge.dart';
 class VehicleListItem extends StatelessWidget {
   final Vehicle vehicle;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final bool isSelectionMode;
   final bool isSelected;
   final ValueChanged<bool?>? onSelect;
@@ -14,6 +15,7 @@ class VehicleListItem extends StatelessWidget {
     Key? key,
     required this.vehicle,
     this.onTap,
+    this.onLongPress,
     this.isSelectionMode = false,
     this.isSelected = false,
     this.onSelect,
@@ -54,19 +56,29 @@ class VehicleListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: EdgeInsets.only(bottom: 12),
-        padding: isSelectionMode
-            ? EdgeInsets.only(left: 4, top: 12, right: 12, bottom: 12)
-            : EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppTheme.cardColor,
-          borderRadius: BorderRadius.circular(12),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected ? Colors.black : Colors.transparent,
+          width: 1.5,
         ),
-        child: Row(
-          children: [
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          onLongPress: isSelectionMode ? null : onLongPress,
+          child: Padding(
+            padding: isSelectionMode
+                ? const EdgeInsets.only(left: 4, top: 12, right: 12, bottom: 12)
+                : const EdgeInsets.all(12),
+            child: Row(
+            children: [
             if (isSelectionMode)
               Padding(
                 padding: const EdgeInsets.only(right: 4),
@@ -156,7 +168,9 @@ class VehicleListItem extends StatelessWidget {
             ),
             // Стрелка
             Icon(Icons.chevron_right, color: AppTheme.textSecondary),
-          ],
+            ],
+          ),
+        ),
         ),
       ),
     );

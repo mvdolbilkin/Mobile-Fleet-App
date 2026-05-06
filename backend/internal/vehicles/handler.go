@@ -22,7 +22,10 @@ const yandexFleetCategoriesURL = "https://fleet.yandex.ru/api/fleet/vehicles-man
 const yandexFleetReferencesURL = "https://fleet.yandex.ru/api/fleet/router/v1/references/list"
 const yandexFleetVehiclesByDaysURL = "https://fleet.yandex.ru/api/fleet/rent/v1/vehicles/by-days"
 const yandexFleetAvailableStatusesURL = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/cars/available-statuses"
+const yandexFleetVehicleStatusSingleURL = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/vehicle-status"
 const yandexFleetRegularChargesListURL = "https://fleet.yandex.ru/api/api/v1/regular-charges/list"
+const yandexFleetOsagoCompensationURL = "https://fleet.yandex.ru/api/fleet/fleet-operations/v1/fleet-vehicles-rent/policy/park-compensation"
+const yandexFleetOfficeAddressesURL = "https://fleet.yandex.ru/api/fleet/hiring-taxiparks-gambling/v1/office-address/list"
 
 // ─── Middleware: проверка auth + получение сессии ────────────────────────────
 
@@ -211,8 +214,25 @@ func getAvailableStatusesProxy(c *gin.Context) {
 	proxyToYandex(c, yandexFleetAvailableStatusesURL, http.MethodGet)
 }
 
+func updateVehicleStatusSingleProxy(c *gin.Context) {
+	vehicleID := c.Query("vehicle_id")
+	if vehicleID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
+		return
+	}
+	proxyToYandex(c, yandexFleetVehicleStatusSingleURL+"?vehicle_id="+vehicleID, http.MethodPost, withJSONContentType())
+}
+
 func listRegularChargesProxy(c *gin.Context) {
 	proxyToYandex(c, yandexFleetRegularChargesListURL, http.MethodPost, withJSONContentType())
+}
+
+func updateOsagoCompensationProxy(c *gin.Context) {
+	proxyToYandex(c, yandexFleetOsagoCompensationURL, http.MethodPost, withJSONContentType(), withIdempotencyToken())
+}
+
+func listOfficeAddressesProxy(c *gin.Context) {
+	proxyToYandex(c, yandexFleetOfficeAddressesURL, http.MethodPost, withJSONContentType())
 }
 
 // ─── Роутинг ────────────────────────────────────────────────────────────────
@@ -233,6 +253,9 @@ func RegisterRoutes(r *gin.Engine) {
 		g.POST("/references", listReferencesProxy)
 		g.POST("/by-days", getVehiclesByDaysProxy)
 		g.GET("/available-statuses", getAvailableStatusesProxy)
+		g.POST("/vehicle-status", updateVehicleStatusSingleProxy)
 		g.POST("/regular-charges", listRegularChargesProxy)
+		g.POST("/osago-compensation", updateOsagoCompensationProxy)
+		g.POST("/office-addresses", listOfficeAddressesProxy)
 	}
 }

@@ -53,3 +53,8 @@ final carCategoriesProvider = FutureProvider<Map<String, String>>((ref) async {
   final service = ref.watch(vehiclesServiceProvider);
   return service.getCarCategories();
 });
+
+final officeAddressesProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final service = ref.watch(vehiclesServiceProvider);
+  return service.getOfficeAddresses();
+});

@@ -53,6 +53,7 @@ dependencies:
   hugeicons: ^1.1.6
   url_launcher: ^6.2.5
   flutter_markdown: ^0.7.7+1
+  yandex_maps_mapkit: 4.25.0-beta
 
 dev_dependencies:
   flutter_test:

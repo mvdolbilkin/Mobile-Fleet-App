@@ -14,6 +14,8 @@ import (
 const yandexFinesRetrieveURL = "https://fleet.yandex.ru/api/fleet/traffic-fines/v2/fines/retrieve"
 const yandexFinesTotalURL = "https://fleet.yandex.ru/api/fleet/traffic-fines/v2/fines/total"
 const yandexFinesDetailURL = "https://fleet.yandex.ru/api/fleet/traffic-fines/v1/fines"
+const yandexFinesDriversSuggestURL = "https://fleet.yandex.ru/api/api/v1/suggestions/drivers"
+const yandexFinesCarsSuggestURL = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/cars/suggest"
 
 // ─── Middleware ──────────────────────────────────────────────────────────────
 
@@ -129,6 +131,14 @@ func getFineDetailProxy(c *gin.Context) {
 	proxyToYandex(c, yandexFinesDetailURL+"?uin="+uin, http.MethodGet)
 }
 
+func suggestDriversProxy(c *gin.Context) {
+	proxyToYandex(c, yandexFinesDriversSuggestURL, http.MethodPost)
+}
+
+func suggestCarsProxy(c *gin.Context) {
+	proxyToYandex(c, yandexFinesCarsSuggestURL, http.MethodGet)
+}
+
 // ─── Routes ─────────────────────────────────────────────────────────────────
 
 func RegisterRoutes(r *gin.Engine) {
@@ -137,5 +147,7 @@ func RegisterRoutes(r *gin.Engine) {
 		g.POST("/retrieve", retrieveFinesProxy)
 		g.POST("/total", totalFinesProxy)
 		g.GET("/detail", getFineDetailProxy)
+		g.POST("/drivers/suggest", suggestDriversProxy)
+		g.GET("/cars/suggest", suggestCarsProxy)
 	}
 }

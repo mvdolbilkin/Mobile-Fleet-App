@@ -13,7 +13,11 @@ class FinesService {
     DateTime? dateFrom,
     DateTime? dateTo,
     String? carId,
+    String? driverId,
     String? fineUin,
+    List<String>? contractorPaymentStatuses,
+    List<String>? contractorAssignmentStatuses,
+    bool? wasLoadedBankClient,
     String? cursor,
     Logger? logger,
   }) async {
@@ -26,23 +30,39 @@ class FinesService {
 
     if (dateFrom != null && dateTo != null) {
       var to = dateTo;
-      // Если время полночь — значит выбрана просто дата, ставим конец дня
       if (to.hour == 0 && to.minute == 0 && to.second == 0) {
         to = DateTime(to.year, to.month, to.day, 23, 59, 59);
       }
-
       query['time_range'] = {
         'from': _formatIso(dateFrom),
         'to': _formatIso(to),
       };
+    } else {
+      query['time_range'] = <String, dynamic>{};
     }
 
     if (carId != null && carId.isNotEmpty) {
       query['car_id'] = carId;
     }
 
+    if (driverId != null && driverId.isNotEmpty) {
+      query['contractor_id'] = driverId;
+    }
+
     if (fineUin != null && fineUin.isNotEmpty) {
       query['fine_uin'] = fineUin;
+    }
+
+    if (contractorPaymentStatuses != null && contractorPaymentStatuses.isNotEmpty) {
+      query['contractor_payment_status'] = contractorPaymentStatuses;
+    }
+
+    if (contractorAssignmentStatuses != null && contractorAssignmentStatuses.isNotEmpty) {
+      query['contractor_assignment_status'] = contractorAssignmentStatuses;
+    }
+
+    if (wasLoadedBankClient != null) {
+      query['was_loaded_bank_client'] = wasLoadedBankClient;
     }
 
     final body = <String, dynamic>{
@@ -101,6 +121,31 @@ class FinesService {
     }
 
     throw Exception('Failed to get fine detail for uin=$uin');
+  }
+
+  Future<List<Map<String, dynamic>>> getSuggestCars() async {
+    final response = await _dio.get('/api/fines/cars/suggest');
+    if (response.statusCode == 200 && response.data != null) {
+      final data = response.data as Map<String, dynamic>;
+      return (data['items'] as List<dynamic>? ?? [])
+          .map((e) => e as Map<String, dynamic>)
+          .toList();
+    }
+    return [];
+  }
+
+  Future<List<Map<String, dynamic>>> getSuggestDrivers() async {
+    final response = await _dio.post(
+      '/api/fines/drivers/suggest',
+      data: {'limit': 10},
+    );
+    if (response.statusCode == 200 && response.data != null) {
+      final data = response.data as Map<String, dynamic>;
+      return (data['suggest'] as List<dynamic>? ?? [])
+          .map((e) => e as Map<String, dynamic>)
+          .toList();
+    }
+    return [];
   }
 
   Future<TrafficFinesTotal> getTotal() async {

@@ -5,6 +5,7 @@ import (
 	"backend/internal/competitions"
 	"backend/internal/expenses"
 	"backend/internal/fines"
+	"backend/internal/fleetmap"
 	"backend/internal/garage"
 	"backend/internal/goals"
 	"backend/internal/mailings"
@@ -54,6 +55,9 @@ func main() {
 
 	// Register fines routes
 	fines.RegisterRoutes(r)
+
+	// Register map routes
+	fleetmap.RegisterRoutes(r)
 
 	// Register mailings routes
 	mailings.RegisterRoutes(r)

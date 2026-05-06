@@ -120,7 +120,7 @@ class MenuScreen extends ConsumerWidget {
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
-        title: const Text('Главаня'),
+        title: const Text('Главная'),
         centerTitle: true,
         scrolledUnderElevation: 0,
       ),
