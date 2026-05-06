@@ -316,6 +316,76 @@ func contains(s, substr string) bool {
 
 // ─── Middleware: проверка auth + получение сессии ────────────────────────────
 
+const yandexSummaryDriversListURL = "https://fleet.yandex.ru/api/reports-api/v2/summary/drivers/list"
+const yandexSummaryCarListURL = "https://fleet.yandex.ru/api/reports-api/v1/summary/cars/list"
+const yandexSummaryParksListURL = "https://fleet.yandex.ru/api/reports-api/v2/summary/parks/list"
+
+// ─── proxyToYandex: универсальный прокси ────────────────────────────────────
+
+type proxyOption func(*http.Request)
+
+func withJSONContentType() proxyOption {
+	return func(req *http.Request) {
+		req.Header.Set("Content-Type", "application/json")
+	}
+}
+
+func proxyToYandex(c *gin.Context, targetURL string, method string, opts ...proxyOption) {
+	s := getSession(c)
+
+	var bodyBytes []byte
+	if c.Request.Body != nil {
+		bodyBytes, _ = io.ReadAll(c.Request.Body)
+	}
+
+	var bodyReader *bytes.Buffer
+	if len(bodyBytes) > 0 {
+		bodyReader = bytes.NewBuffer(bodyBytes)
+	} else {
+		bodyReader = bytes.NewBuffer(nil)
+	}
+
+	req, err := http.NewRequest(method, targetURL, bodyReader)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return
+	}
+
+	req.Header.Set("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7")
+	req.Header.Set("x-park-id", s.ParkID)
+
+	cookieValue := "Session_id=" + s.SessionID + "; sessionid2=" + s.SessionID2
+	if s.LoginToken != "" {
+		cookieValue += "; L=" + s.LoginToken
+	}
+	if s.Login != "" {
+		cookieValue += "; yandex_login=" + s.Login
+	}
+	if s.UID != "" {
+		cookieValue += "; yandexuid=" + s.UID
+	}
+	req.Header.Set("Cookie", cookieValue)
+
+	for _, opt := range opts {
+		opt(req)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to reach Yandex Fleet API"})
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read response from Yandex API"})
+		return
+	}
+
+	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
+}
+
 func authMiddleware(c *gin.Context) {
 	userID := c.GetHeader("X-Park-ID")
 	if userID == "" {
@@ -758,6 +828,18 @@ func (h *Handler) GetCarsTrips(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+func (h *Handler) GetDriversSummaryList(c *gin.Context) {
+	proxyToYandex(c, yandexSummaryDriversListURL, http.MethodPost, withJSONContentType())
+}
+
+func (h *Handler) GetCarsSummaryList(c *gin.Context) {
+	proxyToYandex(c, yandexSummaryCarListURL, http.MethodPost, withJSONContentType())
+}
+
+func (h *Handler) GetParksSummaryList(c *gin.Context) {
+	proxyToYandex(c, yandexSummaryParksListURL, http.MethodPost, withJSONContentType())
+}
+
 func RegisterRoutes(r *gin.Engine) {
 	service := NewService()
 	handler := NewHandler(service)
@@ -777,5 +859,13 @@ func RegisterRoutes(r *gin.Engine) {
 		fleetReportsGroup.POST("/cars/hours-online", handler.GetCarsHoursOnline)
 		fleetReportsGroup.POST("/cars/acceptance-rate", handler.GetCarsAcceptanceRate)
 		fleetReportsGroup.POST("/cars/trips", handler.GetCarsTrips)
+	}
+
+	// Reports API routes
+	reportsGroup := r.Group("/api/reports", authMiddleware)
+	{
+		reportsGroup.POST("/summary/drivers/list", handler.GetDriversSummaryList)
+		reportsGroup.POST("/summary/cars/list", handler.GetCarsSummaryList)
+		reportsGroup.POST("/summary/parks/list", handler.GetParksSummaryList)
 	}
 }
