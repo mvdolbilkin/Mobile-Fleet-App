@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:mobile/features/fleet/domain/vehicle.dart';
 import 'package:mobile/features/fleet/domain/vehicle_details.dart';
+import 'package:mobile/features/fleet/domain/vehicle_extras.dart';
 import 'package:mobile/shared/services/secure_storage_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -683,5 +684,113 @@ class VehiclesService {
       print('Error fetching car categories: $e');
       throw e;
     }
+  }
+
+  Future<VehicleEfficiency> getVehicleEfficiency(
+    String vehicleId,
+    String dateFrom,
+    String dateTo,
+  ) async {
+    final response = await _dio.post(
+      '/api/vehicles/efficiency?vehicle_id=$vehicleId',
+      data: {
+        'date_period': {'from': dateFrom, 'to': dateTo},
+      },
+    );
+    return VehicleEfficiency.fromJson(
+        response.data as Map<String, dynamic>);
+  }
+
+  Future<VehicleBranding> getVehicleBranding(String vehicleId) async {
+    final response =
+        await _dio.get('/api/vehicles/branding?vehicle_id=$vehicleId');
+    return VehicleBranding.fromJson(
+        response.data as Map<String, dynamic>);
+  }
+
+  Future<void> updateVehicleBranding(
+    String vehicleId, {
+    required bool sticker,
+    required bool lightbox,
+    required bool digitalLightbox,
+  }) async {
+    await _dio.post(
+      '/api/vehicles/branding?vehicle_id=$vehicleId',
+      data: {
+        'sticker': sticker,
+        'lightbox': lightbox,
+        'digital_lightbox': digitalLightbox,
+      },
+    );
+  }
+
+  Future<VehicleKeyInfo> getVehicleKeyInfo(String vehicleId) async {
+    final response =
+        await _dio.get('/api/vehicles/key-info?vehicle_id=$vehicleId');
+    return VehicleKeyInfo.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<VehicleChangelogResponse> getVehicleChangelog(String vehicleId) async {
+    final response = await _dio.post(
+      '/api/vehicles/changelog?vehicle_id=$vehicleId',
+      data: {'limit': 100},
+    );
+    return VehicleChangelogResponse.fromJson(
+        response.data as Map<String, dynamic>);
+  }
+
+  Future<VehicleStatusExtras> getVehicleStatusExtras(String vehicleId) async {
+    final results = await Future.wait([
+      _dio.get('/api/vehicles/supply-lock?car_id=$vehicleId'),
+      _dio.post(
+        '/api/vehicles/osago-properties',
+        data: {
+          'car_ids': [vehicleId],
+          'projection': ['is_policy_required_for_orders'],
+        },
+      ),
+      _dio.post(
+        '/api/vehicles/osago-properties',
+        data: {
+          'car_ids': [vehicleId],
+          'projection': ['park_compensation'],
+        },
+      ),
+    ]);
+
+    final supplyActive =
+        (results[0].data['is_active'] as bool?) ?? false;
+
+    final policyList =
+        results[1].data['properties_by_car'] as List<dynamic>?;
+    final policyEntry = policyList?.firstWhere(
+      (e) => (e as Map)['car_id'] == vehicleId,
+      orElse: () => null,
+    ) as Map<String, dynamic>?;
+    final policyRequired =
+        (policyEntry?['is_policy_required_for_orders'] as bool?) ?? false;
+
+    final compList =
+        results[2].data['properties_by_car'] as List<dynamic>?;
+    final compEntry = compList?.firstWhere(
+      (e) => (e as Map)['car_id'] == vehicleId,
+      orElse: () => null,
+    ) as Map<String, dynamic>?;
+    final compData =
+        compEntry?['park_compensation'] as Map<String, dynamic>?;
+
+    return VehicleStatusExtras(
+      supplyLockActive: supplyActive,
+      isPolicyRequired: policyRequired,
+      parkCompensationEnabled: (compData?['enabled'] as bool?) ?? false,
+      parkCompensationReadonly: (compData?['readonly'] as bool?) ?? false,
+    );
+  }
+
+  Future<ChildChairsResponse> getChildChairs(String vehicleId) async {
+    final response =
+        await _dio.get('/api/vehicles/child-chairs?vehicle_id=$vehicleId');
+    return ChildChairsResponse.fromJson(
+        response.data as Map<String, dynamic>);
   }
 }

@@ -116,6 +116,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     _currentFilteredDriverIds = points.map((p) => p.driverId).toSet();
 
     for (final point in points) {
+      final oldPoint = _driverPointsMap[point.driverId];
       _driverPointsMap[point.driverId] = point;
       if (!point.hasGps) continue;
 
@@ -129,6 +130,15 @@ class _MapScreenState extends ConsumerState<MapScreen>
           longitude: point.coordinates!.lon,
         );
         placemark.setIcon(icon);
+        if (point.driverId == _selectedDriverId) {
+          final oc = oldPoint?.coordinates;
+          if (oc == null ||
+              oc.lat != point.coordinates!.lat ||
+              oc.lon != point.coordinates!.lon) {
+            _zoomToDriverWithOffset(
+                point.coordinates!.lat, point.coordinates!.lon);
+          }
+        }
       } else {
         final placemark = mapObjects.addPlacemark();
         placemark
@@ -309,10 +319,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
     if (_selectedDriverId == null) return;
     final placemark = _placemarksMap[_selectedDriverId];
     if (placemark == null) return;
+    final old = placemark.geometry;
     placemark.geometry = yandex.Point(
       latitude: coords.lat,
       longitude: coords.lon,
     );
+    if (old.latitude != coords.lat || old.longitude != coords.lon) {
+      _zoomToDriverWithOffset(coords.lat, coords.lon);
+    }
   }
 
   @override
