@@ -94,3 +94,17 @@ type TransactionData struct {
 type DriverDetailsRequest struct {
 	DriverID string `json:"driver_id"`
 }
+
+type FleetTransactionsRequest struct {
+	Query struct {
+		Transaction struct {
+			EventAt struct {
+				From string `json:"from"`
+				To   string `json:"to"`
+			} `json:"event_at"`
+			WithoutCash bool `json:"without_cash"`
+		} `json:"transaction"`
+		DriverID string `json:"driver_id"`
+	} `json:"query"`
+	Limit int `json:"limit"`
+}

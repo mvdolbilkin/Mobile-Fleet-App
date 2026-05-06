@@ -10,6 +10,7 @@ import 'package:mobile/shared/widgets/fading_button.dart';
 import 'package:mobile/shared/widgets/info_block.dart';
 import 'package:mobile/shared/widgets/info_card.dart';
 import 'package:mobile/shared/widgets/badge.dart';
+import 'package:mobile/shared/widgets/custom_date_range_picker_bottom_sheet.dart';
 
 class StaffDetailsScreen extends ConsumerStatefulWidget {
   final Staff staff;
@@ -25,10 +26,33 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen>
   late TabController _tabController;
   int _selectedPeriodDays = 30;
 
+  DateTime _historyDateFrom = DateTime.now()
+      .subtract(const Duration(days: 6))
+      .copyWith(hour: 0, minute: 0, second: 0, millisecond: 0, microsecond: 0);
+  DateTime _historyDateTo = DateTime.now().copyWith(
+    hour: 23,
+    minute: 59,
+    second: 59,
+    millisecond: 0,
+    microsecond: 0,
+  );
+  int _historyPage = 1;
+
+  DateTime _gpsDateFrom = DateTime.now()
+      .subtract(const Duration(days: 1))
+      .copyWith(hour: 0, minute: 0, second: 0, millisecond: 0, microsecond: 0);
+  DateTime _gpsDateTo = DateTime.now().copyWith(
+    hour: 0,
+    minute: 0,
+    second: 0,
+    millisecond: 0,
+    microsecond: 0,
+  );
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -76,6 +100,9 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen>
             Tab(text: 'Главное'),
             Tab(text: 'Детали'),
             Tab(text: 'Автомобиль'),
+            Tab(text: 'Ведомость'),
+            Tab(text: 'История баланса'),
+            Tab(text: 'GPS'),
           ],
         ),
       ),
@@ -87,6 +114,9 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen>
                 _buildMainTab(displayStaff),
                 _buildDetailsTab(displayStaff),
                 _buildCarTab(displayStaff),
+                _buildLedgerTab(displayStaff),
+                _buildBalanceHistoryTab(displayStaff),
+                _buildGpsTab(displayStaff),
               ],
             ),
     );
@@ -579,6 +609,238 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen>
     );
   }
 
+  Widget _buildLedgerTab(Staff displayStaff) {
+    final params = DriverTransactionsParams(
+      displayStaff.id,
+      _selectedPeriodDays,
+    );
+    final transactionsAsync = ref.watch(driverTransactionsProvider(params));
+    final balancesAsync = ref.watch(driverBalancesProvider(params));
+
+    return transactionsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, st) => Center(child: Text('Ошибка: $e')),
+      data: (transactionsData) {
+        final transactions =
+            transactionsData['transactions'] as List<dynamic>? ?? [];
+
+        return Column(
+          children: [
+            Expanded(
+              child: ListView.separated(
+                itemCount: transactions.length,
+                separatorBuilder: (context, index) =>
+                    const Divider(height: 1, color: AppTheme.borderColor),
+                itemBuilder: (context, index) {
+                  final t = transactions[index];
+                  final date = DateTime.tryParse(
+                    t['event_at'] ?? '',
+                  )?.toLocal();
+                  String dateStr = '';
+                  if (date != null) {
+                    final months = [
+                      'янв.',
+                      'фев.',
+                      'мар.',
+                      'апр.',
+                      'мая',
+                      'июн.',
+                      'июл.',
+                      'авг.',
+                      'сен.',
+                      'окт.',
+                      'ноя.',
+                      'дек.',
+                    ];
+                    dateStr =
+                        '${date.day} ${months[date.month - 1]} ${date.year} г., ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+                  }
+
+                  final amount =
+                      double.tryParse(t['amount']?.toString() ?? '0') ?? 0;
+                  final amountColor = amount > 0
+                      ? const Color(0xFF34C759)
+                      : const Color(0xFFFF3B30);
+                  final amountStr = amount > 0
+                      ? '+${amount.toStringAsFixed(2)}'
+                      : amount.toStringAsFixed(2);
+
+                  final balance =
+                      double.tryParse(t['balance']?.toString() ?? '0') ?? 0;
+
+                  return InkWell(
+                    onTap: () => _showTransactionDetails(
+                      context,
+                      t,
+                      dateStr,
+                      amountStr,
+                      amountColor,
+                      balance,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  t['event_title']?.toString().isNotEmpty ==
+                                          true
+                                      ? t['event_title']
+                                      : (t['category_name'] ??
+                                            'Неизвестное событие'),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  dateStr,
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                amountStr,
+                                style: TextStyle(
+                                  color: amountColor,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Баланс: ${balance.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            balancesAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(),
+              ),
+              error: (e, st) => const SizedBox(),
+              data: (balancesData) {
+                final balances =
+                    balancesData['driver_balances'] as List<dynamic>? ?? [];
+                double driverBefore = 0;
+                double driverAfter = 0;
+                for (var b in balances) {
+                  if (b['key'] == 'driver_before') {
+                    driverBefore =
+                        double.tryParse(b['value']?.toString() ?? '0') ?? 0;
+                  }
+                  if (b['key'] == 'driver_after') {
+                    driverAfter =
+                        double.tryParse(b['value']?.toString() ?? '0') ?? 0;
+                  }
+                }
+                final diff = driverAfter - driverBefore;
+                final diffStr = diff >= 0
+                    ? '+${diff.toStringAsFixed(2)}'
+                    : diff.toStringAsFixed(2);
+                final diffColor = diff >= 0
+                    ? const Color(0xFF34C759)
+                    : const Color(0xFFFF3B30);
+
+                double totalSum = transactions.fold(
+                  0.0,
+                  (sum, t) =>
+                      sum +
+                      (double.tryParse(t['amount']?.toString() ?? '0') ?? 0),
+                );
+
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(
+                      top: BorderSide(color: AppTheme.borderColor),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Количество: ${transactions.length}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            '${totalSum > 0 ? '+' : ''}${totalSum.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              color: Color(0xFF34C759),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 32),
+                      Text(
+                        'Итоги 0,00',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Баланс исполнителя на начальную дату ${driverBefore.toStringAsFixed(2)}',
+                      ),
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            'Баланс исполнителя на конечную дату ${driverAfter.toStringAsFixed(2)} ',
+                          ),
+                          Text(
+                            '($diffStr)',
+                            style: TextStyle(color: diffColor),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildDetailSection(
     String title,
     String subtitle,
@@ -671,14 +933,91 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen>
     return Column(children: rows);
   }
 
-  Widget _buildDetailItem(String label, String value) {
+  Widget _buildDetailItem(String label, String value, {Color? valueColor}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 15)),
+        Text(value, style: TextStyle(fontSize: 15, color: valueColor)),
       ],
+    );
+  }
+
+  void _showTransactionDetails(
+    BuildContext context,
+    dynamic t,
+    String dateStr,
+    String amountStr,
+    Color amountColor,
+    double balance,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t['event_title']?.toString().isNotEmpty == true
+                      ? t['event_title']
+                      : (t['category_name'] ?? 'Детали события'),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                _buildDetailItem('Дата', dateStr),
+                const SizedBox(height: 16),
+                _buildDetailItem('Категория', t['category_name'] ?? ''),
+                const SizedBox(height: 16),
+                _buildDetailItem('Сумма', amountStr, valueColor: amountColor),
+                const SizedBox(height: 16),
+                _buildDetailItem('Баланс', balance.toStringAsFixed(2)),
+                const SizedBox(height: 16),
+                if ((t['description'] ?? '').toString().isNotEmpty) ...[
+                  _buildDetailItem('Комментарий', t['description']),
+                  const SizedBox(height: 16),
+                ],
+                _buildDetailItem('Инициатор', t['created_by'] ?? ''),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFD900),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'Закрыть',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1079,6 +1418,542 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen>
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildBalanceHistoryTab(Staff displayStaff) {
+    final params = DriverBalancesHistoryParams(
+      displayStaff.id,
+      _historyDateFrom,
+      _historyDateTo,
+      _historyPage,
+    );
+    final historyAsync = ref.watch(driverBalancesHistoryProvider(params));
+
+    final fromDateStr =
+        '${_historyDateFrom.day} ${_getMonthStr(_historyDateFrom.month)}';
+    final toDateStr =
+        '${_historyDateTo.day} ${_getMonthStr(_historyDateTo.month)}';
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildFilterChip(
+                  icon: Icons.calendar_today,
+                  label: '$fromDateStr – $toDateStr',
+                  onTap: () async {
+                    final range = await CustomDateRangePickerBottomSheet.show(
+                      context: context,
+                      title: 'Выберите период',
+                      startDate: _historyDateFrom,
+                      endDate: _historyDateTo,
+                    );
+
+                    if (range != null) {
+                      setState(() {
+                        _historyDateFrom = range.start.copyWith(
+                          hour: _historyDateFrom.hour,
+                          minute: _historyDateFrom.minute,
+                        );
+                        _historyDateTo = range.end.copyWith(
+                          hour: _historyDateTo.hour,
+                          minute: _historyDateTo.minute,
+                        );
+                        _historyPage = 1;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(width: 8),
+                _buildFilterChip(
+                  icon: Icons.access_time,
+                  label:
+                      'Время начала: ${_historyDateFrom.hour.toString().padLeft(2, '0')}:${_historyDateFrom.minute.toString().padLeft(2, '0')}',
+                  onTap: () => _showTimePickerFor(true),
+                ),
+                const SizedBox(width: 8),
+                _buildFilterChip(
+                  icon: Icons.access_time,
+                  label:
+                      'Время окончания: ${_historyDateTo.hour.toString().padLeft(2, '0')}:${_historyDateTo.minute.toString().padLeft(2, '0')}',
+                  onTap: () => _showTimePickerFor(false),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Container(
+          color: Colors.grey[100],
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: const Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'Дата',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              Expanded(
+                flex: 1,
+                child: Text(
+                  'Баланс',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              Expanded(
+                flex: 1,
+                child: Text(
+                  'Изменение',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: historyAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, st) => Center(child: Text('Ошибка: $e')),
+            data: (data) {
+              final balances = data['balances'] as List<dynamic>? ?? [];
+              final total = data['total'] as int? ?? 0;
+              final pageSize = data['page_size'] as int? ?? 25;
+              final totalPages = (total / pageSize).ceil();
+
+              if (balances.isEmpty) {
+                return const Center(child: Text('Нет данных за этот период'));
+              }
+
+              return Column(
+                children: [
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: balances.length,
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final b = balances[index];
+                        final date = DateTime.tryParse(
+                          b['date'] ?? '',
+                        )?.toLocal();
+                        String dateStr = '';
+                        if (date != null) {
+                          dateStr =
+                              '${date.day} ${_getMonthStr(date.month)} ${date.year} г., ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+                        }
+
+                        final balance =
+                            double.tryParse(b['balance']?.toString() ?? '0') ??
+                            0;
+                        final diff =
+                            double.tryParse(b['diff']?.toString() ?? '0') ?? 0;
+
+                        final diffStr = diff > 0
+                            ? '+${diff.toStringAsFixed(2)}'
+                            : diff.toStringAsFixed(2);
+                        final diffColor = diff > 0
+                            ? const Color(0xFF34C759)
+                            : (diff < 0
+                                  ? const Color(0xFFFF3B30)
+                                  : Colors.grey);
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  dateStr,
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: Text(
+                                  balance.toStringAsFixed(2),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF34C759),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: Text(
+                                  diffStr,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: diffColor,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  if (totalPages > 1)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left),
+                            onPressed: _historyPage > 1
+                                ? () => setState(() => _historyPage--)
+                                : null,
+                          ),
+                          Text(
+                            'Стр. $_historyPage из $totalPages',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.chevron_right),
+                            onPressed: _historyPage < totalPages
+                                ? () => setState(() => _historyPage++)
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getMonthStr(int month) {
+    const months = [
+      'янв.',
+      'фев.',
+      'мар.',
+      'апр.',
+      'мая',
+      'июн.',
+      'июл.',
+      'авг.',
+      'сен.',
+      'окт.',
+      'ноя.',
+      'дек.',
+    ];
+    if (month >= 1 && month <= 12) return months[month - 1];
+    return '';
+  }
+
+  Widget _buildFilterChip({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: Colors.black87),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.keyboard_arrow_down,
+              size: 16,
+              color: Colors.black87,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showTimePickerFor(bool isStart) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        final List<String> times = [];
+        for (int h = 0; h < 24; h++) {
+          for (int m = 0; m < 60; m += 15) {
+            if (!isStart && h == 23 && m == 45) {
+              times.add('23:45');
+              times.add('23:59'); // Always offer 23:59 for end time
+              break;
+            }
+            times.add(
+              '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}',
+            );
+          }
+        }
+
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  isStart ? 'Время начала' : 'Время окончания',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: times.length,
+                  itemBuilder: (context, index) {
+                    final timeParts = times[index].split(':');
+                    final h = int.parse(timeParts[0]);
+                    final m = int.parse(timeParts[1]);
+                    return ListTile(
+                      title: Text(times[index], textAlign: TextAlign.center),
+                      onTap: () {
+                        setState(() {
+                          if (isStart) {
+                            _historyDateFrom = _historyDateFrom.copyWith(
+                              hour: h,
+                              minute: m,
+                            );
+                          } else {
+                            _historyDateTo = _historyDateTo.copyWith(
+                              hour: h,
+                              minute: m,
+                              second: m == 59 ? 59 : 0,
+                            );
+                          }
+                          _historyPage = 1;
+                        });
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showGpsDateRangePicker() async {
+    final range = await CustomDateRangePickerBottomSheet.show(
+      context: context,
+      title: 'Выберите период',
+      startDate: _gpsDateFrom,
+      endDate: _gpsDateTo,
+    );
+    if (range != null) {
+      setState(() {
+        _gpsDateFrom = range.start.copyWith(hour: 0, minute: 0);
+        _gpsDateTo = range.end.copyWith(hour: 0, minute: 0);
+      });
+    }
+  }
+
+  Widget _buildGpsDateSelector({
+    required String label,
+    required DateTime date,
+    required VoidCallback onTap,
+  }) {
+    final dateStr =
+        '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}, ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  dateStr,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const Icon(Icons.calendar_today_outlined, color: Colors.black87),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGpsDistanceCard({
+    required String title,
+    required String value,
+    bool isPrimary = false,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isPrimary ? const Color(0xFFFFD900) : Colors.grey[200],
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.info_outline, size: 16),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGpsTab(Staff displayStaff) {
+    final params = DriverGpsParams(displayStaff.id, _gpsDateFrom, _gpsDateTo);
+    final gpsAsync = ref.watch(driverGpsProvider(params));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              _buildGpsDateSelector(
+                label: 'Начало периода',
+                date: _gpsDateFrom,
+                onTap: _showGpsDateRangePicker,
+              ),
+              const SizedBox(height: 12),
+              _buildGpsDateSelector(
+                label: 'Конец периода',
+                date: _gpsDateTo,
+                onTap: _showGpsDateRangePicker,
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: gpsAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, st) => Center(child: Text('Ошибка: $e')),
+            data: (data) {
+              final summary =
+                  data['summary_distance'] as Map<String, dynamic>? ?? {};
+              final common = (summary['common'] as num?)?.toDouble() ?? 0;
+              final inOrder = (summary['in_order'] as num?)?.toDouble() ?? 0;
+              final free = (summary['free'] as num?)?.toDouble() ?? 0;
+              final offline = (summary['offline'] as num?)?.toDouble() ?? 0;
+
+              return ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildGpsDistanceCard(
+                          title: 'Общий пробег',
+                          value: '${common.toInt()} км',
+                          isPrimary: true,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildGpsDistanceCard(
+                          title: 'Полезный пробег',
+                          value: '${inOrder.toInt()} км',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildGpsDistanceCard(
+                          title: 'Холостой пробег',
+                          value: '${free.toInt()} км',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildGpsDistanceCard(
+                          title: 'Офлайн',
+                          value: '${offline.toInt()} км',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
