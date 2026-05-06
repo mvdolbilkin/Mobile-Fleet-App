@@ -325,6 +325,8 @@ const yandexPaymentFeesSummaryURL = "https://fleet.yandex.ru/api/fleet/fleet-pay
 const yandexPaymentTransactionsDriversURL = "https://fleet.yandex.ru/api/fleet/fleet-payment-systems/v1/dashboard/widget/transactions/drivers"
 const yandexPaymentTransactionsCountURL = "https://fleet.yandex.ru/api/fleet/fleet-payment-systems/v1/dashboard/widget/transactions/completed/count"
 const yandexPaymentTransactionsStatusesURL = "https://fleet.yandex.ru/api/fleet/fleet-payment-systems/v1/dashboard/widget/transactions/statuses"
+const yandexPaymentTransactionsListURL = "https://fleet.yandex.ru/api/fleet/fleet-payment-systems/v3/transactions/list"
+const yandexPaymentTransactionByIdURL = "https://fleet.yandex.ru/api/fleet/fleet-payment-systems/v2/transactions/by-id"
 
 // ─── proxyToYandex: универсальный прокси ────────────────────────────────────
 
@@ -866,6 +868,18 @@ func (h *Handler) GetPaymentTransactionsStatuses(c *gin.Context) {
 	proxyToYandex(c, yandexPaymentTransactionsStatusesURL, http.MethodPost, withJSONContentType())
 }
 
+func (h *Handler) GetPaymentTransactionsList(c *gin.Context) {
+	proxyToYandex(c, yandexPaymentTransactionsListURL, http.MethodPost, withJSONContentType())
+}
+
+func (h *Handler) GetPaymentTransactionById(c *gin.Context) {
+	transactionType := c.Query("transaction_type")
+	transactionId := c.Query("transaction_id")
+	targetURL := fmt.Sprintf("%s?transaction_type=%s&transaction_id=%s",
+		yandexPaymentTransactionByIdURL, transactionType, transactionId)
+	proxyToYandex(c, targetURL, http.MethodGet)
+}
+
 func RegisterRoutes(r *gin.Engine) {
 	service := NewService()
 	handler := NewHandler(service)
@@ -902,5 +916,7 @@ func RegisterRoutes(r *gin.Engine) {
 		paymentsGroup.POST("/dashboard/transactions/drivers", handler.GetPaymentTransactionsDrivers)
 		paymentsGroup.POST("/dashboard/transactions/count", handler.GetPaymentTransactionsCount)
 		paymentsGroup.POST("/dashboard/transactions/statuses", handler.GetPaymentTransactionsStatuses)
+		paymentsGroup.POST("/transactions/list", handler.GetPaymentTransactionsList)
+		paymentsGroup.GET("/transactions/by-id", handler.GetPaymentTransactionById)
 	}
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:mobile/features/reports/payment_summary_screen.dart';
+import 'package:mobile/features/reports/payment_transactions_screen.dart';
 import 'package:mobile/features/reports/summary_report_screen.dart';
 import 'package:mobile/shared/widgets/fading_button.dart';
 
@@ -65,7 +66,11 @@ class ReportsScreen extends StatelessWidget {
               _MenuRow(
                 title: 'Отчёт по расчётам с исполнителями',
                 icon: HugeIcons.strokeRoundedInvoice,
-                onTap: () {},
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const PaymentTransactionsScreen(),
+                  ),
+                ),
               ),
               const _RowDivider(),
               _MenuRow(
