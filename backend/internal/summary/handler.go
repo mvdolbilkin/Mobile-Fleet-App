@@ -320,6 +320,12 @@ const yandexSummaryDriversListURL = "https://fleet.yandex.ru/api/reports-api/v2/
 const yandexSummaryCarListURL = "https://fleet.yandex.ru/api/reports-api/v1/summary/cars/list"
 const yandexSummaryParksListURL = "https://fleet.yandex.ru/api/reports-api/v2/summary/parks/list"
 
+const yandexPaymentTransactionsSummaryURL = "https://fleet.yandex.ru/api/fleet/fleet-payment-systems/v1/dashboard/widget/transactions/summary"
+const yandexPaymentFeesSummaryURL = "https://fleet.yandex.ru/api/fleet/fleet-payment-systems/v1/dashboard/widget/fees/summary"
+const yandexPaymentTransactionsDriversURL = "https://fleet.yandex.ru/api/fleet/fleet-payment-systems/v1/dashboard/widget/transactions/drivers"
+const yandexPaymentTransactionsCountURL = "https://fleet.yandex.ru/api/fleet/fleet-payment-systems/v1/dashboard/widget/transactions/completed/count"
+const yandexPaymentTransactionsStatusesURL = "https://fleet.yandex.ru/api/fleet/fleet-payment-systems/v1/dashboard/widget/transactions/statuses"
+
 // ─── proxyToYandex: универсальный прокси ────────────────────────────────────
 
 type proxyOption func(*http.Request)
@@ -840,6 +846,26 @@ func (h *Handler) GetParksSummaryList(c *gin.Context) {
 	proxyToYandex(c, yandexSummaryParksListURL, http.MethodPost, withJSONContentType())
 }
 
+func (h *Handler) GetPaymentTransactionsSummary(c *gin.Context) {
+	proxyToYandex(c, yandexPaymentTransactionsSummaryURL, http.MethodPost, withJSONContentType())
+}
+
+func (h *Handler) GetPaymentFeesSummary(c *gin.Context) {
+	proxyToYandex(c, yandexPaymentFeesSummaryURL, http.MethodPost, withJSONContentType())
+}
+
+func (h *Handler) GetPaymentTransactionsDrivers(c *gin.Context) {
+	proxyToYandex(c, yandexPaymentTransactionsDriversURL, http.MethodPost, withJSONContentType())
+}
+
+func (h *Handler) GetPaymentTransactionsCount(c *gin.Context) {
+	proxyToYandex(c, yandexPaymentTransactionsCountURL, http.MethodPost, withJSONContentType())
+}
+
+func (h *Handler) GetPaymentTransactionsStatuses(c *gin.Context) {
+	proxyToYandex(c, yandexPaymentTransactionsStatusesURL, http.MethodPost, withJSONContentType())
+}
+
 func RegisterRoutes(r *gin.Engine) {
 	service := NewService()
 	handler := NewHandler(service)
@@ -867,5 +893,14 @@ func RegisterRoutes(r *gin.Engine) {
 		reportsGroup.POST("/summary/drivers/list", handler.GetDriversSummaryList)
 		reportsGroup.POST("/summary/cars/list", handler.GetCarsSummaryList)
 		reportsGroup.POST("/summary/parks/list", handler.GetParksSummaryList)
+	}
+
+	paymentsGroup := r.Group("/api/payments", authMiddleware)
+	{
+		paymentsGroup.POST("/dashboard/transactions/summary", handler.GetPaymentTransactionsSummary)
+		paymentsGroup.POST("/dashboard/fees/summary", handler.GetPaymentFeesSummary)
+		paymentsGroup.POST("/dashboard/transactions/drivers", handler.GetPaymentTransactionsDrivers)
+		paymentsGroup.POST("/dashboard/transactions/count", handler.GetPaymentTransactionsCount)
+		paymentsGroup.POST("/dashboard/transactions/statuses", handler.GetPaymentTransactionsStatuses)
 	}
 }
