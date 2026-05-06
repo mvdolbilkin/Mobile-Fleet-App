@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:hugeicons/hugeicons.dart';
 import '../../../../app/theme.dart';
 import '../../domain/vehicle.dart';
 import '../../domain/vehicle_details.dart';
@@ -91,11 +92,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
         if (widget.vehicle != null) const SizedBox(height: 16),
         _buildSummaryCards(),
         const SizedBox(height: 16),
-        _buildBanner(),
-        const SizedBox(height: 16),
         _buildTariffsSection(),
-        const SizedBox(height: 16),
-        _buildRentSection(),
         const SizedBox(height: 24),
         _buildSettingsSection(),
       ],
@@ -171,11 +168,11 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
                 runSpacing: 6,
                 children: [
                   _keyInfoChip(
-                    icon: Icons.home_outlined,
+                    icon: HugeIcons.strokeRoundedHome01,
                     label: info.ownerTypeLabel,
                   ),
                   _keyInfoChip(
-                    icon: Icons.person_outline,
+                    icon: HugeIcons.strokeRoundedUser,
                     label:
                         '${info.badges.driversTotal} ${_pluralDrivers(info.badges.driversTotal)}',
                   ),
@@ -184,8 +181,11 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
               const SizedBox(height: 16),
               // Status items
               _buildStatusItem(
-                icon: Icons.circle,
-                iconSize: 10,
+                iconBuilder: (c) => Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: c),
+                ),
                 label: _vehicleStatusLabel(info.status),
                 active: false,
               ),
@@ -202,17 +202,26 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
                 data: (extras) => Column(
                   children: [
                     _buildStatusItem(
-                      icon: Icons.lock_outline,
+                      iconBuilder: (c) => HugeIcon(
+                          icon: HugeIcons.strokeRoundedLock,
+                          size: 16,
+                          color: c),
                       label: 'Ограничить поездки в других парках',
                       active: extras.supplyLockActive,
                     ),
                     _buildStatusItem(
-                      icon: Icons.lock_outline,
+                      iconBuilder: (c) => HugeIcon(
+                          icon: HugeIcons.strokeRoundedLock,
+                          size: 16,
+                          color: c),
                       label: 'Запрет на поездки без ОСАГО',
                       active: extras.isPolicyRequired,
                     ),
                     _buildStatusItem(
-                      icon: Icons.autorenew,
+                      iconBuilder: (c) => HugeIcon(
+                          icon: HugeIcons.strokeRoundedRefresh,
+                          size: 16,
+                          color: c),
                       label: 'Компенсация ОСАГО',
                       active: extras.parkCompensationEnabled,
                     ),
@@ -272,9 +281,8 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
+          color: const Color(0xFF4A4A4A),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,11 +290,11 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
             Text(
               exam.title,
               style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87),
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             ...exam.descriptionLines.map(
               (line) => Padding(
                 padding: const EdgeInsets.only(bottom: 5),
@@ -294,28 +302,27 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('• ',
-                        style:
-                            TextStyle(fontSize: 13, color: Colors.black45)),
+                        style: TextStyle(
+                            fontSize: 13, color: Colors.white70)),
                     Expanded(
                       child: Text(
                         line,
                         style: const TextStyle(
-                            fontSize: 13, color: Colors.black45),
+                            fontSize: 13, color: Colors.white70),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              child: OutlinedButton(
+              child: ElevatedButton(
                 onPressed: () {},
-                style: OutlinedButton.styleFrom(
+                style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  foregroundColor: Colors.black87,
-                  side: BorderSide(color: Colors.grey.shade300),
+                  foregroundColor: Colors.black,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -330,17 +337,16 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
   }
 
   Widget _buildStatusItem({
-    required IconData icon,
+    required Widget Function(Color) iconBuilder,
     required String label,
     required bool active,
-    double iconSize = 16,
   }) {
     final color = active ? Colors.black87 : Colors.black38;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(icon, size: iconSize, color: color),
+          iconBuilder(color),
           const SizedBox(width: 10),
           Expanded(
               child:
@@ -372,7 +378,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
           if (hasArrow) ...
             const [
               SizedBox(width: 4),
-              Icon(Icons.arrow_forward, size: 14, color: Colors.white),
+              HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, size: 14, color: Colors.white),
             ],
         ],
       ),
@@ -397,7 +403,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
     }
   }
 
-  Widget _keyInfoChip({required IconData icon, required String label}) {
+  Widget _keyInfoChip({required List<List<dynamic>> icon, required String label}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -407,7 +413,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: Colors.black54),
+          HugeIcon(icon: icon, size: 14, color: Colors.black54),
           const SizedBox(width: 5),
           Text(label,
               style: const TextStyle(fontSize: 13, color: Colors.black87)),
@@ -497,7 +503,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.calendar_today_outlined, size: 14, color: Colors.black54),
+                    const HugeIcon(icon: HugeIcons.strokeRoundedCalendar03, size: 14, color: Colors.black54),
                     const SizedBox(width: 6),
                     Text(
                       '${_fmtDateDisplay(_efficiencyFrom)} — ${_fmtDateDisplay(_efficiencyTo)}',
@@ -570,37 +576,6 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
     );
   }
 
-  Widget _buildBanner() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF4A4A4A),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Подтвердите право использования и получите полный контроль над автомобилем',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black,
-            ),
-            child: const Text('Подтвердить право использования'),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildTariffsSection() {
     if (widget.vehicle == null) {
@@ -672,7 +647,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 20),
+                    icon: const HugeIcon(icon: HugeIcons.strokeRoundedPencilEdit02, size: 20, color: Colors.black87),
                     onPressed: () => _showTariffEditSheet(categories),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -719,26 +694,6 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
     );
   }
 
-  Widget _buildRentSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text('Условие аренды', style: TextStyle(fontWeight: FontWeight.bold)),
-          SizedBox(height: 4),
-          Text(
-            '7/0 3000₽ • Схема\n1000₽ • Депозит',
-            style: TextStyle(color: Colors.black87),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildSettingsSection() {
     if (widget.vehicle == null) {
@@ -784,7 +739,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
                 description: b.stickerConfirmed
                     ? null
                     : 'Мы автоматически обновим статус, когда водитель пройдет фотоконтроль',
-                icon: b.stickerConfirmed ? Icons.check_circle : Icons.warning_rounded,
+                icon: b.stickerConfirmed ? HugeIcons.strokeRoundedCheckmarkCircle01 : HugeIcons.strokeRoundedAlert01,
                 iconColor: b.stickerConfirmed ? Colors.green : Colors.orange,
                 showDelete: true,
                 onDelete: () => _showBrandingDeleteSheet('Оклейка', () {
@@ -807,7 +762,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
                 description: b.lightboxConfirmed
                     ? null
                     : 'Мы автоматически обновим статус, когда водитель пройдет фотоконтроль',
-                icon: b.lightboxConfirmed ? Icons.check_circle : Icons.warning_rounded,
+                icon: b.lightboxConfirmed ? HugeIcons.strokeRoundedCheckmarkCircle01 : HugeIcons.strokeRoundedAlert01,
                 iconColor: b.lightboxConfirmed ? Colors.green : Colors.orange,
                 showDelete: true,
                 onDelete: () => _showBrandingDeleteSheet('Lightbox', () {
@@ -840,8 +795,8 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
                     ? null
                     : 'Мы автоматически обновим статус, когда водитель пройдет фотоконтроль',
                 icon: b.digitalLightboxConfirmed
-                    ? Icons.check_circle
-                    : Icons.warning_rounded,
+                    ? HugeIcons.strokeRoundedCheckmarkCircle01
+                    : HugeIcons.strokeRoundedAlert01,
                 iconColor:
                     b.digitalLightboxConfirmed ? Colors.green : Colors.orange,
                 showDelete: true,
@@ -973,7 +928,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
     required String title,
     required String status,
     String? description,
-    required IconData icon,
+    required List<List<dynamic>> icon,
     required Color iconColor,
     bool showDelete = false,
     VoidCallback? onDelete,
@@ -990,7 +945,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
         children: [
           Row(
             children: [
-              Icon(icon, color: iconColor, size: 20),
+              HugeIcon(icon: icon, color: iconColor, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -1001,8 +956,8 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
               if (showDelete)
                 GestureDetector(
                   onTap: onDelete,
-                  child: const Icon(
-                    Icons.delete_outline,
+                  child: const HugeIcon(
+                    icon: HugeIcons.strokeRoundedDelete02,
                     size: 20,
                     color: Colors.black54,
                   ),
@@ -1049,8 +1004,10 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(disabled ? Icons.block_outlined : Icons.add,
-                    color: Colors.grey, size: 20),
+                HugeIcon(
+                    icon: disabled ? HugeIcons.strokeRoundedCancel01 : HugeIcons.strokeRoundedAdd01,
+                    color: Colors.grey,
+                    size: 20),
                 const SizedBox(width: 8),
                 Text(
                   title,
@@ -1110,7 +1067,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
                       color: Colors.grey.shade100,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.close, size: 18),
+                    child: const HugeIcon(icon: HugeIcons.strokeRoundedCancel01, size: 18, color: Colors.black87),
                   ),
                 ),
               ],
@@ -1203,7 +1160,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
         children: [
           Row(
             children: [
-              const Icon(Icons.warning_rounded, color: Colors.orange, size: 20),
+              const HugeIcon(icon: HugeIcons.strokeRoundedAlert01, color: Colors.orange, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -1211,9 +1168,9 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
-              const Icon(Icons.edit_outlined, size: 20, color: Colors.black54),
+              const HugeIcon(icon: HugeIcons.strokeRoundedPencilEdit02, size: 20, color: Colors.black54),
               const SizedBox(width: 8),
-              const Icon(Icons.delete_outline, size: 20, color: Colors.black54),
+              const HugeIcon(icon: HugeIcons.strokeRoundedDelete02, size: 20, color: Colors.black54),
             ],
           ),
           const SizedBox(height: 8),
@@ -1387,7 +1344,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
               ),
               if (onEdit != null)
                 IconButton(
-                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  icon: const HugeIcon(icon: HugeIcons.strokeRoundedPencilEdit02, size: 20, color: Colors.black87),
                   onPressed: onEdit,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -1513,7 +1470,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
                   ),
                 ),
               ),
-              const Icon(Icons.open_in_new, size: 18, color: Colors.blue),
+              const HugeIcon(icon: HugeIcons.strokeRoundedLink01, size: 18, color: Colors.blue),
             ],
           ),
           const SizedBox(height: 12),
@@ -1641,7 +1598,7 @@ class _ChangelogSheetContentState
                     color: Colors.grey.shade100,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.close, size: 20),
+                  child: const HugeIcon(icon: HugeIcons.strokeRoundedCancel01, size: 20, color: Colors.black87),
                 ),
               ),
             ],
@@ -1709,10 +1666,11 @@ class _ChangelogSheetContentState
                                     ],
                                   ),
                                 ),
-                                Icon(
-                                  isOpen
-                                      ? Icons.keyboard_arrow_up
-                                      : Icons.keyboard_arrow_down,
+                                HugeIcon(
+                                  icon: isOpen
+                                      ? HugeIcons.strokeRoundedArrowUp01
+                                      : HugeIcons.strokeRoundedArrowDown01,
+                                  size: 20,
                                   color: Colors.black54,
                                 ),
                               ],
