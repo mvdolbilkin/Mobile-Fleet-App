@@ -54,6 +54,8 @@ dependencies:
   url_launcher: ^6.2.5
   flutter_markdown: ^0.7.7+1
   yandex_maps_mapkit: 4.25.0-beta
+  flutter_localizations:
+    sdk: flutter
 
 dev_dependencies:
   flutter_test:

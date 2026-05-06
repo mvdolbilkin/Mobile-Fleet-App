@@ -4,6 +4,7 @@ import 'package:mobile/shared/widgets/fading_button.dart';
 import 'package:mobile/features/staff/staff_list_screen.dart';
 import 'package:mobile/features/mailings/mailings_screen.dart';
 import 'package:mobile/features/competitions/competitions_screen.dart';
+import 'package:mobile/features/work_rules/work_rules_screen.dart';
 
 class StaffScreen extends StatelessWidget {
   const StaffScreen({Key? key}) : super(key: key);
@@ -49,9 +50,8 @@ class StaffScreen extends StatelessWidget {
                 title: 'Условия работы',
                 subtitle: 'Тарифы и графики',
                 icon: HugeIcons.strokeRoundedSettings02,
-                onTap: () {
-                  // TODO: Navigate to work conditions
-                },
+                onTap: () => Navigator.of(context, rootNavigator: true)
+                    .push(MaterialPageRoute(builder: (_) => const WorkRulesScreen())),
               ),
               const _RowDivider(),
               _MenuRow(

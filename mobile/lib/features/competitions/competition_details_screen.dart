@@ -79,20 +79,20 @@ class CompetitionDetailsScreen extends ConsumerWidget {
                       label: 'Тип',
                       value: details.specification == 'delivery' ? 'Доставка' : details.specification,
                     ),
-                    if (details.geoareasList.isNotEmpty) ...[
+                    if (details.geoareasList != null && details.geoareasList!.isNotEmpty) ...[
                       const Divider(height: 24),
                       _InfoRow(
                         icon: Icons.location_on_outlined,
                         label: 'Регионы',
-                        value: details.geoareasList.map((e) => e.localizedName).join(', '),
+                        value: details.geoareasList!.map((e) => e.localizedName).join(', '),
                       ),
                     ],
-                    if (details.professionsList.isNotEmpty) ...[
+                    if (details.professionsList != null && details.professionsList!.isNotEmpty) ...[
                       const Divider(height: 24),
                       _InfoRow(
                         icon: Icons.work_outline,
                         label: 'Профессии',
-                        value: details.professionsList.map((e) => e.localizedName).join(', '),
+                        value: details.professionsList!.map((e) => e.localizedName).join(', '),
                       ),
                     ],
                   ],

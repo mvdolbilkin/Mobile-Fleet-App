@@ -187,6 +187,10 @@ func workRulesProxy(c *gin.Context) {
 	proxyToYandex(c, "https://fleet.yandex.ru/api/fleet/driver-work-rules/v1/work-rules/light-list", http.MethodPost)
 }
 
+func driverGpsProxy(c *gin.Context) {
+	proxyToYandex(c, "https://fleet.yandex.ru/api/fleet/map/v1/driver/gps", http.MethodPost)
+}
+
 // ─── Роутинг ─────────────────────────────────────────────────────────────────
 
 func RegisterRoutes(r *gin.Engine) {
@@ -196,6 +200,7 @@ func RegisterRoutes(r *gin.Engine) {
 		g.POST("/drivers/list", driverListProxy)
 		g.GET("/driver/item", driverItemProxy)
 		g.GET("/driver/status-history", driverStatusHistoryProxy)
+		g.POST("/driver/gps", driverGpsProxy)
 		g.POST("/surge", surgeProxy)
 		g.POST("/work-rules", workRulesProxy)
 	}

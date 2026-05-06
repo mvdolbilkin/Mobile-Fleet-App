@@ -43,6 +43,10 @@ func RegisterRoutes(r *gin.Engine) {
 		staffGroup.POST("/mailings", handler.SendMailing)
 		staffGroup.POST("/contractors/count", handler.GetContractorsCount)
 		staffGroup.POST("/bulk/mailing", handler.BulkMailing)
+
+		staffGroup.POST("/transactions/list", handler.GetTransactionsList)
+		staffGroup.POST("/transactions/balances", handler.GetTransactionsBalances)
+		staffGroup.POST("/balances/history", handler.GetBalancesHistory)
 	}
 }
 
@@ -501,6 +505,63 @@ func (h *Handler) SendMailing(c *gin.Context) {
 	}
 
 	result, err := h.service.SendMailing(cookieHeader, parkID, reqBody)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetTransactionsList(c *gin.Context) {
+	var reqBody map[string]interface{}
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверное тело запроса: " + err.Error()})
+		return
+	}
+
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	result, err := h.service.GetTransactionsListRaw(cookieHeader, parkID, reqBody)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetTransactionsBalances(c *gin.Context) {
+	var reqBody map[string]interface{}
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверное тело запроса: " + err.Error()})
+		return
+	}
+
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	result, err := h.service.GetTransactionsBalancesRaw(cookieHeader, parkID, reqBody)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetBalancesHistory(c *gin.Context) {
+	var reqBody map[string]interface{}
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверное тело запроса: " + err.Error()})
+		return
+	}
+
+	cookieHeader := c.GetHeader("Cookie")
+	parkID := c.GetHeader("X-Park-ID")
+
+	result, err := h.service.GetBalancesHistoryRaw(cookieHeader, parkID, reqBody)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
