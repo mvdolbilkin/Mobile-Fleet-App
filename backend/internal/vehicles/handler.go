@@ -26,6 +26,13 @@ const yandexFleetVehicleStatusSingleURL = "https://fleet.yandex.ru/api/fleet/veh
 const yandexFleetRegularChargesListURL = "https://fleet.yandex.ru/api/api/v1/regular-charges/list"
 const yandexFleetOsagoCompensationURL = "https://fleet.yandex.ru/api/fleet/fleet-operations/v1/fleet-vehicles-rent/policy/park-compensation"
 const yandexFleetOfficeAddressesURL = "https://fleet.yandex.ru/api/fleet/hiring-taxiparks-gambling/v1/office-address/list"
+const yandexFleetCarEfficiencyURL = "https://fleet.yandex.ru/api/fleet/fleet-reports/v1/summary/cars/efficiency"
+const yandexFleetVehicleBrandingURL = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/vehicles/branding"
+const yandexFleetChildChairsURL = "https://fleet.yandex.ru/api/fleet/contractor-options/v2/child-chairs"
+const yandexFleetVehicleKeyInfoURL = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/vehicles/key-info"
+const yandexFleetVehicleChangelogURL = "https://fleet.yandex.ru/api/fleet/fleet-changelog/v1/vehicle/changes/list"
+const yandexFleetOsagoPropertiesURL = "https://fleet.yandex.ru/api/fleet/contractor-insurance/e-osago/v1/properties/by-car/fetch/bulk"
+const yandexFleetSupplyLockURL = "https://fleet.yandex.ru/api/fleet/fleet-vehicles-rent/v2/supply-lock"
 
 // ─── Middleware: проверка auth + получение сессии ────────────────────────────
 
@@ -235,6 +242,73 @@ func listOfficeAddressesProxy(c *gin.Context) {
 	proxyToYandex(c, yandexFleetOfficeAddressesURL, http.MethodPost, withJSONContentType())
 }
 
+func getVehicleEfficiencyProxy(c *gin.Context) {
+	vehicleID := c.Query("vehicle_id")
+	if vehicleID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
+		return
+	}
+	proxyToYandex(c, yandexFleetCarEfficiencyURL+"?car_id="+vehicleID, http.MethodPost, withJSONContentType())
+}
+
+func getVehicleBrandingProxy(c *gin.Context) {
+	vehicleID := c.Query("vehicle_id")
+	if vehicleID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
+		return
+	}
+	proxyToYandex(c, yandexFleetVehicleBrandingURL+"?vehicle_id="+vehicleID, http.MethodGet)
+}
+
+func updateVehicleBrandingProxy(c *gin.Context) {
+	vehicleID := c.Query("vehicle_id")
+	if vehicleID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
+		return
+	}
+	proxyToYandex(c, yandexFleetVehicleBrandingURL+"?vehicle_id="+vehicleID, http.MethodPost, withJSONContentType())
+}
+
+func getChildChairsProxy(c *gin.Context) {
+	vehicleID := c.Query("vehicle_id")
+	if vehicleID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
+		return
+	}
+	proxyToYandex(c, yandexFleetChildChairsURL+"?vehicle_id="+vehicleID, http.MethodGet)
+}
+
+func getVehicleKeyInfoProxy(c *gin.Context) {
+	vehicleID := c.Query("vehicle_id")
+	if vehicleID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
+		return
+	}
+	proxyToYandex(c, yandexFleetVehicleKeyInfoURL+"?vehicle_id="+vehicleID, http.MethodGet)
+}
+
+func getVehicleChangelogProxy(c *gin.Context) {
+	vehicleID := c.Query("vehicle_id")
+	if vehicleID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
+		return
+	}
+	proxyToYandex(c, yandexFleetVehicleChangelogURL+"?object_id="+vehicleID, http.MethodPost, withJSONContentType())
+}
+
+func getOsagoPropertiesProxy(c *gin.Context) {
+	proxyToYandex(c, yandexFleetOsagoPropertiesURL, http.MethodPost, withJSONContentType())
+}
+
+func getSupplyLockProxy(c *gin.Context) {
+	carID := c.Query("car_id")
+	if carID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing car_id query parameter"})
+		return
+	}
+	proxyToYandex(c, yandexFleetSupplyLockURL+"?car_id="+carID, http.MethodGet)
+}
+
 // ─── Роутинг ────────────────────────────────────────────────────────────────
 
 // RegisterRoutes registers the vehicle routes onto the provided gin.Engine
@@ -257,5 +331,13 @@ func RegisterRoutes(r *gin.Engine) {
 		g.POST("/regular-charges", listRegularChargesProxy)
 		g.POST("/osago-compensation", updateOsagoCompensationProxy)
 		g.POST("/office-addresses", listOfficeAddressesProxy)
+		g.POST("/efficiency", getVehicleEfficiencyProxy)
+		g.GET("/branding", getVehicleBrandingProxy)
+		g.POST("/branding", updateVehicleBrandingProxy)
+		g.GET("/child-chairs", getChildChairsProxy)
+		g.GET("/key-info", getVehicleKeyInfoProxy)
+		g.POST("/changelog", getVehicleChangelogProxy)
+		g.POST("/osago-properties", getOsagoPropertiesProxy)
+		g.GET("/supply-lock", getSupplyLockProxy)
 	}
 }

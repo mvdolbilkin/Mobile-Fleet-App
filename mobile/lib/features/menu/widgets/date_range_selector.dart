@@ -39,76 +39,86 @@ class DateRangeSelector extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dateRange = ref.watch(dateRangeProvider);
 
+    final rangeText = _getDateRangeText(dateRange.startDate, dateRange.endDate);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.borderColor,
-          width: 1,
-        ),
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: InkWell(
-        onTap: () async {
-          final result = await CustomDateRangePickerBottomSheet.show(
-            context: context,
-            title: 'Выберите период',
-            startDate: dateRange.startDate,
-            endDate: dateRange.endDate,
-          );
-
-          if (result != null) {
-            ref.read(dateRangeProvider.notifier).updateDateRange(
-                  result.start,
-                  result.end,
-                );
-          }
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.buttonColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.calendar_today,
-                color: AppTheme.textPrimary,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Период данных',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textSecondary,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () async {
+            final result = await CustomDateRangePickerBottomSheet.show(
+              context: context,
+              title: 'Выберите период',
+              startDate: dateRange.startDate,
+              endDate: dateRange.endDate,
+            );
+            if (result != null) {
+              ref.read(dateRangeProvider.notifier).updateDateRange(
+                    result.start,
+                    result.end,
+                  );
+            }
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppTheme.buttonColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.calendar_today_rounded,
+                    color: Colors.black,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Период данных',
+                        style: TextStyle(
+                          fontFamily: 'Yandex Sans Text',
+                          fontSize: 11,
                           fontWeight: FontWeight.w500,
+                          color: AppTheme.textSecondary,
+                          letterSpacing: 0.1,
                         ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _getDateRangeText(dateRange.startDate, dateRange.endDate),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        rangeText,
+                        style: const TextStyle(
+                          fontFamily: 'Yandex Sans Text',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
                           color: AppTheme.textPrimary,
+                          letterSpacing: -0.2,
                         ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppTheme.textSecondary,
+                  size: 20,
+                ),
+              ],
             ),
-            Icon(
-              Icons.chevron_right,
-              color: AppTheme.textSecondary.withOpacity(0.5),
-            ),
-          ],
+          ),
         ),
       ),
     );

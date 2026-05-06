@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	"backend/internal/session"
@@ -103,21 +104,65 @@ func proxyToYandex(c *gin.Context, targetURL string, method string) {
 func driverPointsProxy(c *gin.Context) {
 	s := getSession(c)
 
-	body := map[string]interface{}{
-		"park_id": s.ParkID,
-		"car":     map[string]interface{}{},
-		"sort": map[string]interface{}{
+	var bodyBytes []byte
+	if c.Request.Body != nil {
+		bodyBytes, _ = io.ReadAll(c.Request.Body)
+	}
+
+	var body map[string]interface{}
+	if len(bodyBytes) > 0 {
+		json.Unmarshal(bodyBytes, &body)
+	}
+	if body == nil {
+		body = make(map[string]interface{})
+	}
+
+	body["park_id"] = s.ParkID
+	if _, ok := body["car"]; !ok {
+		body["car"] = map[string]interface{}{}
+	}
+	if _, ok := body["sort"]; !ok {
+		body["sort"] = map[string]interface{}{
 			"field":     "status_duration",
 			"direction": "desc",
-		},
+		}
 	}
-	jsonBody, _ := json.Marshal(body)
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBody))
 
+	jsonBody, _ := json.Marshal(body)
+	log.Printf("[driverPointsProxy] payload: %s", string(jsonBody))
+
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBody))
 	proxyToYandex(c, yandexMapDriversPointsURL, http.MethodPost)
 }
 
 func driverListProxy(c *gin.Context) {
+	s := getSession(c)
+
+	var bodyBytes []byte
+	if c.Request.Body != nil {
+		bodyBytes, _ = io.ReadAll(c.Request.Body)
+	}
+
+	var body map[string]interface{}
+	if len(bodyBytes) > 0 {
+		json.Unmarshal(bodyBytes, &body)
+	}
+	if body == nil {
+		body = make(map[string]interface{})
+	}
+
+	body["park_id"] = s.ParkID
+
+	if _, ok := body["sort"]; !ok {
+		body["sort"] = map[string]interface{}{
+			"field":     "status_duration",
+			"direction": "desc",
+		}
+	}
+
+	jsonBody, _ := json.Marshal(body)
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBody))
+
 	proxyToYandex(c, yandexMapDriversListURL, http.MethodPost)
 }
 
@@ -138,6 +183,10 @@ func surgeProxy(c *gin.Context) {
 	proxyToYandex(c, "https://fleet.yandex.ru/api/fleet/map/v1/surge", http.MethodPost)
 }
 
+func workRulesProxy(c *gin.Context) {
+	proxyToYandex(c, "https://fleet.yandex.ru/api/fleet/driver-work-rules/v1/work-rules/light-list", http.MethodPost)
+}
+
 func driverGpsProxy(c *gin.Context) {
 	proxyToYandex(c, "https://fleet.yandex.ru/api/fleet/map/v1/driver/gps", http.MethodPost)
 }
@@ -153,5 +202,6 @@ func RegisterRoutes(r *gin.Engine) {
 		g.GET("/driver/status-history", driverStatusHistoryProxy)
 		g.POST("/driver/gps", driverGpsProxy)
 		g.POST("/surge", surgeProxy)
+		g.POST("/work-rules", workRulesProxy)
 	}
 }
