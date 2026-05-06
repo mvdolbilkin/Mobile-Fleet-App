@@ -2,15 +2,17 @@ package main
 
 import (
 	"backend/internal/auth"
+	"backend/internal/competitions"
 	"backend/internal/expenses"
 	"backend/internal/fines"
 	"backend/internal/fleetmap"
 	"backend/internal/garage"
 	"backend/internal/goals"
+	"backend/internal/mailings"
 	"backend/internal/menu"
-	"backend/internal/summary"
 	"backend/internal/session"
 	"backend/internal/staff"
+	"backend/internal/summary"
 	"backend/internal/vehicles"
 	"net/http"
 	"os"
@@ -29,7 +31,7 @@ func main() {
 
 	// Register auth routes
 	auth.RegisterRoutes(r)
-	
+
 	// Register staff routes
 	staff.RegisterRoutes(r)
 
@@ -56,6 +58,12 @@ func main() {
 
 	// Register map routes
 	fleetmap.RegisterRoutes(r)
+
+	// Register mailings routes
+	mailings.RegisterRoutes(r)
+
+	// Register competitions routes
+	competitions.RegisterRoutes(r)
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
