@@ -132,16 +132,16 @@ class MainWrapper extends ConsumerWidget {
               ),
               NavigationDestination(
                 icon: _buildTabItem(
-                  'assets/images/analytics.svg',
-                  'Аналитика',
+                  'assets/images/reports.svg',
+                  'Отчёты',
                   AppTheme.textSecondary,
                 ),
                 selectedIcon: _buildTabItem(
-                  'assets/images/analytics.svg',
-                  'Аналитика',
+                  'assets/images/reports.svg',
+                  'Отчёты',
                   Colors.black,
                 ),
-                label: 'Аналитика',
+                label: 'Отчёты',
               ),
               NavigationDestination(
                 icon: _buildTabItem(

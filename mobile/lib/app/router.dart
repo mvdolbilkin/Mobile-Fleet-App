@@ -5,7 +5,7 @@ import 'package:mobile/app/main_wrapper.dart';
 import 'package:mobile/features/fleet/fleet_screen.dart';
 import 'package:mobile/features/staff/staff_screen.dart';
 import 'package:mobile/features/map/map_screen.dart';
-import 'package:mobile/features/analytics/analytics_screen.dart';
+import 'package:mobile/features/reports/reports_screen.dart';
 import 'package:mobile/features/menu/menu_screen.dart';
 import 'package:mobile/features/summary/summary_screen.dart';
 import 'package:mobile/features/goals/goals_screen.dart';
@@ -61,12 +61,12 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Ветка Аналитика
+          // Ветка Отчёты
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/analytics',
-                builder: (context, state) => const AnalyticsScreen(),
+                path: '/reports',
+                builder: (context, state) => const ReportsScreen(),
               ),
             ],
           ),
