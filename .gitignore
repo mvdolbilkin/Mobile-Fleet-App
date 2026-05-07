@@ -98,3 +98,5 @@ app.*.map.json
 
 # Env
 .env
+
+mobile/.claude

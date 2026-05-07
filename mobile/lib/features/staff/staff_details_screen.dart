@@ -7,7 +7,7 @@ import 'package:mobile/features/staff/widgets/status_badge.dart';
 import 'package:mobile/features/staff/widgets/transaction_bottom_sheet.dart';
 import 'package:mobile/features/staff/widgets/vehicle_selector_bottom_sheet.dart';
 import 'package:mobile/shared/widgets/fading_button.dart';
-import 'package:mobile/shared/widgets/info_block.dart';
+import 'package:mobile/shared/widgets/pulse_box.dart';
 import 'package:mobile/shared/widgets/info_card.dart';
 import 'package:mobile/shared/widgets/badge.dart';
 import 'package:mobile/shared/widgets/custom_date_range_picker_bottom_sheet.dart';
@@ -96,6 +96,8 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen>
           labelColor: Colors.black,
           unselectedLabelColor: Colors.grey,
           indicatorColor: Colors.black,
+          labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w400, fontSize: 14),
           tabs: const [
             Tab(text: 'Главное'),
             Tab(text: 'Детали'),
@@ -1064,49 +1066,86 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen>
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  children: [
-                    InfoBlock(
-                      title: 'ТЕЛЕФОН',
-                      value: displayStaff.phoneNumber,
-                      icon: Icons.phone_outlined,
-                    ),
-                    const SizedBox(height: 8),
-                    InfoBlock(
-                      title: 'EMAIL',
-                      value: displayStaff.email.isNotEmpty
-                          ? displayStaff.email
-                          : 'Не указан',
-                      icon: Icons.email_outlined,
-                    ),
-                  ],
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.backgroundColor,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                _buildContactRow(
+                  icon: Icons.phone_outlined,
+                  label: 'Телефон',
+                  value: displayStaff.phoneNumber,
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  children: [
-                    InfoBlock(
-                      title: 'ID',
-                      value: displayStaff.id,
-                      icon: Icons.badge_outlined,
-                    ),
-                    const SizedBox(height: 8),
-                    InfoBlock(
-                      title: 'ИНН',
-                      value: displayStaff.taxNumber.isNotEmpty
-                          ? displayStaff.taxNumber
-                          : 'Не указан',
-                      icon: Icons.receipt_long_outlined,
-                    ),
-                  ],
+                const Divider(height: 1, indent: 44),
+                _buildContactRow(
+                  icon: Icons.email_outlined,
+                  label: 'Email',
+                  value: displayStaff.email.isNotEmpty
+                      ? displayStaff.email
+                      : 'Не указан',
                 ),
-              ),
-            ],
+                const Divider(height: 1, indent: 44),
+                _buildContactRow(
+                  icon: Icons.badge_outlined,
+                  label: 'ID',
+                  value: displayStaff.id,
+                ),
+                const Divider(height: 1, indent: 44),
+                _buildContactRow(
+                  icon: Icons.receipt_long_outlined,
+                  label: 'ИНН',
+                  value: displayStaff.taxNumber.isNotEmpty
+                      ? displayStaff.taxNumber
+                      : 'Не указан',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContactRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppTheme.textSecondary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                    fontFamily: 'Yandex Sans Text',
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'Yandex Sans Text',
+                    color: AppTheme.textPrimary,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1176,8 +1215,14 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen>
               ),
             ),
             const SizedBox(width: 12),
-            const Expanded(
-              child: _StatCard(title: 'Бонусы', value: 'Нет активных бонусов'),
+            Expanded(
+              child: _StatCard(
+                title: 'Бонусы',
+                value: 'Нет активных бонусов',
+                valueFontSize: 15,
+                valueFontWeight: FontWeight.w400,
+                valueColor: AppTheme.textSecondary,
+              ),
             ),
           ],
         ),
@@ -1193,6 +1238,9 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen>
                     : 'Нет комментария',
                 subtitle: 'Заметка об исполнителе',
                 isEditable: false,
+                valueFontSize: 14,
+                valueFontWeight: FontWeight.w400,
+                valueColor: AppTheme.textSecondary,
               ),
             ),
             const SizedBox(width: 12),
@@ -1215,6 +1263,7 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen>
                   );
                 },
                 valueFontSize: 13,
+                valueFontWeight: FontWeight.w400,
                 valueColor: AppTheme.textSecondary,
               ),
             ),
@@ -1292,37 +1341,47 @@ class _StaffDetailsScreenState extends ConsumerState<StaffDetailsScreen>
           ],
         ),
         const SizedBox(height: 12),
-        Row(
+        Column(
           children: [
-            Expanded(
-              child: _IndicatorCard(
-                title: 'Доход в Про',
-                value: ordersAsync.isLoading
-                    ? '...'
-                    : '${totalIncome.toInt()} ₽',
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: _IndicatorCard(
+                    title: 'Доход в Про',
+                    value: '${totalIncome.toInt()} ₽',
+                    isLoading: ordersAsync.isLoading,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _IndicatorCard(
+                    title: 'Заказы',
+                    value: '$totalOrders',
+                    isLoading: ordersAsync.isLoading,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _IndicatorCard(
-                title: 'Заказы',
-                value: ordersAsync.isLoading ? '...' : '$totalOrders',
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _IndicatorCard(
-                title: 'Отмененные',
-                value: ordersAsync.isLoading ? '...' : '$cancelledOrders',
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _IndicatorCard(
-                title: 'Время на линии',
-                value:
-                    '${(workTimeSeconds / 3600).floor()} ч\n${((workTimeSeconds % 3600) / 60).floor()} мин',
-              ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _IndicatorCard(
+                    title: 'Отмененные',
+                    value: '$cancelledOrders',
+                    isLoading: ordersAsync.isLoading,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _IndicatorCard(
+                    title: 'Время на линии',
+                    value:
+                        '${(workTimeSeconds / 3600).floor()} ч ${((workTimeSeconds % 3600) / 60).floor()} мин',
+                    isLoading: ordersAsync.isLoading,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -2010,6 +2069,7 @@ class _StatCard extends StatelessWidget {
   final bool isEditable;
   final VoidCallback? onEditTap;
   final double valueFontSize;
+  final FontWeight valueFontWeight;
   final Color valueColor;
 
   const _StatCard({
@@ -2022,6 +2082,7 @@ class _StatCard extends StatelessWidget {
     this.isEditable = false,
     this.onEditTap,
     this.valueFontSize = 20,
+    this.valueFontWeight = FontWeight.w600,
     this.valueColor = AppTheme.textPrimary,
   });
 
@@ -2127,7 +2188,7 @@ class _StatCard extends StatelessWidget {
             value,
             style: TextStyle(
               fontSize: valueFontSize,
-              fontWeight: FontWeight.w600,
+              fontWeight: valueFontWeight,
               fontFamily: 'Yandex Sans Text',
               color: valueColor,
               height: 1.3,
@@ -2142,8 +2203,13 @@ class _StatCard extends StatelessWidget {
 class _IndicatorCard extends StatelessWidget {
   final String title;
   final String value;
+  final bool isLoading;
 
-  const _IndicatorCard({required this.title, required this.value});
+  const _IndicatorCard({
+    required this.title,
+    required this.value,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2180,14 +2246,17 @@ class _IndicatorCard extends StatelessWidget {
               ),
             ],
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              fontFamily: 'Yandex Sans Text',
+          if (isLoading)
+            const PulseBox(height: 22, width: 72, borderRadius: 6)
+          else
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'Yandex Sans Text',
+              ),
             ),
-          ),
         ],
       ),
     );

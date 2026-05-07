@@ -260,54 +260,7 @@ func (h *Handler) GetProfile(c *gin.Context) {
 }
 
 func (h *Handler) GetActiveDrivers(c *gin.Context) {
-	// Пробуем оба варианта регистра для cookie
-	cookieHeader := c.GetHeader("Cookie")
-	if cookieHeader == "" {
-		cookieHeader = c.GetHeader("cookie")
-	}
-	
-	// Пробуем оба варианта для park-id
-	parkID := c.GetHeader("X-Park-ID")
-	if parkID == "" {
-		parkID = c.GetHeader("x-park-id")
-	}
-
-	// Логируем полученные заголовки для отладки
-	cookiePreview := cookieHeader
-	if len(cookiePreview) > 200 {
-		cookiePreview = cookiePreview[:200] + "..."
-	}
-	fmt.Printf("GetActiveDrivers Headers - Cookie length: %d, Preview: %s, Park-ID: %s\n",
-		len(cookieHeader), cookiePreview, parkID)
-	
-	// Проверяем наличие Session_id в cookies
-	hasSessionId := false
-	if len(cookieHeader) > 0 {
-		hasSessionId = contains(cookieHeader, "Session_id=")
-	}
-	fmt.Printf("Has Session_id: %v\n", hasSessionId)
-
-	if cookieHeader == "" && parkID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
-		return
-	}
-
-	var reqBody struct {
-		DateFrom string `json:"date_from"`
-		DateTo   string `json:"date_to"`
-	}
-	if err := c.ShouldBindJSON(&reqBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
-		return
-	}
-
-	data, err := h.service.GetActiveDrivers(cookieHeader, parkID, reqBody.DateFrom, reqBody.DateTo)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, data)
+	proxyToYandex(c, yandexFleetActiveDriversURL, http.MethodPost, withJSONContentType())
 }
 
 func contains(s, substr string) bool {
@@ -327,6 +280,13 @@ const yandexPaymentTransactionsCountURL = "https://fleet.yandex.ru/api/fleet/fle
 const yandexPaymentTransactionsStatusesURL = "https://fleet.yandex.ru/api/fleet/fleet-payment-systems/v1/dashboard/widget/transactions/statuses"
 const yandexPaymentTransactionsListURL = "https://fleet.yandex.ru/api/fleet/fleet-payment-systems/v3/transactions/list"
 const yandexPaymentTransactionByIdURL = "https://fleet.yandex.ru/api/fleet/fleet-payment-systems/v2/transactions/by-id"
+
+const yandexFleetActiveDriversURL = "https://fleet.yandex.ru/api/fleet/fleet-dashboard/v3/widget/active-drivers"
+const yandexFleetOrdersURL = "https://fleet.yandex.ru/api/fleet/fleet-dashboard/v3/widget/orders"
+const yandexFleetSupplyHoursURL = "https://fleet.yandex.ru/api/fleet/fleet-dashboard/v3/widget/supply-hours"
+const yandexFleetProfitURL = "https://fleet.yandex.ru/api/fleet/fleet-dashboard/v3/widget/profit"
+const yandexFleetOrdersSumURL = "https://fleet.yandex.ru/api/fleet/fleet-dashboard/v3/widget/orders-sum"
+const yandexFleetCertificationURL = "https://fleet.yandex.ru/api/fleet/fleet-dashboard/v1/widget/certification"
 
 // ─── proxyToYandex: универсальный прокси ────────────────────────────────────
 
@@ -872,6 +832,26 @@ func (h *Handler) GetPaymentTransactionsList(c *gin.Context) {
 	proxyToYandex(c, yandexPaymentTransactionsListURL, http.MethodPost, withJSONContentType())
 }
 
+func (h *Handler) GetOrders(c *gin.Context) {
+	proxyToYandex(c, yandexFleetOrdersURL, http.MethodPost, withJSONContentType())
+}
+
+func (h *Handler) GetSupplyHours(c *gin.Context) {
+	proxyToYandex(c, yandexFleetSupplyHoursURL, http.MethodPost, withJSONContentType())
+}
+
+func (h *Handler) GetProfit(c *gin.Context) {
+	proxyToYandex(c, yandexFleetProfitURL, http.MethodPost, withJSONContentType())
+}
+
+func (h *Handler) GetOrdersSum(c *gin.Context) {
+	proxyToYandex(c, yandexFleetOrdersSumURL, http.MethodPost, withJSONContentType())
+}
+
+func (h *Handler) GetCertification(c *gin.Context) {
+	proxyToYandex(c, yandexFleetCertificationURL, http.MethodGet)
+}
+
 func (h *Handler) GetPaymentTransactionById(c *gin.Context) {
 	transactionType := c.Query("transaction_type")
 	transactionId := c.Query("transaction_id")
@@ -888,6 +868,11 @@ func RegisterRoutes(r *gin.Engine) {
 	{
 		summaryGroup.GET("/profile", handler.GetProfile)
 		summaryGroup.POST("/active-drivers", handler.GetActiveDrivers)
+		summaryGroup.POST("/orders", handler.GetOrders)
+		summaryGroup.POST("/supply-hours", handler.GetSupplyHours)
+		summaryGroup.POST("/profit", handler.GetProfit)
+		summaryGroup.POST("/orders-sum", handler.GetOrdersSum)
+		summaryGroup.GET("/certification", handler.GetCertification)
 	}
 
 	// Fleet reports routes
