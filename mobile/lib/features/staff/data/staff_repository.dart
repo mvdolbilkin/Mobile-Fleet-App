@@ -184,6 +184,71 @@ final driverTransactionsProvider =
       );
     });
 
+class AttractionReportParams {
+  final DateTime from;
+  final DateTime to;
+
+  const AttractionReportParams({required this.from, required this.to});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AttractionReportParams &&
+          runtimeType == other.runtimeType &&
+          from == other.from &&
+          to == other.to;
+
+  @override
+  int get hashCode => from.hashCode ^ to.hashCode;
+}
+
+final attractionReportProvider =
+    FutureProvider.family<Map<String, dynamic>, AttractionReportParams>((
+      ref,
+      params,
+    ) async {
+      final repository = ref.watch(staffRepositoryProvider);
+      return await repository.fetchAttractionReport(
+        from: params.from,
+        to: params.to,
+      );
+    });
+
+class AttractionSourceReportParams {
+  final DateTime from;
+  final DateTime to;
+  final String sourceId;
+
+  const AttractionSourceReportParams({
+    required this.from,
+    required this.to,
+    required this.sourceId,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AttractionSourceReportParams &&
+          runtimeType == other.runtimeType &&
+          from == other.from &&
+          to == other.to &&
+          sourceId == other.sourceId;
+
+  @override
+  int get hashCode => from.hashCode ^ to.hashCode ^ sourceId.hashCode;
+}
+
+final attractionSourceReportProvider = FutureProvider.family<
+    Map<String, dynamic>,
+    AttractionSourceReportParams>((ref, params) async {
+  final repository = ref.watch(staffRepositoryProvider);
+  return await repository.fetchAttractionSourceReport(
+    from: params.from,
+    to: params.to,
+    sourceId: params.sourceId,
+  );
+});
+
 final driverBalancesProvider =
     FutureProvider.family<Map<String, dynamic>, DriverTransactionsParams>((
       ref,
@@ -636,6 +701,51 @@ class StaffRepository {
       return response.data ?? {};
     } catch (e) {
       throw Exception('Failed to load GPS data: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchAttractionReport({
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/api/staff/attraction/report',
+        data: {
+          "date_period": {
+            "from": from.toIso8601String().split('T')[0],
+            "to": to.toIso8601String().split('T')[0],
+          }
+        },
+      );
+      return response.data ?? {};
+    } catch (e) {
+      throw Exception('Failed to load attraction report: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchAttractionSourceReport({
+    required DateTime from,
+    required DateTime to,
+    required String sourceId,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/api/staff/attraction/report/source',
+        data: {
+          "date_period": {
+            "from": from.toIso8601String().split('T')[0],
+            "to": to.toIso8601String().split('T')[0],
+          },
+          "source_id": sourceId,
+        },
+      );
+      return response.data ?? {};
+    } catch (e) {
+      if (e is DioException) {
+        print('DioError in fetchAttractionSourceReport: ${e.response?.data}');
+      }
+      throw Exception('Failed to load attraction source report: $e');
     }
   }
 }

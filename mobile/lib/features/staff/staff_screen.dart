@@ -5,6 +5,7 @@ import 'package:mobile/features/staff/staff_list_screen.dart';
 import 'package:mobile/features/mailings/mailings_screen.dart';
 import 'package:mobile/features/competitions/competitions_screen.dart';
 import 'package:mobile/features/work_rules/work_rules_screen.dart';
+import 'package:mobile/features/staff/attraction_report_screen.dart';
 
 class StaffScreen extends StatelessWidget {
   const StaffScreen({Key? key}) : super(key: key);
@@ -58,9 +59,8 @@ class StaffScreen extends StatelessWidget {
                 title: 'Отчет по привлечению',
                 subtitle: 'Статистика и показатели',
                 icon: HugeIcons.strokeRoundedAnalytics02,
-                onTap: () {
-                  // TODO: Navigate to recruitment report
-                },
+                onTap: () => Navigator.of(context, rootNavigator: true)
+                    .push(MaterialPageRoute(builder: (_) => const AttractionReportScreen())),
               ),
             ],
           ),

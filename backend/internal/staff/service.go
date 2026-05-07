@@ -900,3 +900,97 @@ func (s *Service) GetBalancesHistoryRaw(cookieHeader string, parkID string, reqB
 
 	return result, nil
 }
+
+func (s *Service) GetAttractionReportRaw(cookieHeader string, parkID string, reqBody map[string]interface{}) (interface{}, error) {
+	url := "https://fleet.yandex.ru/api/fleet/fleet-leads-crm/v1/reports/life-time-value/report"
+
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept-Language", "ru")
+	if cookieHeader != "" {
+		req.Header.Set("Cookie", cookieHeader)
+	}
+	if parkID != "" {
+		req.Header.Set("X-Park-ID", parkID)
+	}
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка чтения ответа: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
+	}
+
+	var result interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
+	}
+
+	return result, nil
+}
+
+func (s *Service) GetAttractionSourceReportRaw(cookieHeader string, parkID string, reqBody map[string]interface{}) (interface{}, error) {
+	url := "https://fleet.yandex.ru/api/fleet/fleet-leads-crm/v1/reports/life-time-value/source/side-card"
+
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept-Language", "ru")
+	if cookieHeader != "" {
+		req.Header.Set("Cookie", cookieHeader)
+	}
+	if parkID != "" {
+		req.Header.Set("X-Park-ID", parkID)
+	}
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка чтения ответа: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
+	}
+
+	var result interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
+	}
+
+	return result, nil
+}
