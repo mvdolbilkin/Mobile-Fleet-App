@@ -299,7 +299,7 @@ class _DriverListSheetState extends ConsumerState<DriverListSheet> {
   }
 }
 
-// ─── Карточка водителя ────────────────────────────────────────────────────────
+// Driver card
 
 class _DriverCard extends StatelessWidget {
   final MapCombinedDriver driver;

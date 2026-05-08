@@ -32,7 +32,7 @@ class _SortOption {
   const _SortOption(this.field, this.direction, this.label);
 }
 
-// ─── Основной виджет ─────────────────────────────────────────────────────────
+// Main widget
 
 class MapFilterSheet extends ConsumerStatefulWidget {
   const MapFilterSheet({super.key});
@@ -79,13 +79,13 @@ class _MapFilterSheetState extends ConsumerState<MapFilterSheet> {
       expand: false,
       builder: (_, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppTheme.backgroundColor,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             children: [
-              // ─── Ручка ──────────────────────────────────────────────────
+              // Handle
               Center(
                 child: Container(
                   margin: const EdgeInsets.symmetric(vertical: 10),
@@ -97,7 +97,7 @@ class _MapFilterSheetState extends ConsumerState<MapFilterSheet> {
                   ),
                 ),
               ),
-              // ─── Заголовок ───────────────────────────────────────────
+              // Title
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 8, 0),
                 child: Row(
@@ -142,116 +142,116 @@ class _MapFilterSheetState extends ConsumerState<MapFilterSheet> {
                       ),
                       child: Column(
                         children: _sortOptions.map((opt) {
-                    final selected = _isSortOption(opt);
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => setState(() => _local = _local.copyWith(
-                            sortField: opt.field,
-                            sortDirection: opt.direction,
-                          )),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                opt.label,
-                                style: TextStyle(
-                                  fontFamily: 'Yandex Sans Text',
-                                  fontSize: 15,
-                                  color: AppTheme.textPrimary,
-                                  fontWeight: selected
-                                      ? FontWeight.w600
-                                      : FontWeight.normal,
-                                ),
+                          final selected = _isSortOption(opt);
+                          return InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () => setState(() => _local = _local.copyWith(
+                                  sortField: opt.field,
+                                  sortDirection: opt.direction,
+                                )),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 14),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      opt.label,
+                                      style: TextStyle(
+                                        fontFamily: 'Yandex Sans Text',
+                                        fontSize: 15,
+                                        color: AppTheme.textPrimary,
+                                        fontWeight: selected
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ),
+                                  if (selected)
+                                    Container(
+                                      width: 22,
+                                      height: 22,
+                                      decoration: const BoxDecoration(
+                                        color: _yellow,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.check,
+                                          size: 13, color: Colors.black),
+                                    ),
+                                ],
                               ),
                             ),
-                            if (selected)
-                              Container(
-                                width: 22,
-                                height: 22,
-                                decoration: const BoxDecoration(
-                                  color: _yellow,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.check,
-                                    size: 13, color: Colors.black),
-                              ),
-                          ],
-                        ),
+                          );
+                        }).toList(),
                       ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              const SizedBox(height: 20),
+                    ),
+                    const SizedBox(height: 20),
 
-              // ─── Способ оплаты ───────────────────────────────────────────
-              _sectionTitle('Способ оплаты'),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  CustomFilterChip(
-                    label: 'Наличные',
-                    isSelected: _local.paymentMethods.contains('cash'),
-                    onTap: () {
-                      final list = [..._local.paymentMethods];
-                      _toggleList(list, 'cash');
-                      setState(() =>
-                          _local = _local.copyWith(paymentMethods: list));
-                    },
-                  ),
-                  CustomFilterChip(
-                    label: 'Банковская карта',
-                    isSelected: _local.paymentMethods.contains('card'),
-                    onTap: () {
-                      final list = [..._local.paymentMethods];
-                      _toggleList(list, 'card');
-                      setState(() =>
-                          _local = _local.copyWith(paymentMethods: list));
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
+                    // Payment method
+                    _sectionTitle('Способ оплаты'),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        CustomFilterChip(
+                          label: 'Наличные',
+                          isSelected: _local.paymentMethods.contains('cash'),
+                          onTap: () {
+                            final list = [..._local.paymentMethods];
+                            _toggleList(list, 'cash');
+                            setState(() =>
+                                _local = _local.copyWith(paymentMethods: list));
+                          },
+                        ),
+                        CustomFilterChip(
+                          label: 'Банковская карта',
+                          isSelected: _local.paymentMethods.contains('card'),
+                          onTap: () {
+                            final list = [..._local.paymentMethods];
+                            _toggleList(list, 'card');
+                            setState(() =>
+                                _local = _local.copyWith(paymentMethods: list));
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
 
-              // ─── Тип машины ──────────────────────────────────────────────
-              _sectionTitle('Тип машины'),
-              const SizedBox(height: 8),
-              carCategoriesAsync.when(
-                data: (cats) => Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: cats.map((c) {
-                    return CustomFilterChip(
-                      label: c.name,
-                      isSelected: _local.carCategories.contains(c.id),
-                      onTap: () {
-                        final list = [..._local.carCategories];
-                        _toggleList(list, c.id);
-                        setState(() =>
-                            _local = _local.copyWith(carCategories: list));
-                      },
-                    );
-                  }).toList(),
-                ),
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                ),
-                error: (_, __) => const SizedBox.shrink(),
-              ),
-              const SizedBox(height: 20),
+                    // Car type
+                    _sectionTitle('Тип машины'),
+                    const SizedBox(height: 8),
+                    carCategoriesAsync.when(
+                      data: (cats) => Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: cats.map((c) {
+                          return CustomFilterChip(
+                            label: c.name,
+                            isSelected: _local.carCategories.contains(c.id),
+                            onTap: () {
+                              final list = [..._local.carCategories];
+                              _toggleList(list, c.id);
+                              setState(() =>
+                                  _local = _local.copyWith(carCategories: list));
+                            },
+                          );
+                        }).toList(),
+                      ),
+                      loading: () => const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                      ),
+                      error: (_, __) => const SizedBox.shrink(),
+                    ),
+                    const SizedBox(height: 20),
 
-              // ─── Условия работы ──────────────────────────────────────
-              _sectionTitle('Условия работы'),
-              const SizedBox(height: 8),
-              workRulesAsync.when(
-                data: (rules) => _buildWorkRulesList(rules),
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
+                    // Work rules
+                    _sectionTitle('Условия работы'),
+                    const SizedBox(height: 8),
+                    workRulesAsync.when(
+                      data: (rules) => _buildWorkRulesList(rules),
+                      loading: () => const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
                   child: Center(child: CircularProgressIndicator()),
                 ),
                 error: (_, __) => const Padding(
@@ -267,7 +267,7 @@ class _MapFilterSheetState extends ConsumerState<MapFilterSheet> {
                   ],
                 ),
               ),
-              // ─── Примагниченная кнопка ────────────────────────────────
+              // Apply button
               Padding(
                 padding: EdgeInsets.fromLTRB(
                     16, 8, 16, MediaQuery.of(context).padding.bottom + 16),

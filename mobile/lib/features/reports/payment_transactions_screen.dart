@@ -93,7 +93,7 @@ class _PaymentTransactionsScreenState
     }
   }
 
-  // ─── date range picker ────────────────────────────────────────────────────
+  // Date range picker
 
   Future<void> _pickDates() async {
     final range = await CustomDateRangePickerBottomSheet.show(
@@ -110,7 +110,7 @@ class _PaymentTransactionsScreenState
     }
   }
 
-  // ─── filter sheet ─────────────────────────────────────────────────────────
+  // Filter sheet
 
   Future<void> _showFilterSheet() async {
     final result = await _PaymentTransactionsFilterSheet.show(
@@ -123,7 +123,7 @@ class _PaymentTransactionsScreenState
     }
   }
 
-  // ─── date label ───────────────────────────────────────────────────────────
+  // Date label
 
   String _dateLabel(DateTime dt) {
     const months = [
@@ -138,7 +138,7 @@ class _PaymentTransactionsScreenState
     return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
   }
 
-  // ─── grouping ─────────────────────────────────────────────────────────────
+  // Grouping
 
   List<_ListItem> _buildListItems() {
     final result = <_ListItem>[];
@@ -156,7 +156,7 @@ class _PaymentTransactionsScreenState
     return result;
   }
 
-  // ─── build ────────────────────────────────────────────────────────────────
+  // Build
 
   @override
   Widget build(BuildContext context) {
@@ -214,7 +214,7 @@ class _PaymentTransactionsScreenState
       ),
       body: Column(
         children: [
-          // ─── toolbar ──────────────────────────────────────────────────────
+          // Toolbar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: Row(
@@ -313,7 +313,7 @@ class _PaymentTransactionsScreenState
             ),
           ),
 
-          // ─── list ─────────────────────────────────────────────────────────
+          // List
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -404,7 +404,7 @@ class _PaymentTransactionsScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ─── row 1: logo + type + amount ───────────────────────────────
+            // Row 1: logo + type + amount
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -434,7 +434,7 @@ class _PaymentTransactionsScreenState
               ],
             ),
 
-            // ─── row 2: error (if any) ──────────────────────────────────────
+            // Row 2: error (if any)
             if (tx.errorText != null && tx.errorText!.isNotEmpty) ...[
               const SizedBox(height: 6),
               Row(
@@ -458,7 +458,7 @@ class _PaymentTransactionsScreenState
               ),
             ],
 
-            // ─── row 3: avatar + name + time ───────────────────────────────
+            // Row 3: avatar + name + time
             const SizedBox(height: 10),
             Row(
               children: [
@@ -497,7 +497,7 @@ class _PaymentTransactionsScreenState
   }
 }
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 
 class _ListItem {
   final bool isHeader;
@@ -651,7 +651,7 @@ class _PaymentLogo extends StatelessWidget {
   }
 }
 
-// ─── Transaction Detail Sheet ─────────────────────────────────────────────────
+// Transaction detail sheet
 
 class _TransactionDetailSheet extends StatefulWidget {
   final PaymentTransaction tx;
@@ -886,7 +886,7 @@ class _InfoBlock extends StatelessWidget {
   }
 }
 
-// ─── Filter bottom sheet ───────────────────────────────────────────────────────
+// Filter bottom sheet
 
 class _PaymentTransactionsFilterSheet extends StatefulWidget {
   final PaymentTransactionsFilter filter;

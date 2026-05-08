@@ -141,7 +141,7 @@ class ChildChair {
   String get categoriesLabel => categories.join(', ');
 }
 
-// ─── VehicleKeyInfo ──────────────────────────────────────────────────────────
+// VehicleKeyInfo
 
 class VehicleOwnershipExam {
   final String state;
@@ -250,7 +250,7 @@ class VehicleKeyInfo {
   }
 }
 
-// ─── VehicleChangelog ────────────────────────────────────────────────────────
+// VehicleChangelog
 
 class ChangeValue {
   final String fieldId;
@@ -348,7 +348,7 @@ class VehicleChangelogResponse {
   }
 }
 
-// ─── VehicleStatusExtras ─────────────────────────────────────────────────────
+// VehicleStatusExtras
 
 class VehicleStatusExtras {
   final bool supplyLockActive;

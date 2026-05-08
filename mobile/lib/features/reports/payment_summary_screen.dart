@@ -25,7 +25,7 @@ class PaymentSummaryScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          // ── Tab + date toolbar ─────────────────────────────────────────
+          // Tab + date toolbar
           _Toolbar(
             isTopup: state.isTopup,
             dateFrom: state.dateFrom,
@@ -34,7 +34,7 @@ class PaymentSummaryScreen extends ConsumerWidget {
             onDateChanged: notifier.setDateRange,
           ),
 
-          // ── Body ───────────────────────────────────────────────────────
+          // Body
           Expanded(
             child: RefreshIndicator(
               onRefresh: notifier.refresh,
@@ -53,7 +53,7 @@ class PaymentSummaryScreen extends ConsumerWidget {
   }
 }
 
-// ─── Toolbar ──────────────────────────────────────────────────────────────────
+// Toolbar
 
 class _Toolbar extends StatelessWidget {
   final bool isTopup;
@@ -139,7 +139,7 @@ class _Toolbar extends StatelessWidget {
   }
 }
 
-// ─── Dashboard body ───────────────────────────────────────────────────────────
+// Dashboard body
 
 class _DashboardBody extends StatelessWidget {
   final PaymentDashboardState state;
@@ -198,7 +198,7 @@ class _DashboardBody extends StatelessWidget {
   }
 }
 
-// ─── Chart card ───────────────────────────────────────────────────────────────
+// Chart card
 
 class _ChartCard extends StatelessWidget {
   final String title;
@@ -517,7 +517,7 @@ class _ChartContent extends StatelessWidget {
   }
 }
 
-// ─── Status card ──────────────────────────────────────────────────────────────
+// Status card
 
 class _StatusCard extends StatelessWidget {
   final bool isLoading;
@@ -615,7 +615,7 @@ class _StatusCard extends StatelessWidget {
   }
 }
 
-// ─── Skeletons ────────────────────────────────────────────────────────────────
+// Skeletons
 
 class _CardSkeleton extends StatelessWidget {
   const _CardSkeleton();
@@ -654,7 +654,7 @@ class _StatusSkeleton extends StatelessWidget {
   }
 }
 
-// ─── Error body ───────────────────────────────────────────────────────────────
+// Error body
 
 class _ErrorBody extends StatelessWidget {
   final String error;

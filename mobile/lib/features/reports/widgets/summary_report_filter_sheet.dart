@@ -145,7 +145,7 @@ class _SummaryReportFilterSheetState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ─── Период ──────────────────────────────────────────
+                      // Period
                       _sectionLabel('Период'),
                       GestureDetector(
                         onTap: () async {
@@ -171,7 +171,7 @@ class _SummaryReportFilterSheetState
                       ),
                       const SizedBox(height: 20),
 
-                      // ─── Исполнитель ─────────────────────────────────────
+                      // Executor
                       _sectionLabel('Исполнитель'),
                       GestureDetector(
                         onTap: () async {
@@ -216,7 +216,7 @@ class _SummaryReportFilterSheetState
                       ),
                       const SizedBox(height: 20),
 
-                      // ─── Условия работы ───────────────────────────────────
+                      // Work rules
                       _sectionLabel('Условия работы'),
                       workRulesAsync.when(
                         data: (rules) => GestureDetector(
@@ -273,7 +273,7 @@ class _SummaryReportFilterSheetState
                       ),
                       const SizedBox(height: 20),
 
-                      // ─── Сортировка ────────────────────────────────────────────
+                      // Sorting
                       _sectionLabel('Сортировка'),
                       Wrap(
                         spacing: 8,
@@ -289,7 +289,7 @@ class _SummaryReportFilterSheetState
                         ).toList(),
                       ),
                       const SizedBox(height: 12),
-                      // ── Direction toggle ───────────────────────────────
+                      // Direction toggle
                       Row(
                         children: [
                           Expanded(

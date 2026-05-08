@@ -671,7 +671,7 @@ final addVehicleFormProvider =
       () => AddVehicleFormNotifier(),
     );
 
-// ─── Справочники (references) ────────────────────────────────────────────
+// References
 
 class ReferenceItem {
   final String id;

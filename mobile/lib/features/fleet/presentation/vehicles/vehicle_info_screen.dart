@@ -115,7 +115,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── White main card ──
+        // Main card
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
@@ -266,7 +266,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
             ],
           ),
         ),
-        // ── Gray ownership exam panel ──
+        // Ownership exam panel
         if (!info.badges.isOwnershipConfirmed &&
             info.badges.ownershipExam != null) ...
           _buildOwnershipPanel(info.badges.ownershipExam!),
@@ -711,7 +711,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
-        // ─── Брендинг ────────────────────────────────────────────────
+        // Брендинг
         Text(
           'Брендинг',
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -833,7 +833,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
           },
         ),
         const SizedBox(height: 24),
-        // ─── Детские кресла ──────────────────────────────────────────
+        // Детские кресла
         Text(
           'Детские кресла',
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -1555,7 +1555,7 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen>
   }
 }
 
-// ─── Changelog bottom sheet ──────────────────────────────────────────────────
+// Changelog bottom sheet
 
 class _ChangelogSheetContent extends ConsumerStatefulWidget {
   final String vehicleId;

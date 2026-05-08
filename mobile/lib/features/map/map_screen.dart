@@ -426,7 +426,6 @@ class _MapScreenState extends ConsumerState<MapScreen>
               orElse: () => const SizedBox.shrink(),
             ),
           ),
-          // ─── Молния ───────────────────────────────────────────
           Positioned(
             right: 16,
             top: 0,
@@ -436,34 +435,33 @@ class _MapScreenState extends ConsumerState<MapScreen>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (_surgeActive && _surgeData != null) ...
-                      [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.92),
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.10),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            'x${_surgeData!.legend}',
-                            style: const TextStyle(
-                              fontFamily: 'Yandex Sans Text',
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF7B2FBE),
+                    if (_surgeActive && _surgeData != null) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.92),
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.10),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
+                          ],
+                        ),
+                        child: Text(
+                          'x${_surgeData!.legend}',
+                          style: const TextStyle(
+                            fontFamily: 'Yandex Sans Text',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF7B2FBE),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                      ],
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     _MapButton(
                       icon: HugeIcons.strokeRoundedFlash,
                       onTap: () => _toggleSurge(),
@@ -475,7 +473,6 @@ class _MapScreenState extends ConsumerState<MapScreen>
               ),
             ),
           ),
-          // ─── Surge popup ──────────────────────────────────────
           Align(
             alignment: const Alignment(0, -0.35),
             child: AnimatedOpacity(
@@ -486,7 +483,6 @@ class _MapScreenState extends ConsumerState<MapScreen>
               ),
             ),
           ),
-          // ─── Зум ─────────────────────────────────────────────
           Positioned(
             right: 16,
             bottom: MediaQuery.of(context).size.height * 0.38,
@@ -652,7 +648,7 @@ class _Chip extends StatelessWidget {
   }
 }
 
-// ─── Кнопка управления картой ──────────────────────────────────────────
+// Map control button
 
 class _MapButton extends StatefulWidget {
   final List<List<dynamic>> icon;
@@ -750,7 +746,7 @@ class _MapButtonState extends State<_MapButton>
   }
 }
 
-// ─── Surge popup ──────────────────────────────────────────────────────────────
+// Surge popup widget
 
 class _SurgePopup extends StatelessWidget {
   final double value;
@@ -831,7 +827,7 @@ class _SurgePopup extends StatelessWidget {
   }
 }
 
-// ─── Слушатель тапа по метке ──────────────────────────────────────────────────
+// Marker tap listener
 
 class _DriverTapListener implements yandex.MapObjectTapListener {
   final String driverId;

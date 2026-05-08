@@ -271,7 +271,7 @@ class MapCombinedDriver {
   }
 }
 
-// ─── WorkRule ─────────────────────────────────────────────────────────────────
+// WorkRule
 
 class WorkRule {
   final String id;
@@ -297,7 +297,7 @@ class WorkRule {
   }
 }
 
-// ─── MapFilterState ────────────────────────────────────────────────────────────
+// MapFilterState
 
 class MapFilterState {
   final List<String> paymentMethods;
@@ -357,7 +357,7 @@ class MapFilterNotifier extends StateNotifier<MapFilterState> {
 }
 
 
-// ─── Driver Item (детальный) ──────────────────────────────────────────────────
+// Driver item (detailed)
 
 class MapDriverItemDriver {
   final String id;
@@ -467,7 +467,7 @@ class MapDriverItemResponse {
   }
 }
 
-// ─── Status History ───────────────────────────────────────────────────────────
+// Status history
 
 class MapStatusHistoryItem {
   final String status;
@@ -519,7 +519,7 @@ class MapDriverStatusHistoryResponse {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// MapCombinedData
 
 class MapCombinedData {
   final MapDriversPointsResponse points;
@@ -546,7 +546,7 @@ class MapCombinedData {
   }
 }
 
-// ─── Surge ───────────────────────────────────────────────────────────────────
+// Surge
 
 class SurgeFeature {
   final double lat;

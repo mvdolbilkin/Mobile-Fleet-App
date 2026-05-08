@@ -57,7 +57,7 @@ class _SummaryReportScreenState extends ConsumerState<SummaryReportScreen> {
       ),
       body: Column(
         children: [
-          // ─── Tab selector (chips like fines_screen) ─────────────────────
+          // Tab selector
           Container(
             color: AppTheme.backgroundColor,
             child: Column(
@@ -90,7 +90,7 @@ class _SummaryReportScreenState extends ConsumerState<SummaryReportScreen> {
             ),
           ),
 
-          // ─── Body ────────────────────────────────────────────────────────
+          // Body
           Expanded(
             child: _selectedTab == 0
                 ? _ByDriversTab()
@@ -104,7 +104,7 @@ class _SummaryReportScreenState extends ConsumerState<SummaryReportScreen> {
   }
 }
 
-// ─── Tab: По исполнителям ─────────────────────────────────────────────────────
+// Tab: by drivers
 
 class _ByDriversTab extends ConsumerWidget {
   @override
@@ -115,14 +115,14 @@ class _ByDriversTab extends ConsumerWidget {
 
     return Column(
       children: [
-        // ─── Filter toolbar ──────────────────────────────────────────────
+        // Filter toolbar
         _FilterToolbar(
           filter: filter,
           availableItems: state.data?.items ?? [],
           onFilterChanged: notifier.applyFilter,
         ),
 
-        // ─── Content ─────────────────────────────────────────────────────
+        // Content
         Expanded(
           child: state.isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -146,7 +146,7 @@ class _ByDriversTab extends ConsumerWidget {
   }
 }
 
-// ─── Filter toolbar ────────────────────────────────────────────────────────
+// Filter toolbar
 
 class _FilterToolbar extends StatelessWidget {
   final SummaryReportFilter filter;
@@ -325,7 +325,7 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-// ─── Drivers content ───────────────────────────────────────────────────────
+// ─── Drivers content
 
 class _DriversContent extends StatelessWidget {
   final List<DriverSummaryItem> items;
@@ -366,7 +366,7 @@ class _DriversContent extends StatelessWidget {
   }
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// Helpers 
 
 String _fmtMoney(double v) {
   final abs = v.abs();
@@ -386,7 +386,7 @@ Color _moneyColor(double v) {
   return AppTheme.textSecondary;
 }
 
-// ─── Driver card ─────────────────────────────────────────────────────────────
+// Driver card
 
 class _DriverCard extends StatelessWidget {
   final DriverSummaryItem item;
@@ -406,7 +406,7 @@ class _DriverCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header: name + callsign badge ─────────────────────────────
+          // Header
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -458,7 +458,7 @@ class _DriverCard extends StatelessWidget {
           const Divider(height: 1, color: Color(0xFFF0F0F0)),
           const SizedBox(height: 10),
 
-          // ── Stats row: заказы · время ─────────────────────────────────
+          // Stats row
           Row(
             children: [
               _Cell(
@@ -478,7 +478,7 @@ class _DriverCard extends StatelessWidget {
           const Divider(height: 1, color: Color(0xFFF0F0F0)),
           const SizedBox(height: 10),
 
-          // ── Financials grid (always all 5 fields) ─────────────────────
+          // Financials grid
           Row(
             children: [
               Expanded(
@@ -595,7 +595,7 @@ class _MoneyCell extends StatelessWidget {
   }
 }
 
-// ─── Totals bar ───────────────────────────────────────────────────────────────
+// Totals bar
 
 class _TotalsBar extends StatelessWidget {
   final DriverSummaryTotal total;
@@ -613,7 +613,7 @@ class _TotalsBar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Summary line ──────────────────────────────────────────────
+          // Summary line
           Text(
             'Итого · $count исп. · ${total.countOrdersCompleted} заказов · ${total.workTimeFormatted}',
             style: const TextStyle(
@@ -623,7 +623,7 @@ class _TotalsBar extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          // ── 3-column grid (fills width, wraps automatically) ──────────
+          // Financials grid
           Table(
             columnWidths: const {
               0: FlexColumnWidth(),
@@ -695,7 +695,7 @@ class _TotalCell extends StatelessWidget {
   }
 }
 
-// ─── Tab: По автомобилям ──────────────────────────────────────────────────────
+// Tab: by cars
 
 class _ByCarsTab extends ConsumerWidget {
   @override
@@ -741,7 +741,7 @@ class _ByCarsTab extends ConsumerWidget {
   }
 }
 
-// ─── Car filter toolbar ───────────────────────────────────────────────────────
+// Car filter toolbar
 
 class _CarFilterToolbar extends StatelessWidget {
   final CarSummaryFilter filter;
@@ -819,7 +819,7 @@ class _CarFilterToolbar extends StatelessWidget {
   }
 }
 
-// ─── Car filter bottom sheet ──────────────────────────────────────────────────
+// Car filter bottom sheet
 
 class _CarFilterSheet extends StatefulWidget {
   final CarSummaryFilter initialFilter;
@@ -1000,7 +1000,7 @@ class _CarFilterSheetState extends State<_CarFilterSheet> {
       );
 }
 
-// ─── Car card ─────────────────────────────────────────────────────────────────
+// Car card
 
 class _CarCard extends StatelessWidget {
   final CarSummaryItem item;
@@ -1019,7 +1019,7 @@ class _CarCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header: car name + number badge ────────────────────────
+          // Header
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1065,7 +1065,7 @@ class _CarCard extends StatelessWidget {
             ],
           ),
 
-          // ── Drivers ────────────────────────────────────────────────
+          // Drivers
           if (item.drivers.isNotEmpty) ...[
             const SizedBox(height: 10),
             _DriversRow(drivers: item.drivers),
@@ -1075,7 +1075,7 @@ class _CarCard extends StatelessWidget {
           const Divider(height: 1, color: Color(0xFFF0F0F0)),
           const SizedBox(height: 10),
 
-          // ── Utilization bar ────────────────────────────────────────
+          // Utilization bar
           Row(
             children: [
               Expanded(
@@ -1102,7 +1102,7 @@ class _CarCard extends StatelessWidget {
           const Divider(height: 1, color: Color(0xFFF0F0F0)),
           const SizedBox(height: 10),
 
-          // ── Stats + financials grid ────────────────────────────────
+          // Stats + financials grid
           Row(
             children: [
               Expanded(
@@ -1250,7 +1250,7 @@ class _UtilBar extends StatelessWidget {
   }
 }
 
-// ─── Car totals bar ───────────────────────────────────────────────────────────
+// Car totals bar
 
 class _CarTotalsBar extends StatelessWidget {
   final CarSummaryTotal total;
@@ -1323,7 +1323,7 @@ class _CarTotalsBar extends StatelessWidget {
   }
 }
 
-// ─── Tab: По датам ────────────────────────────────────────────────────────────
+// Tab: by dates
 
 class _ByDatesTab extends ConsumerWidget {
   @override
@@ -1378,7 +1378,7 @@ class _MonthCardState extends State<_MonthCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header ──────────────────────────────────────────────────
+          // Header
           InkWell(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
             onTap: () => setState(() => _expanded = !_expanded),
@@ -1406,7 +1406,7 @@ class _MonthCardState extends State<_MonthCard> {
             ),
           ),
 
-          // ── Always visible: key metrics ──────────────────────────────
+          // Key metrics
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
             child: Column(
@@ -1485,7 +1485,7 @@ class _MonthCardState extends State<_MonthCard> {
             ),
           ),
 
-          // ── Expandable: financials ───────────────────────────────────
+          // Expanded financials
           if (_expanded) ...[
             const Divider(height: 1, color: Color(0xFFF0F0F0)),
             Padding(
@@ -1621,7 +1621,7 @@ class _Stat extends StatelessWidget {
   }
 }
 
-// ─── (removed placeholder) ────────────────────────────────────────────────────
+// Placeholder tab
 
 class _PlaceholderTab extends StatelessWidget {
   final String label;
@@ -1644,7 +1644,7 @@ class _PlaceholderTab extends StatelessWidget {
   }
 }
 
-// ─── Error view ───────────────────────────────────────────────────────────────
+// Error view
 
 class _ErrorView extends StatelessWidget {
   final String error;

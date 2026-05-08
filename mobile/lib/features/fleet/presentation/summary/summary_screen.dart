@@ -256,7 +256,7 @@ String _fmtTooltipDate(String xStr) {
   }
 }
 
-// ─── Карточка "Статусы" ──────────────────────────────────────────────────────
+// Statuses card
 
 class _CarsStatusesCard extends ConsumerWidget {
   const _CarsStatusesCard();
@@ -554,7 +554,7 @@ class _StatusesChartContent extends StatelessWidget {
   }
 }
 
-// ─── Карточка "Пробег на ТС на линии" ────────────────────────────────────────
+// Mileage card
 
 class _MileageCard extends ConsumerWidget {
   const _MileageCard();
@@ -975,7 +975,7 @@ class _SubStatChip extends StatelessWidget {
   }
 }
 
-// ─── Карточка "Часов на линии на ТС" ─────────────────────────────────────────
+// Hours online card
 
 class _HoursOnlineCard extends ConsumerWidget {
   const _HoursOnlineCard();
@@ -1295,7 +1295,7 @@ class _HoursOnlineChartContent extends StatelessWidget {
   }
 }
 
-// ─── Карточка "Доля принятых заказов" ────────────────────────────────────────
+// Acceptance rate card
 
 class _AcceptanceRateCard extends ConsumerWidget {
   const _AcceptanceRateCard();
@@ -1589,7 +1589,7 @@ class _AcceptanceRateChartContent extends StatelessWidget {
   }
 }
 
-// ─── Карточка "Поездки на ТС на линии" ───────────────────────────────────────
+// Trips card
 
 class _TripsCard extends ConsumerWidget {
   const _TripsCard();

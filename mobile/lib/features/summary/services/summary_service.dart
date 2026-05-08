@@ -18,7 +18,7 @@ class SummaryService {
     }
   }
 
-  // ─── generic series POST ───────────────────────────────────────────────────
+  // Generic series POST
   Future<ActiveDriversResponse> _postSeries(
     String path,
     DateTime from,
