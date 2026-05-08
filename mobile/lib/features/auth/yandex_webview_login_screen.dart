@@ -22,6 +22,57 @@ class _YandexWebViewLoginScreenState
   String _currentUrl = '';
   bool _isProcessing = false;
   double _progress = 0;
+  bool _cookiesCleared = false;
+  DateTime? _pageLoadStartTime;
+  static const _loginTimeout = Duration(seconds: 30);
+
+  @override
+  void initState() {
+    super.initState();
+    _clearCookiesBeforeLoad();
+  }
+
+  Future<void> _clearCookiesBeforeLoad() async {
+    try {
+      final cookieManager = CookieManager.instance();
+      await cookieManager.deleteAllCookies();
+
+      try {
+        await WebStorageManager.instance().android.deleteAllData();
+      } catch (_) {}
+
+      ref.read(loggerProvider).i('Cookies & cache cleared before login');
+    } catch (e) {
+      ref.read(loggerProvider).e('Failed to clear cookies before login: $e');
+    }
+    if (mounted) {
+      setState(() {
+        _cookiesCleared = true;
+      });
+    }
+  }
+
+  void _startLoginTimer() {
+    _pageLoadStartTime = DateTime.now();
+  }
+
+  bool _isLoginTimedOut() {
+    if (_pageLoadStartTime == null) return false;
+    return DateTime.now().difference(_pageLoadStartTime!) > _loginTimeout;
+  }
+
+  Future<void> _handleTimeout() async {
+    if (!mounted || _isProcessing) return;
+    ref.read(loggerProvider).w('Login timed out — clearing cookies and reloading');
+
+    final cookieManager = CookieManager.instance();
+    await cookieManager.deleteAllCookies();
+
+    _pageLoadStartTime = null;
+    _webViewController?.loadUrl(
+      urlRequest: URLRequest(url: WebUri('https://fleet.yandex.ru')),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +136,9 @@ class _YandexWebViewLoginScreenState
                   ),
                 ),
               Expanded(
-                child: InAppWebView(
+                child: !_cookiesCleared
+                    ? const Center(child: CircularProgressIndicator())
+                    : InAppWebView(
                   initialUrlRequest: URLRequest(
                     url: WebUri('https://fleet.yandex.ru'),
                   ),
@@ -102,6 +155,7 @@ class _YandexWebViewLoginScreenState
                       _currentUrl = url.toString();
                       _isLoading = true;
                     });
+                    _pageLoadStartTime ??= DateTime.now();
                     ref.read(loggerProvider).i('Page started loading: $url');
                   },
                   onLoadStop: (controller, url) async {
@@ -110,12 +164,13 @@ class _YandexWebViewLoginScreenState
                     });
                     ref.read(loggerProvider).i('Page finished loading: $url');
 
-                    // Проверяем, находимся ли мы на странице fleet.yandex.ru
-                    if (url.toString().contains('fleet.yandex.ru') &&
-                        !url.toString().contains('/passport') &&
-                        !url.toString().contains('/auth') &&
+                    // Проверяем только когда пользователь реально залогинился
+                    // (URL содержит /parks/ или park_id)
+                    final urlStr = url.toString();
+                    if (urlStr.contains('fleet.yandex.ru') &&
+                        (urlStr.contains('/parks/') || urlStr.contains('park_id=')) &&
                         !_isProcessing) {
-                      await _checkAndSaveCookies(url.toString());
+                      await _checkAndSaveCookies(urlStr);
                     }
                   },
                   onProgressChanged: (controller, progress) {
@@ -131,12 +186,12 @@ class _YandexWebViewLoginScreenState
                       });
                       ref.read(loggerProvider).i('URL updated: $url');
 
-                      // Проверяем cookies при изменении URL
-                      if (url.toString().contains('fleet.yandex.ru') &&
-                          !url.toString().contains('/passport') &&
-                          !url.toString().contains('/auth') &&
+                      // Проверяем cookies только после логина (URL содержит /parks/ или park_id)
+                      final urlStr = url.toString();
+                      if (urlStr.contains('fleet.yandex.ru') &&
+                          (urlStr.contains('/parks/') || urlStr.contains('park_id=')) &&
                           !_isProcessing) {
-                        await _checkAndSaveCookies(url.toString());
+                        await _checkAndSaveCookies(urlStr);
                       }
                     }
                   },
@@ -321,6 +376,12 @@ class _YandexWebViewLoginScreenState
               '${sessionId == null ? "Session_id " : ""}'
               '${sessionId2 == null ? "sessionid2 " : ""}',
             );
+
+        // Если слишком долго ждём — возможно застряли с устаревшими куками
+        if (_isLoginTimedOut()) {
+          await _handleTimeout();
+        }
+
         setState(() {
           _isProcessing = false;
         });

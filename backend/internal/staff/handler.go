@@ -1,26 +1,37 @@
 package staff
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
+
+	"backend/internal/shared/middleware"
+	"backend/internal/shared/proxy"
 
 	"github.com/gin-gonic/gin"
 )
 
+// Handler aggregates staff HTTP handlers.
 type Handler struct {
 	service *Service
 }
 
+// NewHandler returns a Handler with the given service.
 func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+// sessionCreds extracts cookie string and parkID from the session in gin context.
+func sessionCreds(c *gin.Context) (string, string) {
+	s := proxy.GetSession(c)
+	return proxy.BuildCookieValue(s), s.ParkID
+}
+
+// RegisterRoutes sets up staff API endpoints.
 func RegisterRoutes(r *gin.Engine) {
 	service := NewService()
 	handler := NewHandler(service)
 
-	staffGroup := r.Group("/api/staff")
+	staffGroup := r.Group("/api/staff", middleware.Auth)
 	{
 		staffGroup.GET("/list", handler.GetStaffList)
 		staffGroup.GET("/profile", handler.GetStaffProfile)
@@ -68,25 +79,9 @@ func (h *Handler) GetStaffList(c *gin.Context) {
 		return
 	}
 
-	// Получаем куки или заголовки от мобилки
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	if cookieHeader == "" {
-		// Резервный вариант, если клиент все еще шлет старые заголовки
-		apiKey := c.GetHeader("X-API-Key")
-		clientID := c.GetHeader("X-Client-ID")
-
-		if apiKey == "" || clientID == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing credentials"})
-			return
-		}
-	}
-
-	drivers, err := h.service.GetDrivers(limit, offset, cookieHeader, parkID)
+	cookie, parkID := sessionCreds(c)
+	drivers, err := h.service.GetDrivers(limit, offset, cookie, parkID)
 	if err != nil {
-		// Логируем ошибку для отладки
-		println("Error in GetStaffList:", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -101,15 +96,8 @@ func (h *Handler) GetStaffProfile(c *gin.Context) {
 		return
 	}
 
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	if cookieHeader == "" && parkID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
-		return
-	}
-
-	profile, err := h.service.GetDriverProfile(cookieHeader, parkID, contractorProfileID)
+	cookie, parkID := sessionCreds(c)
+	profile, err := h.service.GetDriverProfile(cookie, parkID, contractorProfileID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -128,15 +116,8 @@ func (h *Handler) GetDriverOrders(c *gin.Context) {
 		return
 	}
 
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	if cookieHeader == "" && parkID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
-		return
-	}
-
-	orders, err := h.service.GetDriverOrders(cookieHeader, parkID, driverID, from, to)
+	cookie, parkID := sessionCreds(c)
+	orders, err := h.service.GetDriverOrders(cookie, parkID, driverID, from, to)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -152,15 +133,8 @@ func (h *Handler) GetCarInfo(c *gin.Context) {
 		return
 	}
 
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	if cookieHeader == "" && parkID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
-		return
-	}
-
-	car, err := h.service.GetCar(cookieHeader, parkID, carID)
+	cookie, parkID := sessionCreds(c)
+	car, err := h.service.GetCar(cookie, parkID, carID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -170,15 +144,8 @@ func (h *Handler) GetCarInfo(c *gin.Context) {
 }
 
 func (h *Handler) GetTransactionCategories(c *gin.Context) {
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	if cookieHeader == "" && parkID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
-		return
-	}
-
-	categories, err := h.service.GetTransactionCategories(cookieHeader, parkID)
+	cookie, parkID := sessionCreds(c)
+	categories, err := h.service.GetTransactionCategories(cookie, parkID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -190,36 +157,17 @@ func (h *Handler) GetTransactionCategories(c *gin.Context) {
 func (h *Handler) CreateTransaction(c *gin.Context) {
 	var transaction TransactionRequest
 	if err := c.ShouldBindJSON(&transaction); err != nil {
-		println("Error binding JSON:", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат запроса: " + err.Error()})
 		return
 	}
 
-	println("Transaction request received:")
-	println("  ContractorProfileID:", transaction.ContractorProfileID)
-	println("  Amount:", transaction.Amount)
-	println("  Kind:", transaction.Data.Kind)
-	println("  FeeAmount:", transaction.Data.FeeAmount)
-
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	println("  Cookie:", cookieHeader[:50], "...")
-	println("  ParkID:", parkID)
-
-	if cookieHeader == "" && parkID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
-		return
-	}
-
-	result, err := h.service.CreateTransaction(cookieHeader, parkID, transaction)
+	cookie, parkID := sessionCreds(c)
+	result, err := h.service.CreateTransaction(cookie, parkID, transaction)
 	if err != nil {
-		println("Error creating transaction:", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	println("Transaction created successfully")
 	c.JSON(http.StatusOK, result)
 }
 
@@ -230,15 +178,8 @@ func (h *Handler) GetDriverDetails(c *gin.Context) {
 		return
 	}
 
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	if cookieHeader == "" && parkID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
-		return
-	}
-
-	result, err := h.service.GetDriverDetails(cookieHeader, parkID, req.DriverID)
+	cookie, parkID := sessionCreds(c)
+	result, err := h.service.GetDriverDetails(cookie, parkID, req.DriverID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -264,16 +205,7 @@ func (h *Handler) BulkUpdateSource(c *gin.Context) {
 		return
 	}
 
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	if cookieHeader == "" && parkID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
-		return
-	}
-
 	// TODO: Implement actual API call to Yandex to update source
-	// For now, return success
 	c.JSON(http.StatusOK, gin.H{
 		"success":       true,
 		"message":       "Источник обновлен для " + strconv.Itoa(len(req.ContractorIDs)) + " исполнителей",
@@ -298,17 +230,9 @@ func (h *Handler) BulkUpdateWorkConditions(c *gin.Context) {
 		return
 	}
 
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	if cookieHeader == "" && parkID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
-		return
-	}
-
-	result, err := h.service.ApplyWorkRule(cookieHeader, parkID, req.ContractorIDs, req.Condition)
+	cookie, parkID := sessionCreds(c)
+	result, err := h.service.ApplyWorkRule(cookie, parkID, req.ContractorIDs, req.Condition)
 	if err != nil {
-		fmt.Println("Error in BulkUpdateWorkConditions:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -317,15 +241,8 @@ func (h *Handler) BulkUpdateWorkConditions(c *gin.Context) {
 }
 
 func (h *Handler) GetWorkRules(c *gin.Context) {
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	if cookieHeader == "" && parkID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
-		return
-	}
-
-	rules, err := h.service.GetWorkRules(cookieHeader, parkID)
+	cookie, parkID := sessionCreds(c)
+	rules, err := h.service.GetWorkRules(cookie, parkID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -351,17 +268,9 @@ func (h *Handler) BulkUpdateWorkStatus(c *gin.Context) {
 		return
 	}
 
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	if cookieHeader == "" && parkID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
-		return
-	}
-
-	result, err := h.service.ApplyWorkStatus(cookieHeader, parkID, req.ContractorIDs, req.Status)
+	cookie, parkID := sessionCreds(c)
+	result, err := h.service.ApplyWorkStatus(cookie, parkID, req.ContractorIDs, req.Status)
 	if err != nil {
-		fmt.Println("Error in BulkUpdateWorkStatus:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -370,15 +279,8 @@ func (h *Handler) BulkUpdateWorkStatus(c *gin.Context) {
 }
 
 func (h *Handler) GetDriverStatuses(c *gin.Context) {
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	if cookieHeader == "" && parkID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
-		return
-	}
-
-	statuses, err := h.service.GetDriverStatuses(cookieHeader, parkID)
+	cookie, parkID := sessionCreds(c)
+	statuses, err := h.service.GetDriverStatuses(cookie, parkID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -405,19 +307,10 @@ func (h *Handler) BulkMailing(c *gin.Context) {
 	}
 
 	if req.MessageType == "" {
-		req.MessageType = "sms" // Default to SMS
-	}
-
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	if cookieHeader == "" && parkID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
-		return
+		req.MessageType = "sms"
 	}
 
 	// TODO: Implement actual API call to send messages
-	// For now, return success
 	c.JSON(http.StatusOK, gin.H{
 		"success":      true,
 		"message":      "Сообщение отправлено " + strconv.Itoa(len(req.ContractorIDs)) + " исполнителям",
@@ -434,15 +327,8 @@ func (h *Handler) GetVehicleSuggestions(c *gin.Context) {
 		return
 	}
 
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	if cookieHeader == "" && parkID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
-		return
-	}
-
-	result, err := h.service.GetVehicleSuggestions(cookieHeader, parkID, limit)
+	cookie, parkID := sessionCreds(c)
+	result, err := h.service.GetVehicleSuggestions(cookie, parkID, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -452,10 +338,8 @@ func (h *Handler) GetVehicleSuggestions(c *gin.Context) {
 }
 
 func (h *Handler) GetMailingBlanks(c *gin.Context) {
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	result, err := h.service.GetMailingBlanks(cookieHeader, parkID)
+	cookie, parkID := sessionCreds(c)
+	result, err := h.service.GetMailingBlanks(cookie, parkID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -465,10 +349,8 @@ func (h *Handler) GetMailingBlanks(c *gin.Context) {
 }
 
 func (h *Handler) GetMailingLimits(c *gin.Context) {
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	result, err := h.service.GetMailingLimits(cookieHeader, parkID)
+	cookie, parkID := sessionCreds(c)
+	result, err := h.service.GetMailingLimits(cookie, parkID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -478,16 +360,14 @@ func (h *Handler) GetMailingLimits(c *gin.Context) {
 }
 
 func (h *Handler) GetContractorsCount(c *gin.Context) {
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
 	var reqBody map[string]interface{}
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "неверное тело запроса: " + err.Error()})
 		return
 	}
 
-	result, err := h.service.GetContractorsCount(cookieHeader, parkID, reqBody)
+	cookie, parkID := sessionCreds(c)
+	result, err := h.service.GetContractorsCount(cookie, parkID, reqBody)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -497,16 +377,14 @@ func (h *Handler) GetContractorsCount(c *gin.Context) {
 }
 
 func (h *Handler) SendMailing(c *gin.Context) {
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
 	var reqBody map[string]interface{}
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат запроса"})
 		return
 	}
 
-	result, err := h.service.SendMailing(cookieHeader, parkID, reqBody)
+	cookie, parkID := sessionCreds(c)
+	result, err := h.service.SendMailing(cookie, parkID, reqBody)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -522,10 +400,8 @@ func (h *Handler) GetTransactionsList(c *gin.Context) {
 		return
 	}
 
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	result, err := h.service.GetTransactionsListRaw(cookieHeader, parkID, reqBody)
+	cookie, parkID := sessionCreds(c)
+	result, err := h.service.GetTransactionsListRaw(cookie, parkID, reqBody)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -541,10 +417,8 @@ func (h *Handler) GetTransactionsBalances(c *gin.Context) {
 		return
 	}
 
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	result, err := h.service.GetTransactionsBalancesRaw(cookieHeader, parkID, reqBody)
+	cookie, parkID := sessionCreds(c)
+	result, err := h.service.GetTransactionsBalancesRaw(cookie, parkID, reqBody)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -560,10 +434,8 @@ func (h *Handler) GetBalancesHistory(c *gin.Context) {
 		return
 	}
 
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	result, err := h.service.GetBalancesHistoryRaw(cookieHeader, parkID, reqBody)
+	cookie, parkID := sessionCreds(c)
+	result, err := h.service.GetBalancesHistoryRaw(cookie, parkID, reqBody)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -579,10 +451,8 @@ func (h *Handler) GetAttractionReport(c *gin.Context) {
 		return
 	}
 
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	result, err := h.service.GetAttractionReportRaw(cookieHeader, parkID, reqBody)
+	cookie, parkID := sessionCreds(c)
+	result, err := h.service.GetAttractionReportRaw(cookie, parkID, reqBody)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -598,10 +468,8 @@ func (h *Handler) GetAttractionSourceReport(c *gin.Context) {
 		return
 	}
 
-	cookieHeader := c.GetHeader("Cookie")
-	parkID := c.GetHeader("X-Park-ID")
-
-	result, err := h.service.GetAttractionSourceReportRaw(cookieHeader, parkID, reqBody)
+	cookie, parkID := sessionCreds(c)
+	result, err := h.service.GetAttractionSourceReportRaw(cookie, parkID, reqBody)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
