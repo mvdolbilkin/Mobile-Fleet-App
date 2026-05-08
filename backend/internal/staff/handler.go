@@ -10,7 +10,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Handler aggregates staff HTTP handlers.
+// Yandex Fleet API URL constants
+const (
+	urlTransactionCategories  = "https://fleet.yandex.ru/api/fleet/fleet-external-business-events/v1/parks/categories/list"
+	urlMailingBlanks          = "https://fleet.yandex.ru/api/fleet/communications/v1/mailings/blanks"
+	urlMailingLimits          = "https://fleet.yandex.ru/api/fleet/communications/v2/mailings/limits"
+	urlSendMailing            = "https://fleet.yandex.ru/api/fleet/fleet-operations/v1/contractor-profiles-manager/communications"
+	urlContractorsCount       = "https://fleet.yandex.ru/api/fleet/contractor-profiles-manager/v2/contractors/count"
+	urlTransactionsList       = "https://fleet.yandex.ru/api/fleet/fleet-transactions-reports/v1/reports/driver/transactions/list"
+	urlTransactionsBalances   = "https://fleet.yandex.ru/api/api/v1/cards/driver/transactions/balances"
+	urlBalancesHistory        = "https://fleet.yandex.ru/api/api/v1/cards/driver/balances/history"
+	urlAttractionReport       = "https://fleet.yandex.ru/api/fleet/fleet-leads-crm/v1/reports/life-time-value/report"
+	urlAttractionSourceReport = "https://fleet.yandex.ru/api/fleet/fleet-leads-crm/v1/reports/life-time-value/source/side-card"
+	urlWorkRulesList          = "https://fleet.yandex.ru/api/fleet/driver-work-rules/v1/work-rules/light-list"
+)
+
+// Handler aggregates staff HTTP handlers that require service-level logic.
 type Handler struct {
 	service *Service
 }
@@ -20,7 +35,7 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
-// sessionCreds extracts cookie string and parkID from the session in gin context.
+// sessionCreds extracts cookie string and parkID from the gin context session.
 func sessionCreds(c *gin.Context) (string, string) {
 	s := proxy.GetSession(c)
 	return proxy.BuildCookieValue(s), s.ParkID
@@ -31,37 +46,86 @@ func RegisterRoutes(r *gin.Engine) {
 	service := NewService()
 	handler := NewHandler(service)
 
-	staffGroup := r.Group("/api/staff", middleware.Auth)
+	g := r.Group("/api/staff", middleware.Auth)
 	{
-		staffGroup.GET("/list", handler.GetStaffList)
-		staffGroup.GET("/profile", handler.GetStaffProfile)
-		staffGroup.GET("/orders", handler.GetDriverOrders)
-		staffGroup.GET("/car", handler.GetCarInfo)
-		staffGroup.GET("/categories", handler.GetTransactionCategories)
-		staffGroup.POST("/transaction", handler.CreateTransaction)
-		staffGroup.POST("/details", handler.GetDriverDetails)
-		staffGroup.GET("/vehicles/suggest", handler.GetVehicleSuggestions)
-		staffGroup.POST("/work-rules", handler.GetWorkRules)
-		staffGroup.POST("/driver-statuses", handler.GetDriverStatuses)
+		// ── Handlers that build a custom request body / read URL params ──────
+		g.GET("/list", handler.GetStaffList)
+		g.GET("/profile", handler.GetStaffProfile)
+		g.GET("/orders", handler.GetDriverOrders)
+		g.GET("/car", handler.GetCarInfo)
+		g.POST("/transaction", handler.CreateTransaction)
+		g.POST("/details", handler.GetDriverDetails)
+		g.GET("/vehicles/suggest", handler.GetVehicleSuggestions)
+		g.POST("/driver-statuses", handler.GetDriverStatuses)
 
-		// Bulk actions
-		staffGroup.POST("/bulk/update-source", handler.BulkUpdateSource)
-		staffGroup.POST("/bulk/update-work-conditions", handler.BulkUpdateWorkConditions)
-		staffGroup.POST("/bulk/update-work-status", handler.BulkUpdateWorkStatus)
+		// Bulk actions (wrap body into Yandex filter/action shape)
+		g.POST("/bulk/update-source", handler.BulkUpdateSource)
+		g.POST("/bulk/update-work-conditions", handler.BulkUpdateWorkConditions)
+		g.POST("/bulk/update-work-status", handler.BulkUpdateWorkStatus)
+		g.POST("/bulk/mailing", handler.BulkMailing)
 
-		staffGroup.GET("/mailings/blanks", handler.GetMailingBlanks)
-		staffGroup.GET("/mailings/limits", handler.GetMailingLimits)
-		staffGroup.POST("/mailings", handler.SendMailing)
-		staffGroup.POST("/contractors/count", handler.GetContractorsCount)
-		staffGroup.POST("/bulk/mailing", handler.BulkMailing)
-
-		staffGroup.POST("/transactions/list", handler.GetTransactionsList)
-		staffGroup.POST("/transactions/balances", handler.GetTransactionsBalances)
-		staffGroup.POST("/balances/history", handler.GetBalancesHistory)
-		staffGroup.POST("/attraction/report", handler.GetAttractionReport)
-		staffGroup.POST("/attraction/report/source", handler.GetAttractionSourceReport)
+		// ── Simple proxy handlers (body forwarded as-is to Yandex) ───────────
+		g.GET("/categories", getTransactionCategoriesProxy)
+		g.GET("/mailings/blanks", getMailingBlanksProxy)
+		g.GET("/mailings/limits", getMailingLimitsProxy)
+		g.POST("/mailings", sendMailingProxy)
+		g.POST("/contractors/count", getContractorsCountProxy)
+		g.POST("/transactions/list", getTransactionsListProxy)
+		g.POST("/transactions/balances", getTransactionsBalancesProxy)
+		g.POST("/balances/history", getBalancesHistoryProxy)
+		g.POST("/attraction/report", getAttractionReportProxy)
+		g.POST("/attraction/report/source", getAttractionSourceReportProxy)
+		g.POST("/work-rules", getWorkRulesProxy)
 	}
 }
+
+// ─── Simple proxy handlers ─────────────────────────────────────────────────
+
+func getTransactionCategoriesProxy(c *gin.Context) {
+	proxy.ToYandex(c, urlTransactionCategories, http.MethodGet)
+}
+
+func getMailingBlanksProxy(c *gin.Context) {
+	proxy.ToYandex(c, urlMailingBlanks, http.MethodGet)
+}
+
+func getMailingLimitsProxy(c *gin.Context) {
+	proxy.ToYandex(c, urlMailingLimits, http.MethodGet)
+}
+
+func sendMailingProxy(c *gin.Context) {
+	proxy.ToYandex(c, urlSendMailing, http.MethodPost, proxy.WithJSONContentType())
+}
+
+func getContractorsCountProxy(c *gin.Context) {
+	proxy.ToYandex(c, urlContractorsCount, http.MethodPost, proxy.WithJSONContentType())
+}
+
+func getTransactionsListProxy(c *gin.Context) {
+	proxy.ToYandex(c, urlTransactionsList, http.MethodPost, proxy.WithJSONContentType())
+}
+
+func getTransactionsBalancesProxy(c *gin.Context) {
+	proxy.ToYandex(c, urlTransactionsBalances, http.MethodPost, proxy.WithJSONContentType())
+}
+
+func getBalancesHistoryProxy(c *gin.Context) {
+	proxy.ToYandex(c, urlBalancesHistory, http.MethodPost, proxy.WithJSONContentType())
+}
+
+func getAttractionReportProxy(c *gin.Context) {
+	proxy.ToYandex(c, urlAttractionReport, http.MethodPost, proxy.WithJSONContentType())
+}
+
+func getAttractionSourceReportProxy(c *gin.Context) {
+	proxy.ToYandex(c, urlAttractionSourceReport, http.MethodPost, proxy.WithJSONContentType())
+}
+
+func getWorkRulesProxy(c *gin.Context) {
+	proxy.ToYandex(c, urlWorkRulesList, http.MethodPost, proxy.WithJSONContentType())
+}
+
+// ─── Handler methods (service layer for custom body / URL-param logic) ──────
 
 func (h *Handler) GetStaffList(c *gin.Context) {
 	limitStr := c.DefaultQuery("limit", "500")
@@ -72,7 +136,6 @@ func (h *Handler) GetStaffList(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный параметр limit"})
 		return
 	}
-
 	offset, err := strconv.Atoi(offsetStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный параметр offset"})
@@ -85,7 +148,6 @@ func (h *Handler) GetStaffList(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, drivers)
 }
 
@@ -102,7 +164,6 @@ func (h *Handler) GetStaffProfile(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, profile)
 }
 
@@ -122,7 +183,6 @@ func (h *Handler) GetDriverOrders(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, orders)
 }
 
@@ -139,19 +199,7 @@ func (h *Handler) GetCarInfo(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, car)
-}
-
-func (h *Handler) GetTransactionCategories(c *gin.Context) {
-	cookie, parkID := sessionCreds(c)
-	categories, err := h.service.GetTransactionCategories(cookie, parkID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, categories)
 }
 
 func (h *Handler) CreateTransaction(c *gin.Context) {
@@ -167,7 +215,6 @@ func (h *Handler) CreateTransaction(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, result)
 }
 
@@ -184,8 +231,34 @@ func (h *Handler) GetDriverDetails(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetVehicleSuggestions(c *gin.Context) {
+	limitStr := c.DefaultQuery("limit", "20")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный параметр limit"})
+		return
+	}
+
+	cookie, parkID := sessionCreds(c)
+	result, err := h.service.GetVehicleSuggestions(cookie, parkID, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetDriverStatuses(c *gin.Context) {
+	cookie, parkID := sessionCreds(c)
+	statuses, err := h.service.GetDriverStatuses(cookie, parkID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, statuses)
 }
 
 func (h *Handler) BulkUpdateSource(c *gin.Context) {
@@ -194,12 +267,10 @@ func (h *Handler) BulkUpdateSource(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат запроса: " + err.Error()})
 		return
 	}
-
 	if len(req.ContractorIDs) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "не указаны исполнители"})
 		return
 	}
-
 	if req.Source == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "не указан источник"})
 		return
@@ -219,12 +290,10 @@ func (h *Handler) BulkUpdateWorkConditions(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат запроса: " + err.Error()})
 		return
 	}
-
 	if len(req.ContractorIDs) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "не указаны исполнители"})
 		return
 	}
-
 	if req.Condition == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "не указаны условия работы"})
 		return
@@ -236,19 +305,7 @@ func (h *Handler) BulkUpdateWorkConditions(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, result)
-}
-
-func (h *Handler) GetWorkRules(c *gin.Context) {
-	cookie, parkID := sessionCreds(c)
-	rules, err := h.service.GetWorkRules(cookie, parkID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, rules)
 }
 
 func (h *Handler) BulkUpdateWorkStatus(c *gin.Context) {
@@ -257,12 +314,10 @@ func (h *Handler) BulkUpdateWorkStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат запроса: " + err.Error()})
 		return
 	}
-
 	if len(req.ContractorIDs) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "не указаны исполнители"})
 		return
 	}
-
 	if req.Status == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "не указан статус работы"})
 		return
@@ -274,19 +329,7 @@ func (h *Handler) BulkUpdateWorkStatus(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, result)
-}
-
-func (h *Handler) GetDriverStatuses(c *gin.Context) {
-	cookie, parkID := sessionCreds(c)
-	statuses, err := h.service.GetDriverStatuses(cookie, parkID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, statuses)
 }
 
 func (h *Handler) BulkMailing(c *gin.Context) {
@@ -295,17 +338,14 @@ func (h *Handler) BulkMailing(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный формат запроса: " + err.Error()})
 		return
 	}
-
 	if len(req.ContractorIDs) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "не указаны исполнители"})
 		return
 	}
-
 	if req.Message == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "не указан текст сообщения"})
 		return
 	}
-
 	if req.MessageType == "" {
 		req.MessageType = "sms"
 	}
@@ -317,163 +357,4 @@ func (h *Handler) BulkMailing(c *gin.Context) {
 		"sent_count":   len(req.ContractorIDs),
 		"message_type": req.MessageType,
 	})
-}
-
-func (h *Handler) GetVehicleSuggestions(c *gin.Context) {
-	limitStr := c.DefaultQuery("limit", "20")
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный параметр limit"})
-		return
-	}
-
-	cookie, parkID := sessionCreds(c)
-	result, err := h.service.GetVehicleSuggestions(cookie, parkID, limit)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
-func (h *Handler) GetMailingBlanks(c *gin.Context) {
-	cookie, parkID := sessionCreds(c)
-	result, err := h.service.GetMailingBlanks(cookie, parkID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
-func (h *Handler) GetMailingLimits(c *gin.Context) {
-	cookie, parkID := sessionCreds(c)
-	result, err := h.service.GetMailingLimits(cookie, parkID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
-func (h *Handler) GetContractorsCount(c *gin.Context) {
-	var reqBody map[string]interface{}
-	if err := c.ShouldBindJSON(&reqBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "неверное тело запроса: " + err.Error()})
-		return
-	}
-
-	cookie, parkID := sessionCreds(c)
-	result, err := h.service.GetContractorsCount(cookie, parkID, reqBody)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
-func (h *Handler) SendMailing(c *gin.Context) {
-	var reqBody map[string]interface{}
-	if err := c.ShouldBindJSON(&reqBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат запроса"})
-		return
-	}
-
-	cookie, parkID := sessionCreds(c)
-	result, err := h.service.SendMailing(cookie, parkID, reqBody)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
-func (h *Handler) GetTransactionsList(c *gin.Context) {
-	var reqBody map[string]interface{}
-	if err := c.ShouldBindJSON(&reqBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "неверное тело запроса: " + err.Error()})
-		return
-	}
-
-	cookie, parkID := sessionCreds(c)
-	result, err := h.service.GetTransactionsListRaw(cookie, parkID, reqBody)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
-func (h *Handler) GetTransactionsBalances(c *gin.Context) {
-	var reqBody map[string]interface{}
-	if err := c.ShouldBindJSON(&reqBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "неверное тело запроса: " + err.Error()})
-		return
-	}
-
-	cookie, parkID := sessionCreds(c)
-	result, err := h.service.GetTransactionsBalancesRaw(cookie, parkID, reqBody)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
-func (h *Handler) GetBalancesHistory(c *gin.Context) {
-	var reqBody map[string]interface{}
-	if err := c.ShouldBindJSON(&reqBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "неверное тело запроса: " + err.Error()})
-		return
-	}
-
-	cookie, parkID := sessionCreds(c)
-	result, err := h.service.GetBalancesHistoryRaw(cookie, parkID, reqBody)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
-func (h *Handler) GetAttractionReport(c *gin.Context) {
-	var reqBody map[string]interface{}
-	if err := c.ShouldBindJSON(&reqBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "неверное тело запроса: " + err.Error()})
-		return
-	}
-
-	cookie, parkID := sessionCreds(c)
-	result, err := h.service.GetAttractionReportRaw(cookie, parkID, reqBody)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
-func (h *Handler) GetAttractionSourceReport(c *gin.Context) {
-	var reqBody map[string]interface{}
-	if err := c.ShouldBindJSON(&reqBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "неверное тело запроса: " + err.Error()})
-		return
-	}
-
-	cookie, parkID := sessionCreds(c)
-	result, err := h.service.GetAttractionSourceReportRaw(cookie, parkID, reqBody)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
 }

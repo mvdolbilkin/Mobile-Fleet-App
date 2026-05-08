@@ -29,16 +29,51 @@ func NewService() *Service {
 	}
 }
 
+// setHeaders sets common Yandex Fleet request headers.
+func setHeaders(req *http.Request, cookieHeader, parkID string) {
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept-Language", "ru")
+	if cookieHeader != "" {
+		req.Header.Set("Cookie", cookieHeader)
+	}
+	if parkID != "" {
+		req.Header.Set("X-Park-ID", parkID)
+		req.Header.Set("X-Idempotency-Token", uuid.New().String())
+	}
+}
+
+// doJSON executes req and unmarshals JSON response into interface{}.
+func (s *Service) doJSON(req *http.Request) (interface{}, error) {
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка чтения ответа: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
+	}
+
+	var result interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
+	}
+	return result, nil
+}
+
 func (s *Service) GetDrivers(limit int, offset int, cookieHeader string, parkID string) (interface{}, error) {
 	if cookieHeader == "" && parkID == "" {
 		return nil, fmt.Errorf("отсутствуют необходимые учетные данные")
 	}
 
-	url := "https://fleet.yandex.ru/api/fleet/contractor-profiles-manager/v2/contractors/list"
-
 	reqBody := ContractorsListRequest{
 		Filter: map[string]interface{}{},
 		Limit:  limit,
+		Offset: offset,
 		Projection: []string{
 			"full_name", "avatar_url", "name", "status", "id", "phone", "orders_count", "groups", "violations",
 			"attestation_issues", "balance", "balance_limit", "unblock_date", "photocheck_restrictions",
@@ -53,42 +88,14 @@ func (s *Service) GetDrivers(limit int, offset int, cookieHeader string, parkID 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequestWithContext(ctx, "POST",
+		"https://fleet.yandex.ru/api/fleet/contractor-profiles-manager/v2/contractors/list",
+		bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
 	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept-Language", "ru")
-	if cookieHeader != "" {
-		req.Header.Set("Cookie", cookieHeader)
-	}
-	if parkID != "" {
-		req.Header.Set("X-Park-ID", parkID)
-		req.Header.Set("X-Idempotency-Token", uuid.New().String())
-	}
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса к Yandex API: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения ответа: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
-	}
-
-	var result interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
-	}
-
-	return result, nil
+	setHeaders(req, cookieHeader, parkID)
+	return s.doJSON(req)
 }
 
 func (s *Service) GetDriverProfile(cookieHeader string, parkID string, contractorProfileID string) (interface{}, error) {
@@ -96,7 +103,10 @@ func (s *Service) GetDriverProfile(cookieHeader string, parkID string, contracto
 		return nil, fmt.Errorf("отсутствуют необходимые параметры")
 	}
 
-	url := fmt.Sprintf("https://fleet.yandex.ru/api/fleet/contractor-profiles-manager/v1/contractor-profile/contractor-data?contractor_profile_id=%s", contractorProfileID)
+	url := fmt.Sprintf(
+		"https://fleet.yandex.ru/api/fleet/contractor-profiles-manager/v1/contractor-profile/contractor-data?contractor_profile_id=%s",
+		contractorProfileID,
+	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -105,144 +115,45 @@ func (s *Service) GetDriverProfile(cookieHeader string, parkID string, contracto
 	if err != nil {
 		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
 	}
-
-	req.Header.Set("Accept-Language", "ru")
-	if cookieHeader != "" {
-		req.Header.Set("Cookie", cookieHeader)
-	}
-	if parkID != "" {
-		req.Header.Set("X-Park-ID", parkID)
-		req.Header.Set("X-Idempotency-Token", uuid.New().String())
-	}
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса к Yandex API: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения ответа: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
-	}
-
-	var result interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
-	}
-
-	return result, nil
+	setHeaders(req, cookieHeader, parkID)
+	return s.doJSON(req)
 }
 
 func (s *Service) GetDriverOrders(cookieHeader string, parkID string, driverID string, from string, to string) (interface{}, error) {
-	url := "https://fleet.yandex.ru/api/fleet/contractor-profiles-manager/v1/contractor-profile/period-data"
-
 	reqBody := map[string]interface{}{
 		"contractor_id": driverID,
-		"period": map[string]string{
-			"from": from,
-			"to":   to,
-		},
+		"period":        map[string]string{"from": from, "to": to},
 	}
-	jsonBody, _ := json.Marshal(reqBody)
-
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept-Language", "ru")
-	if cookieHeader != "" {
-		req.Header.Set("Cookie", cookieHeader)
-	}
-	if parkID != "" {
-		req.Header.Set("X-Park-ID", parkID)
-		req.Header.Set("X-Idempotency-Token", uuid.New().String())
-	}
-
-	resp, err := s.httpClient.Do(req)
+	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
 	}
-	defer resp.Body.Close()
 
-	var result interface{}
-	json.NewDecoder(resp.Body).Decode(&result)
-	return result, nil
-}
-
-func (s *Service) GetTransactionCategories(cookieHeader string, parkID string) (interface{}, error) {
-	url := "https://fleet.yandex.ru/api/fleet/fleet-external-business-events/v1/parks/categories/list"
-
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequest("POST",
+		"https://fleet.yandex.ru/api/fleet/contractor-profiles-manager/v1/contractor-profile/period-data",
+		bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
 	}
-
-	req.Header.Set("Accept-Language", "ru")
-	if cookieHeader != "" {
-		req.Header.Set("Cookie", cookieHeader)
-	}
-	if parkID != "" {
-		req.Header.Set("X-Park-ID", parkID)
-		req.Header.Set("X-Idempotency-Token", uuid.New().String())
-	}
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса к Yandex API: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения ответа: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
-	}
-
-	var result interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
-	}
-
-	return result, nil
+	setHeaders(req, cookieHeader, parkID)
+	return s.doJSON(req)
 }
 
 func (s *Service) GetCar(cookieHeader string, parkID string, carID string) (interface{}, error) {
-	url := "https://fleet.yandex.ru/api/api/v1/cards/car/details"
-
-	reqBody := map[string]interface{}{
-		"car_id": carID,
-	}
-	jsonBody, _ := json.Marshal(reqBody)
-
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept-Language", "ru")
-	if cookieHeader != "" {
-		req.Header.Set("Cookie", cookieHeader)
-	}
-	if parkID != "" {
-		req.Header.Set("X-Park-ID", parkID)
-		req.Header.Set("X-Idempotency-Token", uuid.New().String())
-	}
-
-	resp, err := s.httpClient.Do(req)
+	reqBody := map[string]interface{}{"car_id": carID}
+	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
 	}
-	defer resp.Body.Close()
 
-	var result interface{}
-	json.NewDecoder(resp.Body).Decode(&result)
-	return result, nil
+	req, err := http.NewRequest("POST",
+		"https://fleet.yandex.ru/api/api/v1/cards/car/details",
+		bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
+	}
+	setHeaders(req, cookieHeader, parkID)
+	return s.doJSON(req)
 }
 
 func (s *Service) GetVehicleSuggestions(cookieHeader string, parkID string, limit int) (interface{}, error) {
@@ -252,64 +163,32 @@ func (s *Service) GetVehicleSuggestions(cookieHeader string, parkID string, limi
 	if err != nil {
 		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
 	}
-
-	req.Header.Set("Accept-Language", "ru")
-	if cookieHeader != "" {
-		req.Header.Set("Cookie", cookieHeader)
-	}
-	if parkID != "" {
-		req.Header.Set("X-Park-ID", parkID)
-		req.Header.Set("X-Idempotency-Token", uuid.New().String())
-	}
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения ответа: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
-	}
-
-	var result interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
-	}
-
-	return result, nil
+	setHeaders(req, cookieHeader, parkID)
+	return s.doJSON(req)
 }
 
 func (s *Service) CreateTransaction(cookieHeader string, parkID string, transaction TransactionRequest) (interface{}, error) {
-	url := "https://fleet.yandex.ru/api/fleet/fleet-external-business-events/v2/parks/driver-profiles/transactions"
-
 	jsonBody, err := json.Marshal(transaction)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
 	}
 
 	println("Sending to Yandex API:")
-	println("  URL:", url)
+	println("  URL:", "https://fleet.yandex.ru/api/fleet/fleet-external-business-events/v2/parks/driver-profiles/transactions")
 	println("  Body:", string(jsonBody))
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("POST",
+		"https://fleet.yandex.ru/api/fleet/fleet-external-business-events/v2/parks/driver-profiles/transactions",
+		bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
 	}
 
-	// Generate unique idempotency token to prevent duplicate transactions
 	idempotencyToken := uuid.New().String()
-
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", cookieHeader)
 	req.Header.Set("Accept-Language", "ru")
 	req.Header.Set("X-Park-ID", parkID)
-	req.Header.Set("X-Idempotency-Token", uuid.New().String())
 	req.Header.Set("X-Idempotency-Token", idempotencyToken)
 
 	println("  X-Idempotency-Token:", idempotencyToken)
@@ -338,91 +217,44 @@ func (s *Service) CreateTransaction(cookieHeader string, parkID string, transact
 	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
 	}
-
 	return result, nil
 }
 
 func (s *Service) GetDriverDetails(cookieHeader string, parkID string, driverID string) (interface{}, error) {
-	url := "https://fleet.yandex.ru/api/fleet/router/v1/cards/driver/details"
-
-	requestBody := DriverDetailsRequest{
-		DriverID: driverID,
-	}
-
+	requestBody := DriverDetailsRequest{DriverID: driverID}
 	jsonData, err := json.Marshal(requestBody)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST",
+		"https://fleet.yandex.ru/api/fleet/router/v1/cards/driver/details",
+		bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
 	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", cookieHeader)
-	req.Header.Set("Accept-Language", "ru")
-	req.Header.Set("X-Park-ID", parkID)
-	req.Header.Set("X-Idempotency-Token", uuid.New().String())
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения ответа: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
-	}
-
-	var result interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
-	}
-
-	return result, nil
+	setHeaders(req, cookieHeader, parkID)
+	return s.doJSON(req)
 }
 
-func (s *Service) GetWorkRules(cookieHeader string, parkID string) (interface{}, error) {
-	url := "https://fleet.yandex.ru/api/fleet/driver-work-rules/v1/work-rules/light-list"
+func (s *Service) GetDriverStatuses(cookieHeader string, parkID string) (interface{}, error) {
+	reqBody := map[string]interface{}{"references": []string{"driver_statuses"}}
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
+	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte("{}")))
+	req, err := http.NewRequest("POST",
+		"https://fleet.yandex.ru/api/fleet/router/v1/references/list",
+		bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
 	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", cookieHeader)
-	req.Header.Set("Accept-Language", "ru")
-	req.Header.Set("X-Park-ID", parkID)
-	req.Header.Set("X-Idempotency-Token", uuid.New().String())
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
-	}
-
-	var result interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
-	}
-	return result, nil
+	setHeaders(req, cookieHeader, parkID)
+	return s.doJSON(req)
 }
 
 func (s *Service) ApplyWorkRule(cookieHeader string, parkID string, contractorIDs []string, workRuleID string) (interface{}, error) {
-	url := "https://fleet.yandex.ru/api/fleet/fleet-operations/v1/contractor-profiles-manager/work-rule"
-
 	reqBody := map[string]interface{}{
 		"filters": map[string]interface{}{
 			"contractor_ids": contractorIDs,
@@ -437,77 +269,17 @@ func (s *Service) ApplyWorkRule(cookieHeader string, parkID string, contractorID
 		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST",
+		"https://fleet.yandex.ru/api/fleet/fleet-operations/v1/contractor-profiles-manager/work-rule",
+		bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
 	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", cookieHeader)
-	req.Header.Set("Accept-Language", "ru")
-	req.Header.Set("X-Park-ID", parkID)
-	req.Header.Set("X-Idempotency-Token", uuid.New().String())
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
-	}
-
-	var result interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
-	}
-	return result, nil
-}
-
-func (s *Service) GetDriverStatuses(cookieHeader string, parkID string) (interface{}, error) {
-	url := "https://fleet.yandex.ru/api/fleet/router/v1/references/list"
-
-	reqBody := map[string]interface{}{
-		"references": []string{"driver_statuses"},
-	}
-	jsonData, err := json.Marshal(reqBody)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", cookieHeader)
-	req.Header.Set("Accept-Language", "ru")
-	req.Header.Set("X-Park-ID", parkID)
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
-	}
-
-	var result interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
-	}
-	return result, nil
+	setHeaders(req, cookieHeader, parkID)
+	return s.doJSON(req)
 }
 
 func (s *Service) ApplyWorkStatus(cookieHeader string, parkID string, contractorIDs []string, workStatus string) (interface{}, error) {
-	url := "https://fleet.yandex.ru/api/fleet/fleet-operations/v1/contractor-profiles-manager/work-status"
-
 	reqBody := map[string]interface{}{
 		"filters": map[string]interface{}{
 			"contractor_ids": contractorIDs,
@@ -522,20 +294,17 @@ func (s *Service) ApplyWorkStatus(cookieHeader string, parkID string, contractor
 		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	fmt.Println("Sending ApplyWorkStatus to Yandex API:")
+	fmt.Println("  URL:", "https://fleet.yandex.ru/api/fleet/fleet-operations/v1/contractor-profiles-manager/work-status")
+	fmt.Println("  Body:", string(jsonData))
+
+	req, err := http.NewRequest("POST",
+		"https://fleet.yandex.ru/api/fleet/fleet-operations/v1/contractor-profiles-manager/work-status",
+		bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
 	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", cookieHeader)
-	req.Header.Set("Accept-Language", "ru")
-	req.Header.Set("X-Park-ID", parkID)
-	req.Header.Set("X-Idempotency-Token", uuid.New().String())
-
-	fmt.Println("Sending ApplyWorkStatus to Yandex API:")
-	fmt.Println("  URL:", url)
-	fmt.Println("  Body:", string(jsonData))
+	setHeaders(req, cookieHeader, parkID)
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
@@ -561,436 +330,5 @@ func (s *Service) ApplyWorkStatus(cookieHeader string, parkID string, contractor
 	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
 	}
-	return result, nil
-}
-
-func (s *Service) GetMailingBlanks(cookieHeader string, parkID string) (interface{}, error) {
-	url := "https://fleet.yandex.ru/api/fleet/communications/v1/mailings/blanks"
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
-	}
-
-	req.Header.Set("Cookie", cookieHeader)
-	req.Header.Set("X-Park-ID", parkID)
-	req.Header.Set("Accept-Language", "ru")
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		fmt.Println("GetMailingBlanks error:", string(body))
-		return nil, fmt.Errorf("ошибка API: %s - %s", resp.Status, string(body))
-	}
-
-	var result interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("ошибка десериализации: %w", err)
-	}
-	return result, nil
-}
-
-func (s *Service) GetMailingLimits(cookieHeader string, parkID string) (interface{}, error) {
-	url := "https://fleet.yandex.ru/api/fleet/communications/v2/mailings/limits"
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
-	}
-
-	req.Header.Set("Cookie", cookieHeader)
-	req.Header.Set("X-Park-ID", parkID)
-	req.Header.Set("Accept-Language", "ru")
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("ошибка API: %s - %s", resp.Status, string(body))
-	}
-
-	var result interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("ошибка десериализации: %w", err)
-	}
-	return result, nil
-}
-
-func (s *Service) GetContractorsCount(cookieHeader string, parkID string, reqBody map[string]interface{}) (interface{}, error) {
-	url := "https://fleet.yandex.ru/api/fleet/contractor-profiles-manager/v2/contractors/count"
-
-	jsonData, err := json.Marshal(reqBody)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка сериализации: %w", err)
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", cookieHeader)
-	req.Header.Set("X-Park-ID", parkID)
-	req.Header.Set("X-Idempotency-Token", uuid.New().String())
-	req.Header.Set("Accept-Language", "ru")
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("ошибка API: %s - %s", resp.Status, string(body))
-	}
-
-	var result interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("ошибка десериализации: %w", err)
-	}
-	return result, nil
-}
-
-func (s *Service) SendMailing(cookieHeader string, parkID string, reqBody map[string]interface{}) (interface{}, error) {
-	url := "https://fleet.yandex.ru/api/fleet/fleet-operations/v1/contractor-profiles-manager/communications"
-
-	jsonData, err := json.Marshal(reqBody)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка сериализации: %w", err)
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Cookie", cookieHeader)
-	req.Header.Set("X-Park-ID", parkID)
-	req.Header.Set("X-Idempotency-Token", uuid.New().String())
-	req.Header.Set("Accept-Language", "ru")
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("ошибка API: %s - %s", resp.Status, string(body))
-	}
-
-	var result interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("ошибка десериализации: %w", err)
-	}
-	return result, nil
-}
-
-func (s *Service) GetTransactions(cookieHeader string, parkID string, driverID string, from string, to string) (interface{}, error) {
-	if cookieHeader == "" && parkID == "" {
-		return nil, fmt.Errorf("отсутствуют необходимые учетные данные")
-	}
-
-	url := "https://fleet.yandex.ru/api/fleet/fleet-transactions-reports/v1/reports/driver/transactions/list"
-
-	reqBody := FleetTransactionsRequest{
-		Limit: 40,
-	}
-	reqBody.Query.DriverID = driverID
-	reqBody.Query.Transaction.WithoutCash = true
-	reqBody.Query.Transaction.EventAt.From = from
-	reqBody.Query.Transaction.EventAt.To = to
-
-	jsonBody, err := json.Marshal(reqBody)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept-Language", "ru")
-	if cookieHeader != "" {
-		req.Header.Set("Cookie", cookieHeader)
-	}
-	if parkID != "" {
-		req.Header.Set("X-Park-ID", parkID)
-	}
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса к Yandex API: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения ответа: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
-	}
-
-	var result interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
-	}
-
-	return result, nil
-}
-
-func (s *Service) GetTransactionsListRaw(cookieHeader string, parkID string, reqBody map[string]interface{}) (interface{}, error) {
-	url := "https://fleet.yandex.ru/api/fleet/fleet-transactions-reports/v1/reports/driver/transactions/list"
-
-	jsonData, err := json.Marshal(reqBody)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept-Language", "ru")
-	if cookieHeader != "" {
-		req.Header.Set("Cookie", cookieHeader)
-	}
-	if parkID != "" {
-		req.Header.Set("X-Park-ID", parkID)
-	}
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения ответа: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
-	}
-
-	var result interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
-	}
-
-	return result, nil
-}
-
-func (s *Service) GetTransactionsBalancesRaw(cookieHeader string, parkID string, reqBody map[string]interface{}) (interface{}, error) {
-	url := "https://fleet.yandex.ru/api/api/v1/cards/driver/transactions/balances"
-
-	jsonData, err := json.Marshal(reqBody)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept-Language", "ru")
-	if cookieHeader != "" {
-		req.Header.Set("Cookie", cookieHeader)
-	}
-	if parkID != "" {
-		req.Header.Set("X-Park-ID", parkID)
-	}
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения ответа: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
-	}
-
-	var result interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
-	}
-
-	return result, nil
-}
-
-func (s *Service) GetBalancesHistoryRaw(cookieHeader string, parkID string, reqBody map[string]interface{}) (interface{}, error) {
-	url := "https://fleet.yandex.ru/api/v1/cards/driver/balances/history"
-
-	jsonData, err := json.Marshal(reqBody)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept-Language", "ru")
-	if cookieHeader != "" {
-		req.Header.Set("Cookie", cookieHeader)
-	}
-	if parkID != "" {
-		req.Header.Set("X-Park-ID", parkID)
-	}
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения ответа: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
-	}
-
-	var result interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
-	}
-
-	return result, nil
-}
-
-func (s *Service) GetAttractionReportRaw(cookieHeader string, parkID string, reqBody map[string]interface{}) (interface{}, error) {
-	url := "https://fleet.yandex.ru/api/fleet/fleet-leads-crm/v1/reports/life-time-value/report"
-
-	jsonData, err := json.Marshal(reqBody)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept-Language", "ru")
-	if cookieHeader != "" {
-		req.Header.Set("Cookie", cookieHeader)
-	}
-	if parkID != "" {
-		req.Header.Set("X-Park-ID", parkID)
-	}
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения ответа: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
-	}
-
-	var result interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
-	}
-
-	return result, nil
-}
-
-func (s *Service) GetAttractionSourceReportRaw(cookieHeader string, parkID string, reqBody map[string]interface{}) (interface{}, error) {
-	url := "https://fleet.yandex.ru/api/fleet/fleet-leads-crm/v1/reports/life-time-value/source/side-card"
-
-	jsonData, err := json.Marshal(reqBody)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка сериализации json: %w", err)
-	}
-
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("ошибка создания запроса: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Accept-Language", "ru")
-	if cookieHeader != "" {
-		req.Header.Set("Cookie", cookieHeader)
-	}
-	if parkID != "" {
-		req.Header.Set("X-Park-ID", parkID)
-	}
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения ответа: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("ошибка Yandex API: %s - %s", resp.Status, string(body))
-	}
-
-	var result interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("ошибка десериализации ответа: %w", err)
-	}
-
 	return result, nil
 }

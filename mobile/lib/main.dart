@@ -24,7 +24,7 @@ class MyApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'Flutter Base',
+      title: 'Mobile Fleet App',
       theme: AppTheme.lightTheme,
       routerConfig: router,
       localizationsDelegates: const [
