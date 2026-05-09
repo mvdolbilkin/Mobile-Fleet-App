@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/app/theme.dart';
 import 'package:mobile/features/map/data/map_repository.dart';
 import 'package:mobile/features/map/domain/map_driver.dart';
+import 'package:mobile/features/map/widgets/map_filter_sheet.dart';
 
 class DriverListSheet extends ConsumerStatefulWidget {
   final String? selectedFilter;
@@ -65,7 +66,17 @@ class _DriverListSheetState extends ConsumerState<DriverListSheet> {
     );
   }
 
-  Widget _buildSearchBar() {
+  void _showFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const MapFilterSheet(),
+    );
+  }
+
+  Widget _buildSearchBar({int? driverCount}) {
+    final activeCount = ref.watch(mapFilterProvider).activeFilterCount;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: Container(
@@ -74,28 +85,105 @@ class _DriverListSheetState extends ConsumerState<DriverListSheet> {
           color: AppTheme.controlsColor,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: TextField(
-          controller: _searchController,
-          onChanged: (v) => setState(() => _searchQuery = v),
-          style: const TextStyle(
-            fontFamily: 'Yandex Sans Text',
-            fontSize: 15,
-          ),
-          decoration: const InputDecoration(
-            hintText: 'Поиск по имени или номеру авто',
-            hintStyle: TextStyle(
-              fontFamily: 'Yandex Sans Text',
-              fontSize: 15,
-              color: AppTheme.textSecondary,
+        child: Row(
+          children: [
+            if (driverCount != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppTheme.textSecondary,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.person, color: Colors.white, size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$driverCount',
+                        style: const TextStyle(
+                          fontFamily: 'Yandex Sans Text',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                onChanged: (v) => setState(() => _searchQuery = v),
+                style: const TextStyle(
+                  fontFamily: 'Yandex Sans Text',
+                  fontSize: 15,
+                ),
+                decoration: const InputDecoration(
+                  hintText: 'Поиск',
+                  hintStyle: TextStyle(
+                    fontFamily: 'Yandex Sans Text',
+                    fontSize: 15,
+                    color: AppTheme.textSecondary,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                ),
+              ),
             ),
-            prefixIcon: Icon(
-              Icons.search,
-              color: AppTheme.textSecondary,
-              size: 20,
+            Container(
+              width: 1,
+              height: 22,
+              color: AppTheme.textSecondary.withOpacity(0.20),
             ),
-            border: InputBorder.none,
-            contentPadding: EdgeInsets.symmetric(vertical: 12),
-          ),
+            GestureDetector(
+              onTap: _showFilterSheet,
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(
+                      Icons.tune,
+                      size: 20,
+                      color: activeCount > 0
+                          ? Colors.black87
+                          : AppTheme.textSecondary,
+                    ),
+                    if (activeCount > 0)
+                      Positioned(
+                        right: 7,
+                        top: 7,
+                        child: Container(
+                          width: 14,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFCE000),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                                color: const Color(0xFFC4A700), width: 0.5),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '$activeCount',
+                              style: const TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -103,7 +191,7 @@ class _DriverListSheetState extends ConsumerState<DriverListSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final dataAsync = ref.watch(mapDataProvider);
+    final dataAsync = ref.watch(filteredDriverListProvider);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.35,
@@ -129,12 +217,12 @@ class _DriverListSheetState extends ConsumerState<DriverListSheet> {
           decoration: decoration,
           child: dataAsync.when(
             data: (data) {
-              final drivers = _applyFilters(data.combinedDrivers);
+              final drivers = _applyFilters(data);
               return CustomScrollView(
                 controller: scrollController,
                 slivers: [
                   SliverToBoxAdapter(child: _buildHandle()),
-                  SliverToBoxAdapter(child: _buildSearchBar()),
+                  SliverToBoxAdapter(child: _buildSearchBar(driverCount: drivers.length)),
                   if (drivers.isEmpty)
                     SliverFillRemaining(
                       hasScrollBody: false,
@@ -164,37 +252,42 @@ class _DriverListSheetState extends ConsumerState<DriverListSheet> {
                 ],
               );
             },
-            loading: () => ListView(
+            loading: () => CustomScrollView(
               controller: scrollController,
-              children: [
-                _buildHandle(),
-                const SizedBox(height: 40),
-                const Center(child: CircularProgressIndicator()),
+              slivers: [
+                SliverToBoxAdapter(child: _buildHandle()),
+                SliverToBoxAdapter(child: _buildSearchBar()),
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
               ],
             ),
-            error: (e, _) => ListView(
+            error: (e, _) => CustomScrollView(
               controller: scrollController,
-              children: [
-                _buildHandle(),
-                const SizedBox(height: 40),
-                const Center(
-                  child: Icon(Icons.error_outline,
-                      color: AppTheme.textSecondary),
-                ),
-                const SizedBox(height: 8),
-                const Center(
-                  child: Text(
-                    'Ошибка загрузки',
-                    style: TextStyle(
-                      fontFamily: 'Yandex Sans Text',
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                ),
-                Center(
-                  child: TextButton(
-                    onPressed: () => ref.invalidate(mapDataProvider),
-                    child: const Text('Повторить'),
+              slivers: [
+                SliverToBoxAdapter(child: _buildHandle()),
+                SliverToBoxAdapter(child: _buildSearchBar()),
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline,
+                          color: AppTheme.textSecondary),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Ошибка загрузки',
+                        style: TextStyle(
+                          fontFamily: 'Yandex Sans Text',
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => ref.invalidate(mapDataProvider),
+                        child: const Text('Повторить'),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -206,7 +299,7 @@ class _DriverListSheetState extends ConsumerState<DriverListSheet> {
   }
 }
 
-// ─── Карточка водителя ────────────────────────────────────────────────────────
+// Driver card
 
 class _DriverCard extends StatelessWidget {
   final MapCombinedDriver driver;

@@ -14,6 +14,7 @@ import (
 	"backend/internal/staff"
 	"backend/internal/summary"
 	"backend/internal/vehicles"
+	workrules "backend/internal/work_rules"
 	"net/http"
 	"os"
 
@@ -64,6 +65,9 @@ func main() {
 
 	// Register competitions routes
 	competitions.RegisterRoutes(r)
+
+	// Register work rules routes
+	workrules.RegisterRoutes(r)
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{

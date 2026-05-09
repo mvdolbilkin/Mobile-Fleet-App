@@ -6,6 +6,7 @@ import 'package:mobile/features/menu/providers/contractors_provider.dart';
 import 'package:mobile/features/menu/widgets/executors_chart.dart';
 import 'package:mobile/features/menu/widgets/menu_icon.dart';
 import 'package:mobile/shared/widgets/big_stat.dart';
+import 'package:mobile/shared/widgets/pulse_box.dart';
 import 'package:mobile/shared/widgets/info_block.dart';
 import 'package:mobile/shared/widgets/info_card.dart';
 import 'package:mobile/shared/widgets/status_list.dart';
@@ -114,12 +115,7 @@ class ExecutorsCard extends ConsumerWidget {
             ),
           ],
         ),
-        loading: () => const Center(
-          child: Padding(
-            padding: EdgeInsets.all(32.0),
-            child: CircularProgressIndicator(),
-          ),
-        ),
+        loading: () => const _ExecutorsSkeleton(),
         error: (error, stack) => Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -140,6 +136,61 @@ class ExecutorsCard extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ExecutorsSkeleton extends StatelessWidget {
+  const _ExecutorsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const PulseBox(width: 72, height: 44, borderRadius: 10),
+                const SizedBox(height: 6),
+                const PulseBox(width: 16, height: 12, borderRadius: 4),
+                const SizedBox(height: 16),
+                for (final w in [110.0, 125.0, 105.0]) ...[
+                  PulseBox(width: w, height: 14, borderRadius: 6),
+                  const SizedBox(height: 10),
+                ],
+              ],
+            ),
+            const Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: PulseBox(
+                  width: 110,
+                  height: 110,
+                  borderRadius: 55,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        const PulseRow(
+          items: [
+            (width: null, height: 68.0, radius: 16.0, expand: true),
+            (width: null, height: 68.0, radius: 16.0, expand: true),
+          ],
+        ),
+        const SizedBox(height: 12),
+        const PulseRow(
+          items: [
+            (width: null, height: 68.0, radius: 16.0, expand: true),
+            (width: null, height: 68.0, radius: 16.0, expand: true),
+          ],
+        ),
+      ],
     );
   }
 }

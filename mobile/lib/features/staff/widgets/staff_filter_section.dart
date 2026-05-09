@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/app/theme.dart';
+import 'package:mobile/shared/widgets/filter_chip.dart';
 import 'package:mobile/shared/widgets/search_field.dart';
 
 class StaffFilterSection extends StatefulWidget {
@@ -31,101 +32,158 @@ class _StaffFilterSectionState extends State<StaffFilterSection> {
   final List<String> _vehicles = ['Авто', 'Мото', 'Рикша'];
 
   void _showFilterBottomSheet() {
+    String? tempStatus = widget.selectedStatus;
+    String? tempVehicle = widget.selectedVehicle;
+
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Фильтры',
-                    style: TextStyle(
-                      fontFamily: 'Yandex Sans Text',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Статус на линии',
-                    style: TextStyle(
-                      fontFamily: 'Yandex Sans Text',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: _statuses.map((status) {
-                      final isSelected = widget.selectedStatus == status;
-                      return ChoiceChip(
-                        label: Text(status),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          setModalState(() {
-                            widget.onFilterChanged(
-                              selected ? status : null,
-                              widget.selectedVehicle,
-                            );
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Тип ТС',
-                    style: TextStyle(
-                      fontFamily: 'Yandex Sans Text',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: _vehicles.map((vehicle) {
-                      final isSelected = widget.selectedVehicle == vehicle;
-                      return ChoiceChip(
-                        label: Text(vehicle),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          setModalState(() {
-                            widget.onFilterChanged(
-                              widget.selectedStatus,
-                              selected ? vehicle : null,
-                            );
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.controlsColor,
-                        foregroundColor: Colors.black,
-                        elevation: 0,
+        return Container(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: DraggableScrollableSheet(
+            initialChildSize: 0.6,
+            minChildSize: 0.4,
+            maxChildSize: 0.95,
+            expand: false,
+            builder: (context, scrollController) {
+              return StatefulBuilder(
+                builder: (context, setModalState) {
+                  return Column(
+                    children: [
+                      // Header
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Фильтры',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                setModalState(() {
+                                  tempStatus = null;
+                                  tempVehicle = null;
+                                });
+                              },
+                              child: const Text(
+                                'Сбросить',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: const Text('Применить'),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+                      const Divider(height: 1),
+                      // Body
+                      Expanded(
+                        child: ListView(
+                          controller: scrollController,
+                          padding: const EdgeInsets.all(16.0),
+                          children: [
+                            const Text(
+                              'Статус на линии',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: _statuses.map((status) {
+                                final isSelected = tempStatus == status;
+                                return CustomFilterChip(
+                                  label: status,
+                                  isSelected: isSelected,
+                                  onTap: () {
+                                    setModalState(() {
+                                      tempStatus = isSelected ? null : status;
+                                    });
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 24),
+                            const Text(
+                              'Тип ТС',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: _vehicles.map((vehicle) {
+                                final isSelected = tempVehicle == vehicle;
+                                return CustomFilterChip(
+                                  label: vehicle,
+                                  isSelected: isSelected,
+                                  onTap: () {
+                                    setModalState(() {
+                                      tempVehicle = isSelected ? null : vehicle;
+                                    });
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                        ),
+                      ),
+                      // Footer
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          16, 12, 16, 12 + MediaQuery.of(context).padding.bottom,
+                        ),
+                        child: GestureDetector(
+                          onTap: () {
+                            widget.onFilterChanged(tempStatus, tempVehicle);
+                            Navigator.pop(context);
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            decoration: BoxDecoration(
+                              color: AppTheme.buttonColor,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            alignment: Alignment.center,
+                            child: const Text(
+                              'Применить',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
         );
       },
     );
@@ -160,50 +218,47 @@ class _StaffFilterSectionState extends State<StaffFilterSection> {
           child: SearchField(
             hint: 'Поиск по имени, ВУ или позывному',
             onChanged: widget.onSearchChanged,
+            suffixIcon: GestureDetector(
+              onTap: _showFilterBottomSheet,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(
+                      Icons.tune,
+                      size: 22,
+                      color: AppTheme.textSecondary,
+                    ),
+                    if (widget.selectedStatus != null ||
+                        widget.selectedVehicle != null)
+                      Positioned(
+                        right: 0,
+                        top: 8,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: AppTheme.statusRed,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 12),
 
         // Filter Row
+        if (widget.selectedStatus != null || widget.selectedVehicle != null)
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              // Filter Icon Circle
-              GestureDetector(
-                onTap: _showFilterBottomSheet,
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppTheme.controlsColor,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      const Icon(Icons.tune, size: 20, color: Colors.black),
-                      if (widget.selectedStatus != null ||
-                          widget.selectedVehicle != null)
-                        Positioned(
-                          right: 8,
-                          top: 8,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppTheme.statusRed,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-
               // Filter Pill: Status
               if (widget.selectedStatus != null) ...[
                 _buildFilterPill(

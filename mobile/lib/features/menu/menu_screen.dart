@@ -9,6 +9,10 @@ import 'package:mobile/features/menu/widgets/loyalty_program_card.dart';
 import 'package:mobile/features/menu/widgets/problems_card.dart';
 import 'package:mobile/features/menu/widgets/date_range_selector.dart';
 import 'package:mobile/features/auth/auth_service.dart';
+import 'package:mobile/features/menu/providers/contractors_provider.dart';
+import 'package:mobile/features/menu/providers/cars_provider.dart';
+import 'package:mobile/features/menu/providers/loyalty_program_provider.dart';
+import 'package:mobile/features/menu/providers/problems_provider.dart';
 
 class MenuScreen extends ConsumerWidget {
   const MenuScreen({super.key});
@@ -125,7 +129,21 @@ class MenuScreen extends ConsumerWidget {
         scrolledUnderElevation: 0,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(contractorsDataProvider);
+            ref.invalidate(carsDataProvider);
+            ref.invalidate(loyaltyProgramDataProvider);
+            ref.invalidate(problemsDataProvider);
+            await Future.wait([
+              ref.read(contractorsDataProvider.future).catchError((_) {}),
+              ref.read(carsDataProvider.future).catchError((_) {}),
+              ref.read(loyaltyProgramDataProvider.future).catchError((_) {}),
+              ref.read(problemsDataProvider.future).catchError((_) {}),
+            ]);
+          },
+          child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             children: [
@@ -201,6 +219,7 @@ class MenuScreen extends ConsumerWidget {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

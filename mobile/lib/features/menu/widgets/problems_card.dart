@@ -5,6 +5,7 @@ import 'package:mobile/app/theme.dart';
 import 'package:mobile/features/menu/models/problems_model.dart';
 import 'package:mobile/features/menu/providers/problems_provider.dart';
 import 'package:mobile/shared/widgets/info_card.dart';
+import 'package:mobile/shared/widgets/pulse_box.dart';
 import 'package:mobile/features/menu/widgets/menu_icon.dart';
 
 class ProblemsCard extends ConsumerWidget {
@@ -31,11 +32,25 @@ class ProblemsCard extends ConsumerWidget {
       loading: () => InfoCard(
         title: 'Проблемы',
         icon: const MenuIcon(assetPath: 'assets/images/menu_problems.svg'),
-        child: const Center(
-          child: Padding(
-            padding: EdgeInsets.all(32.0),
-            child: CircularProgressIndicator(),
-          ),
+        child: Column(
+          children: [
+            for (var i = 0; i < 4; i++) ...[  
+              Row(
+                children: [
+                  PulseBox(width: 36, height: 24, borderRadius: 6),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: PulseBox(
+                      width: null,
+                      height: 16,
+                      borderRadius: 6,
+                    ),
+                  ),
+                ],
+              ),
+              if (i < 3) const SizedBox(height: 12),
+            ],
+          ],
         ),
       ),
       error: (error, stack) => InfoCard(

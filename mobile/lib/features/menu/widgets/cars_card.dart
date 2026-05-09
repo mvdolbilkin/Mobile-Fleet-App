@@ -5,6 +5,7 @@ import 'package:mobile/features/menu/providers/cars_provider.dart';
 import 'package:mobile/features/menu/widgets/cars_chart.dart';
 import 'package:mobile/features/menu/widgets/menu_icon.dart';
 import 'package:mobile/shared/widgets/big_stat.dart';
+import 'package:mobile/shared/widgets/pulse_box.dart';
 import 'package:mobile/shared/widgets/info_card.dart';
 import 'package:mobile/shared/widgets/status_list.dart';
 
@@ -66,12 +67,7 @@ class CarsCard extends ConsumerWidget {
             CarsChart(indicator: data.indicator),
           ],
         ),
-        loading: () => const Center(
-          child: Padding(
-            padding: EdgeInsets.all(32.0),
-            child: CircularProgressIndicator(),
-          ),
-        ),
+        loading: () => const _CarsSkeleton(),
         error: (error, stack) => Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -99,6 +95,29 @@ class CarsCard extends ConsumerWidget {
     return number.toString().replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
       (Match m) => '${m[1]} ',
+    );
+  }
+}
+
+class _CarsSkeleton extends StatelessWidget {
+  const _CarsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const PulseBox(width: 80, height: 44, borderRadius: 10),
+        const SizedBox(height: 6),
+        const PulseBox(width: 120, height: 12, borderRadius: 4),
+        const SizedBox(height: 18),
+        for (final w in [130.0, 115.0, 120.0, 100.0, 110.0]) ...[  
+          PulseBox(width: w, height: 14, borderRadius: 6),
+          const SizedBox(height: 10),
+        ],
+        const SizedBox(height: 16),
+        const PulseBox(height: 120, borderRadius: 12),
+      ],
     );
   }
 }

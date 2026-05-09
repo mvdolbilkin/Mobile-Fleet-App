@@ -1,3 +1,6 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
+
 class MapCoordinates {
   final double lon;
   final double lat;
@@ -252,14 +255,115 @@ class MapCombinedDriver {
     final formatted = balance.toStringAsFixed(2).replaceAll('.', ',');
     return '$formatted ₽';
   }
+
+  factory MapCombinedDriver.fromDriverDetail(MapDriverDetail detail) {
+    return MapCombinedDriver(
+      id: detail.driver.id,
+      fullName: detail.driver.fullName,
+      status: detail.driver.status,
+      hasGps: false,
+      statusDurationSeconds: detail.driver.statusDuration.duration,
+      statusDurationIsMore: detail.driver.statusDuration.isMore,
+      balance: double.tryParse(detail.driver.balance) ?? 0.0,
+      vehicleNumber: detail.vehicle.hasVehicle ? detail.vehicle.number : null,
+      avatarUrl: detail.driver.avatarUrl,
+    );
+  }
 }
 
-// ─── Driver Item (детальный) ──────────────────────────────────────────────────
+// WorkRule
+
+class WorkRule {
+  final String id;
+  final String name;
+  final String commissionPercent;
+
+  const WorkRule({
+    required this.id,
+    required this.name,
+    required this.commissionPercent,
+  });
+
+  factory WorkRule.fromJson(Map<String, dynamic> json) {
+    final commission =
+        (json['default_commission'] as Map<String, dynamic>?)?['percent']
+            as String? ??
+        '0';
+    return WorkRule(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      commissionPercent: commission,
+    );
+  }
+}
+
+// MapFilterState
+
+class MapFilterState {
+  final List<String> paymentMethods;
+  final List<String> workRuleIds;
+  final List<String> carCategories;
+  final String sortField;
+  final String sortDirection;
+
+  const MapFilterState({
+    this.paymentMethods = const [],
+    this.workRuleIds = const [],
+    this.carCategories = const [],
+    this.sortField = 'status_duration',
+    this.sortDirection = 'desc',
+  });
+
+  bool get hasServerFilters =>
+      paymentMethods.isNotEmpty ||
+      workRuleIds.isNotEmpty ||
+      carCategories.isNotEmpty;
+
+  int get activeFilterCount =>
+      (paymentMethods.isNotEmpty ? 1 : 0) +
+      (workRuleIds.isNotEmpty ? 1 : 0) +
+      (carCategories.isNotEmpty ? 1 : 0);
+
+  Map<String, dynamic> toServerBody() {
+    final body = <String, dynamic>{};
+    if (paymentMethods.isNotEmpty) body['payment_methods'] = paymentMethods;
+    if (workRuleIds.isNotEmpty) body['work_rule_ids'] = workRuleIds;
+    if (carCategories.isNotEmpty) body['car'] = {'categories': carCategories};
+    body['sort'] = {'field': sortField, 'direction': sortDirection};
+    return body;
+  }
+
+  MapFilterState copyWith({
+    List<String>? paymentMethods,
+    List<String>? workRuleIds,
+    List<String>? carCategories,
+    String? sortField,
+    String? sortDirection,
+  }) {
+    return MapFilterState(
+      paymentMethods: paymentMethods ?? this.paymentMethods,
+      workRuleIds: workRuleIds ?? this.workRuleIds,
+      carCategories: carCategories ?? this.carCategories,
+      sortField: sortField ?? this.sortField,
+      sortDirection: sortDirection ?? this.sortDirection,
+    );
+  }
+}
+
+class MapFilterNotifier extends StateNotifier<MapFilterState> {
+  MapFilterNotifier() : super(const MapFilterState());
+  void update(MapFilterState newState) => state = newState;
+  void reset() => state = const MapFilterState();
+}
+
+
+// Driver item (detailed)
 
 class MapDriverItemDriver {
   final String id;
   final String firstName;
   final String lastName;
+  final String? middleName;
   final String status;
   final int statusDurationSeconds;
   final bool statusDurationIsMore;
@@ -272,6 +376,7 @@ class MapDriverItemDriver {
     required this.id,
     required this.firstName,
     required this.lastName,
+    this.middleName,
     required this.status,
     required this.statusDurationSeconds,
     required this.statusDurationIsMore,
@@ -281,7 +386,11 @@ class MapDriverItemDriver {
     this.avatarUrl,
   });
 
-  String get fullName => '$lastName $firstName'.trim();
+  String get fullName {
+    final parts = [lastName, firstName];
+    if (middleName != null && middleName!.isNotEmpty) parts.add(middleName!);
+    return parts.where((p) => p.isNotEmpty).join(' ');
+  }
 
   String get statusLabel {
     switch (status) {
@@ -320,6 +429,7 @@ class MapDriverItemDriver {
       id: json['id'] as String,
       firstName: json['first_name'] as String? ?? '',
       lastName: json['last_name'] as String? ?? '',
+      middleName: json['middle_name'] as String?,
       status: json['status'] as String? ?? 'busy',
       statusDurationSeconds: (sd['duration'] as num?)?.toInt() ?? 0,
       statusDurationIsMore: sd['is_more'] as bool? ?? false,
@@ -357,7 +467,7 @@ class MapDriverItemResponse {
   }
 }
 
-// ─── Status History ───────────────────────────────────────────────────────────
+// Status history
 
 class MapStatusHistoryItem {
   final String status;
@@ -409,7 +519,7 @@ class MapDriverStatusHistoryResponse {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// MapCombinedData
 
 class MapCombinedData {
   final MapDriversPointsResponse points;
@@ -436,7 +546,7 @@ class MapCombinedData {
   }
 }
 
-// ─── Surge ───────────────────────────────────────────────────────────────────
+// Surge
 
 class SurgeFeature {
   final double lat;

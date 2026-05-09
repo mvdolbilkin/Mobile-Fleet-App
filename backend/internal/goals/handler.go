@@ -8,182 +8,91 @@ import (
 	"net/http"
 	"time"
 
+	"backend/internal/shared/proxy"
+
 	"github.com/gin-gonic/gin"
 )
 
-type Handler struct{}
+const (
+	urlGoalsCurrent  = "https://fleet.yandex.ru/api/fleet/fleet-goals/v2/goals/current"
+	urlGoalsPrevious = "https://fleet.yandex.ru/api/fleet/fleet-goals/v2/goals/previous"
+)
 
-func NewHandler() *Handler {
-	return &Handler{}
-}
-
-// GetCurrentGoals handles POST /api/goals/current
-func (h *Handler) GetCurrentGoals(c *gin.Context) {
+// fetchGoals proxies a goals request, formats period_text, falls back to mock on error.
+func fetchGoals(c *gin.Context, targetURL string, mockFn func() GoalsResponse) {
 	var req GoalsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
-	cookieHeader := c.GetHeader("Cookie")
-	if cookieHeader == "" {
-		cookieHeader = c.GetHeader("cookie")
-	}
-	parkID := c.GetHeader("X-Park-ID")
-
-	if cookieHeader == "" || parkID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
-		return
-	}
-
-	// Call Yandex Fleet Goals API
-	yandexURL := "https://fleet.yandex.ru/api/fleet/fleet-goals/v2/goals/current"
+	s := proxy.GetSession(c)
 
 	requestBody, err := json.Marshal(req)
 	if err != nil {
-		fmt.Printf("GetCurrentGoals Marshal Error: %v\n", err)
-		c.JSON(http.StatusOK, getMockCurrentGoals())
+		c.JSON(http.StatusOK, mockFn())
 		return
 	}
 
-	yandexReq, err := http.NewRequest("POST", yandexURL, bytes.NewBuffer(requestBody))
+	yandexReq, err := http.NewRequest("POST", targetURL, bytes.NewBuffer(requestBody))
 	if err != nil {
-		fmt.Printf("GetCurrentGoals Request Creation Error: %v\n", err)
-		c.JSON(http.StatusOK, getMockCurrentGoals())
+		c.JSON(http.StatusOK, mockFn())
 		return
 	}
 
-	// Set headers
 	yandexReq.Header.Set("Content-Type", "application/json")
-	yandexReq.Header.Set("Cookie", cookieHeader)
-	yandexReq.Header.Set("X-Park-ID", parkID)
-	yandexReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
 	yandexReq.Header.Set("Accept", "*/*")
 	yandexReq.Header.Set("Accept-Language", "ru")
-	yandexReq.Header.Set("Origin", "https://fleet.yandex.ru")
-	yandexReq.Header.Set("Referer", "https://fleet.yandex.ru/")
+	yandexReq.Header.Set("X-Park-ID", s.ParkID)
 
-	client := &http.Client{}
-	resp, err := client.Do(yandexReq)
+	cookieValue := "Session_id=" + s.SessionID + "; sessionid2=" + s.SessionID2
+	if s.LoginToken != "" {
+		cookieValue += "; L=" + s.LoginToken
+	}
+	if s.Login != "" {
+		cookieValue += "; yandex_login=" + s.Login
+	}
+	if s.UID != "" {
+		cookieValue += "; yandexuid=" + s.UID
+	}
+	yandexReq.Header.Set("Cookie", cookieValue)
+
+	resp, err := http.DefaultClient.Do(yandexReq)
 	if err != nil {
-		fmt.Printf("GetCurrentGoals HTTP Error: %v, returning mock data\n", err)
-		c.JSON(http.StatusOK, getMockCurrentGoals())
+		c.JSON(http.StatusOK, mockFn())
 		return
 	}
 	defer resp.Body.Close()
 
-	// Read response body
 	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Printf("GetCurrentGoals Read Body Error: %v, returning mock data\n", err)
-		c.JSON(http.StatusOK, getMockCurrentGoals())
-		return
-	}
-
-	fmt.Printf("GetCurrentGoals Yandex API Status: %d\n", resp.StatusCode)
-	fmt.Printf("GetCurrentGoals Yandex API Response: %s\n", string(body))
-
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("GetCurrentGoals Yandex API Error: %s, returning mock data\n", resp.Status)
-		c.JSON(http.StatusOK, getMockCurrentGoals())
+	if err != nil || resp.StatusCode != http.StatusOK {
+		c.JSON(http.StatusOK, mockFn())
 		return
 	}
 
 	var result GoalsResponse
 	if err := json.Unmarshal(body, &result); err != nil {
-		fmt.Printf("GetCurrentGoals Decode Error: %v, returning mock data\n", err)
-		c.JSON(http.StatusOK, getMockCurrentGoals())
+		c.JSON(http.StatusOK, mockFn())
 		return
 	}
 
-	// Format period_text from period dates
 	for i := range result.Goals {
 		if result.Goals[i].Period != nil {
 			result.Goals[i].PeriodText = formatPeriodText(result.Goals[i].Period)
 		}
 	}
 
-	fmt.Printf("GetCurrentGoals Success: returning %d goals\n", len(result.Goals))
 	c.JSON(http.StatusOK, result)
 }
 
-// GetPreviousGoals handles POST /api/goals/previous
-func (h *Handler) GetPreviousGoals(c *gin.Context) {
-	var req GoalsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
-		return
-	}
+// getCurrentGoals handles POST /api/goals/current.
+func getCurrentGoals(c *gin.Context) {
+	fetchGoals(c, urlGoalsCurrent, getMockCurrentGoals)
+}
 
-	cookieHeader := c.GetHeader("Cookie")
-	if cookieHeader == "" {
-		cookieHeader = c.GetHeader("cookie")
-	}
-	parkID := c.GetHeader("X-Park-ID")
-
-	if cookieHeader == "" || parkID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization headers"})
-		return
-	}
-
-	// Call Yandex Fleet Goals API
-	yandexURL := "https://fleet.yandex.ru/api/fleet/fleet-goals/v2/goals/previous"
-
-	requestBody, err := json.Marshal(req)
-	if err != nil {
-		fmt.Printf("GetPreviousGoals Marshal Error: %v\n", err)
-		c.JSON(http.StatusOK, getMockPreviousGoals())
-		return
-	}
-
-	yandexReq, err := http.NewRequest("POST", yandexURL, bytes.NewBuffer(requestBody))
-	if err != nil {
-		fmt.Printf("GetPreviousGoals Request Creation Error: %v\n", err)
-		c.JSON(http.StatusOK, getMockPreviousGoals())
-		return
-	}
-
-	// Set headers
-	yandexReq.Header.Set("Content-Type", "application/json")
-	yandexReq.Header.Set("Cookie", cookieHeader)
-	yandexReq.Header.Set("X-Park-ID", parkID)
-	yandexReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-	yandexReq.Header.Set("Accept", "*/*")
-	yandexReq.Header.Set("Accept-Language", "ru")
-	yandexReq.Header.Set("Origin", "https://fleet.yandex.ru")
-	yandexReq.Header.Set("Referer", "https://fleet.yandex.ru/")
-
-	client := &http.Client{}
-	resp, err := client.Do(yandexReq)
-	if err != nil {
-		fmt.Printf("GetPreviousGoals HTTP Error: %v, returning mock data\n", err)
-		c.JSON(http.StatusOK, getMockPreviousGoals())
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		fmt.Printf("GetPreviousGoals Yandex API Error: %s - %s, returning mock data\n", resp.Status, string(body))
-		c.JSON(http.StatusOK, getMockPreviousGoals())
-		return
-	}
-
-	var result GoalsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		fmt.Printf("GetPreviousGoals Decode Error: %v, returning mock data\n", err)
-		c.JSON(http.StatusOK, getMockPreviousGoals())
-		return
-	}
-
-	// Format period_text from period dates
-	for i := range result.Goals {
-		if result.Goals[i].Period != nil {
-			result.Goals[i].PeriodText = formatPeriodText(result.Goals[i].Period)
-		}
-	}
-
-	c.JSON(http.StatusOK, result)
+// getPreviousGoals handles POST /api/goals/previous.
+func getPreviousGoals(c *gin.Context) {
+	fetchGoals(c, urlGoalsPrevious, getMockPreviousGoals)
 }
 
 // Mock data functions

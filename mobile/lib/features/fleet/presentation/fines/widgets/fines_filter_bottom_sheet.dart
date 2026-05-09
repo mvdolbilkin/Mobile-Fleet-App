@@ -163,7 +163,7 @@ class _FinesFilterBottomSheetState extends ConsumerState<FinesFilterBottomSheet>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ─── Период ──────────────────────────────────────────
+                      // Период
                       _sectionLabel('Период'),
                       GestureDetector(
                         onTap: () async {
@@ -194,7 +194,7 @@ class _FinesFilterBottomSheetState extends ConsumerState<FinesFilterBottomSheet>
                       ),
                       const SizedBox(height: 20),
 
-                      // ─── Автомобиль ──────────────────────────────────────
+                      // Автомобиль
                       _sectionLabel('Автомобиль'),
                       carsAsync.when(
                         data: (cars) => _searchablePickerControl(
@@ -211,7 +211,7 @@ class _FinesFilterBottomSheetState extends ConsumerState<FinesFilterBottomSheet>
                       ),
                       const SizedBox(height: 20),
 
-                      // ─── Водитель ─────────────────────────────────────────
+                      // Водитель
                       _sectionLabel('Водитель'),
                       driversAsync.when(
                         data: (drivers) => _searchablePickerControl(
@@ -228,7 +228,7 @@ class _FinesFilterBottomSheetState extends ConsumerState<FinesFilterBottomSheet>
                       ),
                       const SizedBox(height: 20),
 
-                      // ─── Статус платежа ───────────────────────────────────
+                      // Статус платежа
                       _sectionLabel('Статус платежа'),
                       Wrap(
                         spacing: 8,
@@ -256,7 +256,7 @@ class _FinesFilterBottomSheetState extends ConsumerState<FinesFilterBottomSheet>
                       ),
                       const SizedBox(height: 20),
 
-                      // ─── Статус определения водителя ──────────────────────
+                      // Статус определения водителя
                       _sectionLabel('Статус определения водителя'),
                       Wrap(
                         spacing: 8,
@@ -317,7 +317,7 @@ class _FinesFilterBottomSheetState extends ConsumerState<FinesFilterBottomSheet>
                       ),
                       const SizedBox(height: 20),
 
-                      // ─── Выгрузка в банк-клиент ───────────────────────────
+                      // Выгрузка в банк-клиент
                       _sectionLabel('Выгрузка в банк-клиент'),
                       Wrap(
                         spacing: 8,

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:mobile/features/fleet/domain/vehicle.dart';
 import 'package:mobile/features/fleet/domain/vehicle_details.dart';
+import 'package:mobile/features/fleet/domain/vehicle_extras.dart';
 import '../../../data/vehicles_service.dart';
 
 import 'package:mobile/shared/api/dio_provider.dart';
@@ -57,4 +58,41 @@ final carCategoriesProvider = FutureProvider<Map<String, String>>((ref) async {
 final officeAddressesProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
   final service = ref.watch(vehiclesServiceProvider);
   return service.getOfficeAddresses();
+});
+
+final vehicleEfficiencyProvider = FutureProvider.autoDispose
+    .family<VehicleEfficiency, EfficiencyParams>((ref, params) async {
+  final service = ref.watch(vehiclesServiceProvider);
+  return service.getVehicleEfficiency(
+      params.vehicleId, params.dateFrom, params.dateTo);
+});
+
+final vehicleBrandingProvider = FutureProvider.autoDispose
+    .family<VehicleBranding, String>((ref, vehicleId) async {
+  final service = ref.watch(vehiclesServiceProvider);
+  return service.getVehicleBranding(vehicleId);
+});
+
+final childChairsProvider = FutureProvider.autoDispose
+    .family<ChildChairsResponse, String>((ref, vehicleId) async {
+  final service = ref.watch(vehiclesServiceProvider);
+  return service.getChildChairs(vehicleId);
+});
+
+final vehicleKeyInfoProvider = FutureProvider.autoDispose
+    .family<VehicleKeyInfo, String>((ref, vehicleId) async {
+  final service = ref.watch(vehiclesServiceProvider);
+  return service.getVehicleKeyInfo(vehicleId);
+});
+
+final vehicleChangelogProvider = FutureProvider.autoDispose
+    .family<VehicleChangelogResponse, String>((ref, vehicleId) async {
+  final service = ref.watch(vehiclesServiceProvider);
+  return service.getVehicleChangelog(vehicleId);
+});
+
+final vehicleStatusExtrasProvider = FutureProvider.autoDispose
+    .family<VehicleStatusExtras, String>((ref, vehicleId) async {
+  final service = ref.watch(vehiclesServiceProvider);
+  return service.getVehicleStatusExtras(vehicleId);
 });

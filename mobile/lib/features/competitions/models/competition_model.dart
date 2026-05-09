@@ -158,9 +158,9 @@ class CompetitionDetails {
   final List<String> categories;
   final List<String> geoareas;
   final List<String> professions;
-  final List<dynamic> categoriesList;
-  final List<LocalizedItem> geoareasList;
-  final List<LocalizedItem> professionsList;
+  final List<dynamic>? categoriesList;
+  final List<LocalizedItem>? geoareasList;
+  final List<LocalizedItem>? professionsList;
   final int participantsCount;
   final int winnerCount;
   final List<Winner> winnersParticipantList;
@@ -175,9 +175,9 @@ class CompetitionDetails {
     required this.categories,
     required this.geoareas,
     required this.professions,
-    required this.categoriesList,
-    required this.geoareasList,
-    required this.professionsList,
+    this.categoriesList,
+    this.geoareasList,
+    this.professionsList,
     required this.participantsCount,
     required this.winnerCount,
     required this.winnersParticipantList,
@@ -193,21 +193,21 @@ class CompetitionDetails {
       ),
       scoreType: json['score_type'] as String,
       specification: json['specification'] as String,
-      categories: (json['categories'] as List).map((e) => e as String).toList(),
-      geoareas: (json['geoareas'] as List).map((e) => e as String).toList(),
-      professions: (json['professions'] as List).map((e) => e as String).toList(),
-      categoriesList: json['categories_list'] as List,
-      geoareasList: (json['geoareas_list'] as List)
-          .map((e) => LocalizedItem.fromJson(e as Map<String, dynamic>))
+      categories: (json['categories'] as List?)?.map((e) => e as String).toList() ?? [],
+      geoareas: (json['geoareas'] as List?)?.map((e) => e as String).toList() ?? [],
+      professions: (json['professions'] as List?)?.map((e) => e as String).toList() ?? [],
+      categoriesList: json['categories_list'] as List?,
+      geoareasList: (json['geoareas_list'] as List?)
+          ?.map((e) => LocalizedItem.fromJson(e as Map<String, dynamic>))
           .toList(),
-      professionsList: (json['professions_list'] as List)
-          .map((e) => LocalizedItem.fromJson(e as Map<String, dynamic>))
+      professionsList: (json['professions_list'] as List?)
+          ?.map((e) => LocalizedItem.fromJson(e as Map<String, dynamic>))
           .toList(),
       participantsCount: json['participants_count'] as int,
       winnerCount: json['winner_count'] as int,
-      winnersParticipantList: (json['winners_participant_list'] as List)
-          .map((e) => Winner.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      winnersParticipantList: (json['winners_participant_list'] as List?)
+          ?.map((e) => Winner.fromJson(e as Map<String, dynamic>))
+          .toList() ?? [],
       prizePaid: json['prize_paid'] as bool,
     );
   }

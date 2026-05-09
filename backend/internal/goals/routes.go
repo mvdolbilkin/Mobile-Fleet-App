@@ -1,15 +1,15 @@
 package goals
 
 import (
+	"backend/internal/shared/middleware"
+
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterRoutes(r *gin.Engine) {
-	handler := NewHandler()
-	
-	api := r.Group("/api/goals")
+	api := r.Group("/api/goals", middleware.Auth)
 	{
-		api.POST("/current", handler.GetCurrentGoals)
-		api.POST("/previous", handler.GetPreviousGoals)
+		api.POST("/current", getCurrentGoals)
+		api.POST("/previous", getPreviousGoals)
 	}
 }

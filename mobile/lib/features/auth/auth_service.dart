@@ -122,9 +122,15 @@ class AuthService {
     try {
       final cookieManager = CookieManager.instance();
       await cookieManager.deleteAllCookies();
-      print('✅ WebView cookies cleared');
+
+      // Очищаем WebStorage (localStorage, sessionStorage, кэш)
+      try {
+        await WebStorageManager.instance().android.deleteAllData();
+      } catch (_) {}
+
+      print('✅ WebView cookies & storage cleared');
     } catch (e) {
-      print('⚠️ Failed to clear WebView cookies: $e');
+      print('⚠️ Failed to clear WebView data: $e');
     }
   }
 }

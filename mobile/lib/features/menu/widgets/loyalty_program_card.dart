@@ -5,6 +5,7 @@ import 'package:mobile/app/theme.dart';
 import 'package:mobile/features/menu/models/loyalty_program_model.dart';
 import 'package:mobile/features/menu/providers/loyalty_program_provider.dart';
 import 'package:mobile/shared/widgets/info_card.dart';
+import 'package:mobile/shared/widgets/pulse_box.dart';
 import 'package:mobile/features/menu/widgets/menu_icon.dart';
 
 class LoyaltyProgramCard extends ConsumerWidget {
@@ -40,12 +41,7 @@ class LoyaltyProgramCard extends ConsumerWidget {
         icon: const MenuIcon(
           assetPath: 'assets/images/menu_loyalty_program.svg',
         ),
-        child: const Center(
-          child: Padding(
-            padding: EdgeInsets.all(32.0),
-            child: CircularProgressIndicator(),
-          ),
-        ),
+        child: const _LoyaltySkeleton(),
       ),
       error: (error, stack) => InfoCard(
         title: 'Программа лояльности',
@@ -201,6 +197,38 @@ class _BenefitBadge extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LoyaltySkeleton extends StatelessWidget {
+  const _LoyaltySkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const PulseBox(width: 180, height: 28, borderRadius: 8),
+        const SizedBox(height: 12),
+        const PulseBox(height: 14, borderRadius: 6),
+        const SizedBox(height: 8),
+        const PulseBox(width: 220, height: 14, borderRadius: 6),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final w in [80.0, 100.0, 90.0])
+              PulseBox(width: w, height: 26, borderRadius: 6),
+          ],
+        ),
+        const SizedBox(height: 16),
+        for (var i = 0; i < 3; i++) ...[
+          const PulseBox(height: 16, borderRadius: 6),
+          const SizedBox(height: 10),
+        ],
+      ],
     );
   }
 }

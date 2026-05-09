@@ -30,6 +30,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
   bool _iconsReady = false;
   final Map<String, yandex.PlacemarkMapObject> _placemarksMap = {};
   final Map<String, MapDriverPoint> _driverPointsMap = {};
+  Set<String> _currentFilteredDriverIds = {};
   final List<yandex.MapObjectTapListener> _listeners = [];
   final Map<String, yandex_img.ImageProvider> _statusIcons = {};
   String? _selectedDriverId;
@@ -40,6 +41,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
   final List<yandex.MapObjectTapListener> _surgeListeners = [];
   double? _surgePopupValue;
   Timer? _surgePopupTimer;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
@@ -47,6 +49,17 @@ class _MapScreenState extends ConsumerState<MapScreen>
     WidgetsBinding.instance.addObserver(this);
     mapkit.onStart();
     _setupIcons();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startRefreshTimer());
+  }
+
+  void _startRefreshTimer() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted) return;
+      if (!TickerMode.of(context)) return;
+      ref.invalidate(mapDataProvider);
+      ref.invalidate(filteredDriverListProvider);
+    });
   }
 
   Future<void> _setupIcons() async {
@@ -97,45 +110,71 @@ class _MapScreenState extends ConsumerState<MapScreen>
   }
 
   void _addDriverMarkers(List<MapDriverPoint> points) {
-    if (_mapWindow == null || _markersAdded || !_iconsReady) return;
+    if (_mapWindow == null || !_iconsReady) return;
 
     final mapObjects = _mapWindow!.map.mapObjects;
+    _currentFilteredDriverIds = points.map((p) => p.driverId).toSet();
 
     for (final point in points) {
+      final oldPoint = _driverPointsMap[point.driverId];
       _driverPointsMap[point.driverId] = point;
       if (!point.hasGps) continue;
 
       final icon =
           _statusIcons[point.status] ?? _statusIcons['default']!;
 
-      final placemark = mapObjects.addPlacemark();
-      placemark
-        ..geometry = yandex.Point(
+      if (_placemarksMap.containsKey(point.driverId)) {
+        final placemark = _placemarksMap[point.driverId]!;
+        placemark.geometry = yandex.Point(
           latitude: point.coordinates!.lat,
           longitude: point.coordinates!.lon,
-        )
-        ..setIcon(icon)
-        ..setIconStyle(const yandex.IconStyle(scale: 1.0));
+        );
+        placemark.setIcon(icon);
+        if (point.driverId == _selectedDriverId) {
+          final oc = oldPoint?.coordinates;
+          if (oc == null ||
+              oc.lat != point.coordinates!.lat ||
+              oc.lon != point.coordinates!.lon) {
+            _zoomToDriverWithOffset(
+                point.coordinates!.lat, point.coordinates!.lon);
+          }
+        }
+      } else {
+        final placemark = mapObjects.addPlacemark();
+        placemark
+          ..geometry = yandex.Point(
+            latitude: point.coordinates!.lat,
+            longitude: point.coordinates!.lon,
+          )
+          ..setIcon(icon)
+          ..setIconStyle(const yandex.IconStyle(scale: 1.0));
 
-      _placemarksMap[point.driverId] = placemark;
+        _placemarksMap[point.driverId] = placemark;
 
-      final id = point.driverId;
-      final listener = _DriverTapListener(
-        driverId: id,
-        mapWindow: _mapWindow!,
-        onTap: () => _onDriverTapById(id),
-      );
-      _listeners.add(listener);
-      placemark.addTapListener(listener);
+        final id = point.driverId;
+        final listener = _DriverTapListener(
+          driverId: id,
+          mapWindow: _mapWindow!,
+          onTap: () => _onDriverTapById(id),
+        );
+        _listeners.add(listener);
+        placemark.addTapListener(listener);
+      }
     }
 
     _markersAdded = true;
+    _updateMarkerVisibility();
   }
 
   void _updateMarkerVisibility() {
     for (final entry in _placemarksMap.entries) {
       final driverId = entry.key;
       final placemark = entry.value;
+
+      if (!_currentFilteredDriverIds.contains(driverId)) {
+        placemark.visible = false;
+        continue;
+      }
 
       if (_selectedDriverId != null) {
         placemark.visible = driverId == _selectedDriverId;
@@ -280,14 +319,20 @@ class _MapScreenState extends ConsumerState<MapScreen>
     if (_selectedDriverId == null) return;
     final placemark = _placemarksMap[_selectedDriverId];
     if (placemark == null) return;
+    final old = placemark.geometry;
     placemark.geometry = yandex.Point(
       latitude: coords.lat,
       longitude: coords.lon,
     );
+    if (old.latitude != coords.lat || old.longitude != coords.lon) {
+      _zoomToDriverWithOffset(coords.lat, coords.lon);
+    }
   }
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
+    _surgePopupTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     mapkit.onStop();
     super.dispose();
@@ -381,7 +426,6 @@ class _MapScreenState extends ConsumerState<MapScreen>
               orElse: () => const SizedBox.shrink(),
             ),
           ),
-          // ─── Молния ───────────────────────────────────────────
           Positioned(
             right: 16,
             top: 0,
@@ -391,34 +435,33 @@ class _MapScreenState extends ConsumerState<MapScreen>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (_surgeActive && _surgeData != null) ...
-                      [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.92),
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.10),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            'x${_surgeData!.legend}',
-                            style: const TextStyle(
-                              fontFamily: 'Yandex Sans Text',
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF7B2FBE),
+                    if (_surgeActive && _surgeData != null) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.92),
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.10),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
+                          ],
+                        ),
+                        child: Text(
+                          'x${_surgeData!.legend}',
+                          style: const TextStyle(
+                            fontFamily: 'Yandex Sans Text',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF7B2FBE),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                      ],
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     _MapButton(
                       icon: HugeIcons.strokeRoundedFlash,
                       onTap: () => _toggleSurge(),
@@ -430,7 +473,6 @@ class _MapScreenState extends ConsumerState<MapScreen>
               ),
             ),
           ),
-          // ─── Surge popup ──────────────────────────────────────
           Align(
             alignment: const Alignment(0, -0.35),
             child: AnimatedOpacity(
@@ -441,7 +483,6 @@ class _MapScreenState extends ConsumerState<MapScreen>
               ),
             ),
           ),
-          // ─── Зум ─────────────────────────────────────────────
           Positioned(
             right: 16,
             bottom: MediaQuery.of(context).size.height * 0.38,
@@ -607,7 +648,7 @@ class _Chip extends StatelessWidget {
   }
 }
 
-// ─── Кнопка управления картой ──────────────────────────────────────────
+// Map control button
 
 class _MapButton extends StatefulWidget {
   final List<List<dynamic>> icon;
@@ -705,7 +746,7 @@ class _MapButtonState extends State<_MapButton>
   }
 }
 
-// ─── Surge popup ──────────────────────────────────────────────────────────────
+// Surge popup widget
 
 class _SurgePopup extends StatelessWidget {
   final double value;
@@ -786,7 +827,7 @@ class _SurgePopup extends StatelessWidget {
   }
 }
 
-// ─── Слушатель тапа по метке ──────────────────────────────────────────────────
+// Marker tap listener
 
 class _DriverTapListener implements yandex.MapObjectTapListener {
   final String driverId;

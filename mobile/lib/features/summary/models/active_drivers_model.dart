@@ -42,7 +42,7 @@ class ActiveDriversSeries {
 
 class SeriesData {
   final List<ChartPoint> values;
-  final int? summary;
+  final double? summary;
 
   SeriesData({
     required this.values,
@@ -53,7 +53,7 @@ class SeriesData {
     var valuesList = json['values'] as List? ?? [];
     return SeriesData(
       values: valuesList.map((e) => ChartPoint.fromJson(e)).toList(),
-      summary: json['summary'],
+      summary: (json['summary'] as num?)?.toDouble(),
     );
   }
   
@@ -75,5 +75,15 @@ class ChartPoint {
       x: json['x'] ?? '',
       y: (json['y'] ?? 0).toDouble(),
     );
+  }
+
+  String get weekdayLabel {
+    try {
+      final dt = DateTime.parse(x);
+      const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+      return days[dt.weekday - 1];
+    } catch (_) {
+      return '';
+    }
   }
 }

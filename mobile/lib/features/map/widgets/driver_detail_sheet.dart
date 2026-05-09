@@ -203,7 +203,7 @@ class _DriverDetailSheetState extends ConsumerState<DriverDetailSheet> {
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
       children: [
         _buildHandleRow(),
-        // ─── Карточка водителя ───────────────────────────────────────────
+        // Driver card
         GestureDetector(
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
@@ -306,7 +306,7 @@ class _DriverDetailSheetState extends ConsumerState<DriverDetailSheet> {
         ),
         ),
         const SizedBox(height: 12),
-        // ─── Кнопка заказов ──────────────────────────────────────────────
+        // Orders button
         Container(
           height: 48,
           decoration: BoxDecoration(
@@ -326,7 +326,7 @@ class _DriverDetailSheetState extends ConsumerState<DriverDetailSheet> {
           ),
         ),
         const SizedBox(height: 24),
-        // ─── История статусов ─────────────────────────────────────────────
+        // Status history
         const Text(
           'Статусы за 24ч.',
           style: TextStyle(
@@ -359,7 +359,7 @@ class _DriverDetailSheetState extends ConsumerState<DriverDetailSheet> {
   }
 }
 
-// ─── Цветной кружок статуса ───────────────────────────────────────────────────
+// Status dot
 
 class _StatusDot extends StatelessWidget {
   final String status;
@@ -389,7 +389,7 @@ class _StatusDot extends StatelessWidget {
   }
 }
 
-// ─── Строка истории статусов ──────────────────────────────────────────────────
+// Status history row
 
 class _StatusHistoryRow extends StatelessWidget {
   final MapStatusHistoryItem item;

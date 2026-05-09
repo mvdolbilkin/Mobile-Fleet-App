@@ -90,6 +90,180 @@ final driverDetailsProvider =
       return await repository.fetchDriverDetails(driverId);
     });
 
+class DriverTransactionsParams {
+  final String driverId;
+  final int days;
+
+  const DriverTransactionsParams(this.driverId, this.days);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DriverTransactionsParams &&
+          runtimeType == other.runtimeType &&
+          driverId == other.driverId &&
+          days == other.days;
+
+  @override
+  int get hashCode => driverId.hashCode ^ days.hashCode;
+}
+
+class DriverBalancesHistoryParams {
+  final String driverId;
+  final DateTime dateFrom;
+  final DateTime dateTo;
+  final int page;
+
+  const DriverBalancesHistoryParams(this.driverId, this.dateFrom, this.dateTo, this.page);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DriverBalancesHistoryParams &&
+          runtimeType == other.runtimeType &&
+          driverId == other.driverId &&
+          dateFrom == other.dateFrom &&
+          dateTo == other.dateTo &&
+          page == other.page;
+
+  @override
+  int get hashCode => driverId.hashCode ^ dateFrom.hashCode ^ dateTo.hashCode ^ page.hashCode;
+}
+
+final driverBalancesHistoryProvider = FutureProvider.family<Map<String, dynamic>, DriverBalancesHistoryParams>((ref, params) async {
+  final repository = ref.watch(staffRepositoryProvider);
+  return await repository.fetchBalancesHistory(
+    driverId: params.driverId,
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
+    page: params.page,
+  );
+});
+
+class DriverGpsParams {
+  final String driverId;
+  final DateTime dateFrom;
+  final DateTime dateTo;
+
+  const DriverGpsParams(this.driverId, this.dateFrom, this.dateTo);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DriverGpsParams &&
+          runtimeType == other.runtimeType &&
+          driverId == other.driverId &&
+          dateFrom == other.dateFrom &&
+          dateTo == other.dateTo;
+
+  @override
+  int get hashCode => driverId.hashCode ^ dateFrom.hashCode ^ dateTo.hashCode;
+}
+
+final driverGpsProvider = FutureProvider.family<Map<String, dynamic>, DriverGpsParams>((ref, params) async {
+  final repository = ref.watch(staffRepositoryProvider);
+  return await repository.fetchDriverGps(
+    driverId: params.driverId,
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
+  );
+});
+
+final driverTransactionsProvider =
+    FutureProvider.family<Map<String, dynamic>, DriverTransactionsParams>((
+      ref,
+      params,
+    ) async {
+      final repository = ref.watch(staffRepositoryProvider);
+      final now = DateTime.now();
+      final startDate = now.subtract(Duration(days: params.days));
+      return await repository.fetchTransactionsList(
+        driverId: params.driverId,
+        from: startDate,
+        to: now,
+      );
+    });
+
+class AttractionReportParams {
+  final DateTime from;
+  final DateTime to;
+
+  const AttractionReportParams({required this.from, required this.to});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AttractionReportParams &&
+          runtimeType == other.runtimeType &&
+          from == other.from &&
+          to == other.to;
+
+  @override
+  int get hashCode => from.hashCode ^ to.hashCode;
+}
+
+final attractionReportProvider =
+    FutureProvider.family<Map<String, dynamic>, AttractionReportParams>((
+      ref,
+      params,
+    ) async {
+      final repository = ref.watch(staffRepositoryProvider);
+      return await repository.fetchAttractionReport(
+        from: params.from,
+        to: params.to,
+      );
+    });
+
+class AttractionSourceReportParams {
+  final DateTime from;
+  final DateTime to;
+  final String sourceId;
+
+  const AttractionSourceReportParams({
+    required this.from,
+    required this.to,
+    required this.sourceId,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AttractionSourceReportParams &&
+          runtimeType == other.runtimeType &&
+          from == other.from &&
+          to == other.to &&
+          sourceId == other.sourceId;
+
+  @override
+  int get hashCode => from.hashCode ^ to.hashCode ^ sourceId.hashCode;
+}
+
+final attractionSourceReportProvider = FutureProvider.family<
+    Map<String, dynamic>,
+    AttractionSourceReportParams>((ref, params) async {
+  final repository = ref.watch(staffRepositoryProvider);
+  return await repository.fetchAttractionSourceReport(
+    from: params.from,
+    to: params.to,
+    sourceId: params.sourceId,
+  );
+});
+
+final driverBalancesProvider =
+    FutureProvider.family<Map<String, dynamic>, DriverTransactionsParams>((
+      ref,
+      params,
+    ) async {
+      final repository = ref.watch(staffRepositoryProvider);
+      final now = DateTime.now();
+      final startDate = now.subtract(Duration(days: params.days));
+      return await repository.fetchTransactionsBalances(
+        driverId: params.driverId,
+        from: startDate,
+        to: now,
+      );
+    });
+
 class StaffRepository {
   final Dio _dio;
 
@@ -317,7 +491,9 @@ class StaffRepository {
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchVehicleSuggestions({int limit = 20}) async {
+  Future<List<Map<String, dynamic>>> fetchVehicleSuggestions({
+    int limit = 20,
+  }) async {
     try {
       final response = await _dio.get(
         '/api/staff/vehicles/suggest',
@@ -366,10 +542,7 @@ class StaffRepository {
     try {
       final response = await _dio.post(
         '/api/staff/bulk/update-source',
-        data: {
-          'contractor_ids': contractorIds,
-          'source': source,
-        },
+        data: {'contractor_ids': contractorIds, 'source': source},
       );
       return response.data as Map<String, dynamic>;
     } catch (e) {
@@ -384,10 +557,7 @@ class StaffRepository {
     try {
       final response = await _dio.post(
         '/api/staff/bulk/update-work-conditions',
-        data: {
-          'contractor_ids': contractorIds,
-          'condition': condition,
-        },
+        data: {'contractor_ids': contractorIds, 'condition': condition},
       );
       return response.data as Map<String, dynamic>;
     } catch (e) {
@@ -402,10 +572,7 @@ class StaffRepository {
     try {
       final response = await _dio.post(
         '/api/staff/bulk/update-work-status',
-        data: {
-          'contractor_ids': contractorIds,
-          'status': status,
-        },
+        data: {'contractor_ids': contractorIds, 'status': status},
       );
       return response.data as Map<String, dynamic>;
     } catch (e) {
@@ -435,16 +602,150 @@ class StaffRepository {
 
   Future<void> sendMailing(Map<String, dynamic> data) async {
     try {
-      final response = await _dio.post(
-        '/api/staff/mailings',
-        data: data,
-      );
+      final response = await _dio.post('/api/staff/mailings', data: data);
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         throw Exception('Failed to send mailing');
       }
     } catch (e) {
       throw Exception('Ошибка при отправке рассылки: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchTransactionsList({
+    required String driverId,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/api/staff/transactions/list',
+        data: {
+          "query": {
+            "transaction": {
+              "event_at": {
+                "from": "${from.toIso8601String().split('.')[0]}+03:00",
+                "to": "${to.toIso8601String().split('.')[0]}+03:00",
+              },
+              "without_cash": true,
+            },
+            "driver_id": driverId,
+          },
+          "limit": 40,
+        },
+      );
+      return response.data ?? {};
+    } catch (e) {
+      throw Exception('Failed to load transactions list: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchTransactionsBalances({
+    required String driverId,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/api/staff/transactions/balances',
+        data: {
+          "driver_id": driverId,
+          "accrued_at": [
+            "${from.toIso8601String().split('.')[0]}+03:00",
+            "${to.toIso8601String().split('.')[0]}+03:00",
+          ],
+        },
+      );
+      return response.data ?? {};
+    } catch (e) {
+      throw Exception('Failed to load balances: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchBalancesHistory({
+    required String driverId,
+    required DateTime dateFrom,
+    required DateTime dateTo,
+    required int page,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/api/staff/balances/history',
+        data: {
+          "driver_id": driverId,
+          "date_from": "${dateFrom.toIso8601String().split('.')[0]}+03:00",
+          "date_to": "${dateTo.toIso8601String().split('.')[0]}+03:00",
+          "page": page,
+        },
+      );
+      return response.data ?? {};
+    } catch (e) {
+      throw Exception('Failed to load balance history: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchDriverGps({
+    required String driverId,
+    required DateTime dateFrom,
+    required DateTime dateTo,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/api/map/driver/gps',
+        data: {
+          "contractor_profile_id": driverId,
+          "date_from": dateFrom.toUtc().toIso8601String(),
+          "date_to": dateTo.toUtc().toIso8601String(),
+        },
+      );
+      return response.data ?? {};
+    } catch (e) {
+      throw Exception('Failed to load GPS data: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchAttractionReport({
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/api/staff/attraction/report',
+        data: {
+          "date_period": {
+            "from": from.toIso8601String().split('T')[0],
+            "to": to.toIso8601String().split('T')[0],
+          }
+        },
+      );
+      return response.data ?? {};
+    } catch (e) {
+      throw Exception('Failed to load attraction report: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchAttractionSourceReport({
+    required DateTime from,
+    required DateTime to,
+    required String sourceId,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/api/staff/attraction/report/source',
+        data: {
+          "date_period": {
+            "from": from.toIso8601String().split('T')[0],
+            "to": to.toIso8601String().split('T')[0],
+          },
+          "source_id": sourceId,
+        },
+      );
+      return response.data ?? {};
+    } catch (e) {
+      if (e is DioException) {
+        print('DioError in fetchAttractionSourceReport: ${e.response?.data}');
+      }
+      throw Exception('Failed to load attraction source report: $e');
     }
   }
 }

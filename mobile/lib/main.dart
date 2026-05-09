@@ -4,6 +4,7 @@ import 'package:mobile/app/theme.dart';
 import 'app/router.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:yandex_maps_mapkit/init.dart' as mapkit_init;
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,9 +24,19 @@ class MyApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'Flutter Base',
+      title: 'Mobile Fleet App',
       theme: AppTheme.lightTheme,
       routerConfig: router,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ru', 'RU'),
+        Locale('en', 'US'),
+      ],
+      locale: const Locale('ru', 'RU'),
     );
   }
 }

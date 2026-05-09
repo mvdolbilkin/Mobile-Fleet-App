@@ -1,148 +1,42 @@
 package vehicles
 
 import (
-	"bytes"
-	"crypto/rand"
-	"encoding/hex"
-	"io"
 	"net/http"
 
-	"backend/internal/session"
+	"backend/internal/shared/middleware"
+	"backend/internal/shared/proxy"
 
 	"github.com/gin-gonic/gin"
 )
 
-const yandexFleetVehiclesListURL = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/vehicles/list"
-const yandexFleetVehicleDetailsURL = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v2/vehicles/details"
-const yandexFleetCreateVehicleURL = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/vehicles"
-const yandexFleetVehicleStatusURL = "https://fleet.yandex.ru/api/fleet/fleet-operations/v1/vehicles-manager/vehicle-status"
-const yandexFleetBrandsURL = "https://fleet.yandex.ru/api/fleet/cars-catalog/v1/vehicles/brands/list"
-const yandexFleetModelsURL = "https://fleet.yandex.ru/api/fleet/cars-catalog/v1/vehicles/models/list"
-const yandexFleetCategoriesURL = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/vehicles/categories"
-const yandexFleetReferencesURL = "https://fleet.yandex.ru/api/fleet/router/v1/references/list"
-const yandexFleetVehiclesByDaysURL = "https://fleet.yandex.ru/api/fleet/rent/v1/vehicles/by-days"
-const yandexFleetAvailableStatusesURL = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/cars/available-statuses"
-const yandexFleetVehicleStatusSingleURL = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/vehicle-status"
-const yandexFleetRegularChargesListURL = "https://fleet.yandex.ru/api/api/v1/regular-charges/list"
-const yandexFleetOsagoCompensationURL = "https://fleet.yandex.ru/api/fleet/fleet-operations/v1/fleet-vehicles-rent/policy/park-compensation"
-const yandexFleetOfficeAddressesURL = "https://fleet.yandex.ru/api/fleet/hiring-taxiparks-gambling/v1/office-address/list"
+const (
+	urlVehiclesList        = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/vehicles/list"
+	urlVehicleDetails      = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v2/vehicles/details"
+	urlCreateVehicle       = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/vehicles"
+	urlVehicleStatus       = "https://fleet.yandex.ru/api/fleet/fleet-operations/v1/vehicles-manager/vehicle-status"
+	urlBrands              = "https://fleet.yandex.ru/api/fleet/cars-catalog/v1/vehicles/brands/list"
+	urlModels              = "https://fleet.yandex.ru/api/fleet/cars-catalog/v1/vehicles/models/list"
+	urlCategories          = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/vehicles/categories"
+	urlReferences          = "https://fleet.yandex.ru/api/fleet/router/v1/references/list"
+	urlVehiclesByDays      = "https://fleet.yandex.ru/api/fleet/rent/v1/vehicles/by-days"
+	urlAvailableStatuses   = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/cars/available-statuses"
+	urlVehicleStatusSingle = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/vehicle-status"
+	urlRegularChargesList  = "https://fleet.yandex.ru/api/api/v1/regular-charges/list"
+	urlOsagoCompensation   = "https://fleet.yandex.ru/api/fleet/fleet-operations/v1/fleet-vehicles-rent/policy/park-compensation"
+	urlOfficeAddresses     = "https://fleet.yandex.ru/api/fleet/hiring-taxiparks-gambling/v1/office-address/list"
+	urlCarEfficiency       = "https://fleet.yandex.ru/api/fleet/fleet-reports/v1/summary/cars/efficiency"
+	urlVehicleBranding     = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/vehicles/branding"
+	urlChildChairs         = "https://fleet.yandex.ru/api/fleet/contractor-options/v2/child-chairs"
+	urlVehicleKeyInfo      = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/vehicles/key-info"
+	urlVehicleChangelog    = "https://fleet.yandex.ru/api/fleet/fleet-changelog/v1/vehicle/changes/list"
+	urlOsagoProperties     = "https://fleet.yandex.ru/api/fleet/contractor-insurance/e-osago/v1/properties/by-car/fetch/bulk"
+	urlSupplyLock          = "https://fleet.yandex.ru/api/fleet/fleet-vehicles-rent/v2/supply-lock"
+)
 
-// ─── Middleware: проверка auth + получение сессии ────────────────────────────
-
-func authMiddleware(c *gin.Context) {
-	userID := c.GetHeader("X-Park-ID")
-	if userID == "" {
-		userID = c.GetHeader("x-park-id")
-	}
-	if userID == "" {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "X-Park-ID header is required"})
-		return
-	}
-
-	store := session.GetStore()
-	userSession, exists := store.Get(userID)
-	if !exists {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Session not found. Please login again."})
-		return
-	}
-
-	c.Set("session", userSession)
-	c.Next()
-}
-
-// Получить сессию из контекста (ставится middleware)
-func getSession(c *gin.Context) *session.UserSession {
-	s, _ := c.Get("session")
-	return s.(*session.UserSession)
-}
-
-// ─── proxyOption: опции проксирования ───────────────────────────────────────
-
-type proxyOption func(*http.Request)
-
-// withIdempotencyToken добавляет X-Idempotency-Token к запросу
-func withIdempotencyToken() proxyOption {
-	return func(req *http.Request) {
-		tokenBytes := make([]byte, 16)
-		rand.Read(tokenBytes)
-		tokenHex := hex.EncodeToString(tokenBytes)
-		token := tokenHex[:8] + "-" + tokenHex[8:12] + "-" + tokenHex[12:16] + "-" + tokenHex[16:20] + "-" + tokenHex[20:]
-		req.Header.Set("X-Idempotency-Token", token)
-	}
-}
-
-// withJSONContentType добавляет Content-Type: application/json
-func withJSONContentType() proxyOption {
-	return func(req *http.Request) {
-		req.Header.Set("Content-Type", "application/json")
-	}
-}
-
-// ─── proxyToYandex: универсальный прокси ────────────────────────────────────
-
-func proxyToYandex(c *gin.Context, targetURL string, method string, opts ...proxyOption) {
-	s := getSession(c)
-
-	// Читаем body (может быть пустым для GET)
-	var bodyBytes []byte
-	if c.Request.Body != nil {
-		bodyBytes, _ = io.ReadAll(c.Request.Body)
-	}
-
-	var bodyReader *bytes.Buffer
-	if len(bodyBytes) > 0 {
-		bodyReader = bytes.NewBuffer(bodyBytes)
-	} else {
-		bodyReader = bytes.NewBuffer(nil)
-	}
-
-	req, err := http.NewRequest(method, targetURL, bodyReader)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
-		return
-	}
-
-	req.Header.Set("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7")
-	req.Header.Set("x-park-id", s.ParkID)
-
-	// Cookie из сессии
-	cookieValue := "Session_id=" + s.SessionID + "; sessionid2=" + s.SessionID2
-	if s.LoginToken != "" {
-		cookieValue += "; L=" + s.LoginToken
-	}
-	if s.Login != "" {
-		cookieValue += "; yandex_login=" + s.Login
-	}
-	if s.UID != "" {
-		cookieValue += "; yandexuid=" + s.UID
-	}
-	req.Header.Set("Cookie", cookieValue)
-
-	// Применяем опции
-	for _, opt := range opts {
-		opt(req)
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to reach Yandex Fleet API"})
-		return
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read response from Yandex API"})
-		return
-	}
-
-	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
-}
-
-// ─── Хендлеры ───────────────────────────────────────────────────────────────
+// Handlers
 
 func listVehiclesProxy(c *gin.Context) {
-	proxyToYandex(c, yandexFleetVehiclesListURL, http.MethodPost, withJSONContentType())
+	proxy.ToYandex(c, urlVehiclesList, http.MethodPost, proxy.WithJSONContentType())
 }
 
 func getVehicleProxy(c *gin.Context) {
@@ -151,11 +45,11 @@ func getVehicleProxy(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
 		return
 	}
-	proxyToYandex(c, yandexFleetVehicleDetailsURL+"?vehicle_id="+vehicleID, http.MethodGet)
+	proxy.ToYandex(c, urlVehicleDetails+"?vehicle_id="+vehicleID, http.MethodGet)
 }
 
 func createVehicleProxy(c *gin.Context) {
-	proxyToYandex(c, yandexFleetCreateVehicleURL, http.MethodPost, withJSONContentType(), withIdempotencyToken())
+	proxy.ToYandex(c, urlCreateVehicle, http.MethodPost, proxy.WithJSONContentType(), proxy.WithIdempotencyToken())
 }
 
 func updateVehicleProxy(c *gin.Context) {
@@ -164,15 +58,15 @@ func updateVehicleProxy(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
 		return
 	}
-	proxyToYandex(c, yandexFleetVehicleDetailsURL+"?vehicle_id="+vehicleID, http.MethodPut, withJSONContentType())
+	proxy.ToYandex(c, urlVehicleDetails+"?vehicle_id="+vehicleID, http.MethodPut, proxy.WithJSONContentType())
 }
 
 func updateVehiclesStatusProxy(c *gin.Context) {
-	proxyToYandex(c, yandexFleetVehicleStatusURL, http.MethodPost, withJSONContentType(), withIdempotencyToken())
+	proxy.ToYandex(c, urlVehicleStatus, http.MethodPost, proxy.WithJSONContentType(), proxy.WithIdempotencyToken())
 }
 
 func listBrandsProxy(c *gin.Context) {
-	proxyToYandex(c, yandexFleetBrandsURL, http.MethodGet)
+	proxy.ToYandex(c, urlBrands, http.MethodGet)
 }
 
 func listModelsProxy(c *gin.Context) {
@@ -181,7 +75,7 @@ func listModelsProxy(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing brand query parameter"})
 		return
 	}
-	proxyToYandex(c, yandexFleetModelsURL+"?brand="+brand, http.MethodGet)
+	proxy.ToYandex(c, urlModels+"?brand="+brand, http.MethodGet)
 }
 
 func listCategoriesProxy(c *gin.Context) {
@@ -190,7 +84,7 @@ func listCategoriesProxy(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
 		return
 	}
-	proxyToYandex(c, yandexFleetCategoriesURL+"?vehicle_id="+vehicleID, http.MethodGet)
+	proxy.ToYandex(c, urlCategories+"?vehicle_id="+vehicleID, http.MethodGet)
 }
 
 func updateCategoriesProxy(c *gin.Context) {
@@ -199,19 +93,19 @@ func updateCategoriesProxy(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
 		return
 	}
-	proxyToYandex(c, yandexFleetCategoriesURL+"?vehicle_id="+vehicleID, http.MethodPost, withJSONContentType(), withIdempotencyToken())
+	proxy.ToYandex(c, urlCategories+"?vehicle_id="+vehicleID, http.MethodPost, proxy.WithJSONContentType(), proxy.WithIdempotencyToken())
 }
 
 func listReferencesProxy(c *gin.Context) {
-	proxyToYandex(c, yandexFleetReferencesURL, http.MethodPost, withJSONContentType())
+	proxy.ToYandex(c, urlReferences, http.MethodPost, proxy.WithJSONContentType())
 }
 
 func getVehiclesByDaysProxy(c *gin.Context) {
-	proxyToYandex(c, yandexFleetVehiclesByDaysURL, http.MethodPost, withJSONContentType())
+	proxy.ToYandex(c, urlVehiclesByDays, http.MethodPost, proxy.WithJSONContentType())
 }
 
 func getAvailableStatusesProxy(c *gin.Context) {
-	proxyToYandex(c, yandexFleetAvailableStatusesURL, http.MethodGet)
+	proxy.ToYandex(c, urlAvailableStatuses, http.MethodGet)
 }
 
 func updateVehicleStatusSingleProxy(c *gin.Context) {
@@ -220,26 +114,91 @@ func updateVehicleStatusSingleProxy(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
 		return
 	}
-	proxyToYandex(c, yandexFleetVehicleStatusSingleURL+"?vehicle_id="+vehicleID, http.MethodPost, withJSONContentType())
+	proxy.ToYandex(c, urlVehicleStatusSingle+"?vehicle_id="+vehicleID, http.MethodPost, proxy.WithJSONContentType())
 }
 
 func listRegularChargesProxy(c *gin.Context) {
-	proxyToYandex(c, yandexFleetRegularChargesListURL, http.MethodPost, withJSONContentType())
+	proxy.ToYandex(c, urlRegularChargesList, http.MethodPost, proxy.WithJSONContentType())
 }
 
 func updateOsagoCompensationProxy(c *gin.Context) {
-	proxyToYandex(c, yandexFleetOsagoCompensationURL, http.MethodPost, withJSONContentType(), withIdempotencyToken())
+	proxy.ToYandex(c, urlOsagoCompensation, http.MethodPost, proxy.WithJSONContentType(), proxy.WithIdempotencyToken())
 }
 
 func listOfficeAddressesProxy(c *gin.Context) {
-	proxyToYandex(c, yandexFleetOfficeAddressesURL, http.MethodPost, withJSONContentType())
+	proxy.ToYandex(c, urlOfficeAddresses, http.MethodPost, proxy.WithJSONContentType())
 }
 
-// ─── Роутинг ────────────────────────────────────────────────────────────────
+func getVehicleEfficiencyProxy(c *gin.Context) {
+	vehicleID := c.Query("vehicle_id")
+	if vehicleID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
+		return
+	}
+	proxy.ToYandex(c, urlCarEfficiency+"?car_id="+vehicleID, http.MethodPost, proxy.WithJSONContentType())
+}
 
-// RegisterRoutes registers the vehicle routes onto the provided gin.Engine
+func getVehicleBrandingProxy(c *gin.Context) {
+	vehicleID := c.Query("vehicle_id")
+	if vehicleID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
+		return
+	}
+	proxy.ToYandex(c, urlVehicleBranding+"?vehicle_id="+vehicleID, http.MethodGet)
+}
+
+func updateVehicleBrandingProxy(c *gin.Context) {
+	vehicleID := c.Query("vehicle_id")
+	if vehicleID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
+		return
+	}
+	proxy.ToYandex(c, urlVehicleBranding+"?vehicle_id="+vehicleID, http.MethodPost, proxy.WithJSONContentType())
+}
+
+func getChildChairsProxy(c *gin.Context) {
+	vehicleID := c.Query("vehicle_id")
+	if vehicleID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
+		return
+	}
+	proxy.ToYandex(c, urlChildChairs+"?vehicle_id="+vehicleID, http.MethodGet)
+}
+
+func getVehicleKeyInfoProxy(c *gin.Context) {
+	vehicleID := c.Query("vehicle_id")
+	if vehicleID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
+		return
+	}
+	proxy.ToYandex(c, urlVehicleKeyInfo+"?vehicle_id="+vehicleID, http.MethodGet)
+}
+
+func getVehicleChangelogProxy(c *gin.Context) {
+	vehicleID := c.Query("vehicle_id")
+	if vehicleID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing vehicle_id query parameter"})
+		return
+	}
+	proxy.ToYandex(c, urlVehicleChangelog+"?object_id="+vehicleID, http.MethodPost, proxy.WithJSONContentType())
+}
+
+func getOsagoPropertiesProxy(c *gin.Context) {
+	proxy.ToYandex(c, urlOsagoProperties, http.MethodPost, proxy.WithJSONContentType())
+}
+
+func getSupplyLockProxy(c *gin.Context) {
+	carID := c.Query("car_id")
+	if carID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing car_id query parameter"})
+		return
+	}
+	proxy.ToYandex(c, urlSupplyLock+"?car_id="+carID, http.MethodGet)
+}
+
+// RegisterRoutes sets up vehicle API endpoints.
 func RegisterRoutes(r *gin.Engine) {
-	g := r.Group("/api/vehicles", authMiddleware)
+	g := r.Group("/api/vehicles", middleware.Auth)
 	{
 		g.POST("/list", listVehiclesProxy)
 		g.GET("/car", getVehicleProxy)
@@ -257,5 +216,13 @@ func RegisterRoutes(r *gin.Engine) {
 		g.POST("/regular-charges", listRegularChargesProxy)
 		g.POST("/osago-compensation", updateOsagoCompensationProxy)
 		g.POST("/office-addresses", listOfficeAddressesProxy)
+		g.POST("/efficiency", getVehicleEfficiencyProxy)
+		g.GET("/branding", getVehicleBrandingProxy)
+		g.POST("/branding", updateVehicleBrandingProxy)
+		g.GET("/child-chairs", getChildChairsProxy)
+		g.GET("/key-info", getVehicleKeyInfoProxy)
+		g.POST("/changelog", getVehicleChangelogProxy)
+		g.POST("/osago-properties", getOsagoPropertiesProxy)
+		g.GET("/supply-lock", getSupplyLockProxy)
 	}
 }
