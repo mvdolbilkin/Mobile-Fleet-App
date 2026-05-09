@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/fleet/domain/cars_mileage_model.dart';
 import 'package:mobile/features/fleet/domain/cars_statuses_model.dart';
 import 'package:mobile/features/fleet/providers/fleet_summary_provider.dart';
+import 'package:mobile/features/fleet/presentation/car_efficiency/car_efficiency_screen.dart';
 import 'package:mobile/shared/widgets/fading_button.dart';
 
 class FleetSummaryScreen extends ConsumerStatefulWidget {
@@ -86,7 +87,8 @@ class _VehiclesSummaryCard extends StatelessWidget {
                   ],
                 ),
                 FadingButton(
-                  onTap: () {},
+                  onTap: () => Navigator.of(context, rootNavigator: true)
+                      .push(MaterialPageRoute(builder: (_) => const CarEfficiencyScreen())),
                   child: Row(
                     children: [
                       Text(
@@ -290,7 +292,8 @@ class _CarsStatusesCard extends ConsumerWidget {
                 ),
               ),
               FadingButton(
-                onTap: () {},
+                onTap: () => Navigator.of(context, rootNavigator: true)
+                    .push(MaterialPageRoute(builder: (_) => const CarEfficiencyScreen())),
                 child: Row(
                   children: [
                     Text(
@@ -598,7 +601,8 @@ class _MileageCard extends ConsumerWidget {
                 ],
               ),
               FadingButton(
-                onTap: () {},
+                onTap: () => Navigator.of(context, rootNavigator: true)
+                    .push(MaterialPageRoute(builder: (_) => const CarEfficiencyScreen())),
                 child: Row(
                   children: [
                     Text(
@@ -1018,7 +1022,8 @@ class _HoursOnlineCard extends ConsumerWidget {
                 ],
               ),
               FadingButton(
-                onTap: () {},
+                onTap: () => Navigator.of(context, rootNavigator: true)
+                    .push(MaterialPageRoute(builder: (_) => const CarEfficiencyScreen())),
                 child: Row(
                   children: [
                     Text(
@@ -1338,7 +1343,8 @@ class _AcceptanceRateCard extends ConsumerWidget {
                 ],
               ),
               FadingButton(
-                onTap: () {},
+                onTap: () => Navigator.of(context, rootNavigator: true)
+                    .push(MaterialPageRoute(builder: (_) => const CarEfficiencyScreen())),
                 child: Row(
                   children: [
                     Text(
@@ -1632,7 +1638,8 @@ class _TripsCard extends ConsumerWidget {
                 ],
               ),
               FadingButton(
-                onTap: () {},
+                onTap: () => Navigator.of(context, rootNavigator: true)
+                    .push(MaterialPageRoute(builder: (_) => const CarEfficiencyScreen())),
                 child: Row(
                   children: [
                     Text(
