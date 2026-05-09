@@ -7,6 +7,7 @@ import 'package:mobile/features/fleet/presentation/garage/garage_screen.dart';
 import 'package:mobile/features/fleet/presentation/regular_charges/regular_charges_screen.dart';
 import 'package:mobile/features/fleet/presentation/fines/fines_screen.dart';
 import 'package:mobile/features/fleet/presentation/summary/summary_screen.dart';
+import 'package:mobile/features/fleet/presentation/car_efficiency/car_efficiency_screen.dart';
 import 'package:mobile/shared/widgets/fading_button.dart';
 
 class FleetScreen extends StatelessWidget {
@@ -96,7 +97,8 @@ class FleetScreen extends StatelessWidget {
               _MenuRow(
                 title: 'Отчёт по ТС',
                 icon: HugeIcons.strokeRoundedFile02,
-                onTap: () {},
+                onTap: () => Navigator.of(context, rootNavigator: true)
+                    .push(MaterialPageRoute(builder: (_) => const CarEfficiencyScreen())),
               ),
             ],
           ),

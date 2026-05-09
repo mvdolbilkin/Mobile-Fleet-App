@@ -758,6 +758,129 @@ func (h *Handler) GetCarsTrips(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+func (h *Handler) GetVehicleTypesByPark(c *gin.Context) {
+	s := getSession(c)
+
+	targetURL := "https://fleet.yandex.ru/api/fleet/cars-catalog/v1/vehicle-types/by-park/list"
+
+	req, err := http.NewRequest("GET", targetURL, nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return
+	}
+
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept-Language", "ru")
+	req.Header.Set("Cookie", "Session_id="+s.SessionID)
+	req.Header.Set("X-Park-ID", s.ParkID)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to make request"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		c.JSON(resp.StatusCode, gin.H{"error": "Yandex API error", "details": string(body)})
+		return
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse response"})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) GetCarsEfficiencyList(c *gin.Context) {
+	s := getSession(c)
+
+	var reqBody struct {
+		DatePeriod struct {
+			From string `json:"from"`
+			To   string `json:"to"`
+		} `json:"date_period"`
+		Filters struct {
+			FleetCarsOnly bool     `json:"fleet_cars_only"`
+			CarTypes      []string `json:"car_types"`
+			CarIDs        []string `json:"car_ids"`
+		} `json:"filters"`
+		Limit  int `json:"limit"`
+		Offset int `json:"offset"`
+	}
+
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	if reqBody.Limit <= 0 {
+		reqBody.Limit = 30
+	}
+
+	targetURL := "https://fleet.yandex.ru/api/fleet/fleet-reports/v1/summary/cars/efficiency/list"
+
+	filters := map[string]interface{}{
+		"fleet_cars_only": reqBody.Filters.FleetCarsOnly,
+	}
+	if len(reqBody.Filters.CarTypes) > 0 {
+		filters["car_types"] = reqBody.Filters.CarTypes
+	}
+	if len(reqBody.Filters.CarIDs) > 0 {
+		filters["car_ids"] = reqBody.Filters.CarIDs
+	}
+
+	requestBody := map[string]interface{}{
+		"date_period": map[string]string{
+			"from": reqBody.DatePeriod.From,
+			"to":   reqBody.DatePeriod.To,
+		},
+		"filters": filters,
+		"limit":  reqBody.Limit,
+		"offset": reqBody.Offset,
+	}
+
+	jsonBody, _ := json.Marshal(requestBody)
+	req, err := http.NewRequest("POST", targetURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept-Language", "ru")
+	req.Header.Set("Cookie", "Session_id="+s.SessionID)
+	req.Header.Set("X-Park-ID", s.ParkID)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to make request"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		c.JSON(resp.StatusCode, gin.H{"error": "Yandex API error", "details": string(body)})
+		return
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse response"})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 func RegisterRoutes(r *gin.Engine) {
 	service := NewService()
 	handler := NewHandler(service)
@@ -777,5 +900,17 @@ func RegisterRoutes(r *gin.Engine) {
 		fleetReportsGroup.POST("/cars/hours-online", handler.GetCarsHoursOnline)
 		fleetReportsGroup.POST("/cars/acceptance-rate", handler.GetCarsAcceptanceRate)
 		fleetReportsGroup.POST("/cars/trips", handler.GetCarsTrips)
+	}
+
+	// Fleet efficiency report
+	fleetSummaryGroup := r.Group("/api/fleet/fleet-reports/v1/summary", authMiddleware)
+	{
+		fleetSummaryGroup.POST("/cars/efficiency/list", handler.GetCarsEfficiencyList)
+	}
+
+	// Cars catalog
+	carsCatalogGroup := r.Group("/api/fleet/cars-catalog/v1", authMiddleware)
+	{
+		carsCatalogGroup.GET("/vehicle-types/by-park/list", handler.GetVehicleTypesByPark)
 	}
 }
