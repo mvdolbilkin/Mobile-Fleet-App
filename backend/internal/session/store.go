@@ -53,7 +53,7 @@ func (s *SessionStore) Set(userID string, session *UserSession) error {
 		return fmt.Errorf("failed to marshal session: %w", err)
 	}
 	key := fmt.Sprintf("session:%s", userID)
-	return s.client.Set(s.ctx, key, data, 24*time.Hour).Err()
+	return s.client.Set(s.ctx, key, data, 7*24*time.Hour).Err()
 }
 
 // Get получает сессию по userID

@@ -13,6 +13,8 @@ class CarEfficiencyService {
     bool fleetCarsOnly = false,
     List<String> carTypes = const [],
     List<String> carIds = const [],
+    List<String> carCategories = const [],
+    List<String> carStatuses = const [],
     int limit = 30,
     int offset = 0,
   }) async {
@@ -20,6 +22,8 @@ class CarEfficiencyService {
     final filters = <String, dynamic>{'fleet_cars_only': fleetCarsOnly};
     if (carTypes.isNotEmpty) filters['car_types'] = carTypes;
     if (carIds.isNotEmpty) filters['car_ids'] = carIds;
+    if (carCategories.isNotEmpty) filters['car_categories'] = carCategories;
+    if (carStatuses.isNotEmpty) filters['car_statuses'] = carStatuses;
     final response = await _dio.post(
       'api/fleet/fleet-reports/v1/summary/cars/efficiency/list',
       data: {

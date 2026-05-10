@@ -33,6 +33,25 @@ func RegisterRoutes(r *gin.Engine) {
 		fleetReportsGroup.POST("/cars/trips", handler.GetCarsTrips)
 	}
 
+	// References (car categories, statuses, etc.)
+	referencesGroup := r.Group("/api/fleet/references", middleware.Auth)
+	{
+		referencesGroup.GET("/car-categories", handler.GetCarCategories)
+		referencesGroup.GET("/car-statuses", handler.GetCarAvailableStatuses)
+	}
+
+	// Fleet efficiency report
+	fleetSummaryGroup := r.Group("/api/fleet/fleet-reports/v1/summary", middleware.Auth)
+	{
+		fleetSummaryGroup.POST("/cars/efficiency/list", handler.GetCarsEfficiencyList)
+	}
+
+	// Cars catalog
+	carsCatalogGroup := r.Group("/api/fleet/cars-catalog/v1", middleware.Auth)
+	{
+		carsCatalogGroup.GET("/vehicle-types/by-park/list", handler.GetVehicleTypesByPark)
+	}
+
 	// Reports API routes
 	reportsGroup := r.Group("/api/reports", middleware.Auth)
 	{

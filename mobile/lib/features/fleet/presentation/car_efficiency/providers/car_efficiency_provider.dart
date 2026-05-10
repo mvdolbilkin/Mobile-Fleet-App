@@ -18,6 +18,8 @@ class CarEfficiencyState {
   final bool fleetCarsOnly;
   final Set<String> selectedCarTypes;
   final Set<String> selectedCarIds;
+  final Set<String> selectedCarCategories;
+  final Set<String> selectedCarStatuses;
 
   const CarEfficiencyState({
     this.items = const [],
@@ -30,6 +32,8 @@ class CarEfficiencyState {
     this.fleetCarsOnly = false,
     this.selectedCarTypes = const {},
     this.selectedCarIds = const {},
+    this.selectedCarCategories = const {},
+    this.selectedCarStatuses = const {},
   });
 
   bool get hasMore => items.length < total;
@@ -45,6 +49,8 @@ class CarEfficiencyState {
     bool? fleetCarsOnly,
     Set<String>? selectedCarTypes,
     Set<String>? selectedCarIds,
+    Set<String>? selectedCarCategories,
+    Set<String>? selectedCarStatuses,
   }) {
     return CarEfficiencyState(
       items: items ?? this.items,
@@ -57,6 +63,8 @@ class CarEfficiencyState {
       fleetCarsOnly: fleetCarsOnly ?? this.fleetCarsOnly,
       selectedCarTypes: selectedCarTypes ?? this.selectedCarTypes,
       selectedCarIds: selectedCarIds ?? this.selectedCarIds,
+      selectedCarCategories: selectedCarCategories ?? this.selectedCarCategories,
+      selectedCarStatuses: selectedCarStatuses ?? this.selectedCarStatuses,
     );
   }
 }
@@ -87,6 +95,8 @@ class CarEfficiencyNotifier extends Notifier<CarEfficiencyState> {
         fleetCarsOnly: state.fleetCarsOnly,
         carTypes: state.selectedCarTypes.toList(),
         carIds: state.selectedCarIds.toList(),
+        carCategories: state.selectedCarCategories.toList(),
+        carStatuses: state.selectedCarStatuses.toList(),
         limit: _pageSize,
         offset: append ? state.items.length : 0,
       );
@@ -135,12 +145,24 @@ class CarEfficiencyNotifier extends Notifier<CarEfficiencyState> {
     _load();
   }
 
+  void setCarCategories(Set<String> categories) {
+    state = state.copyWith(selectedCarCategories: categories);
+    _load();
+  }
+
+  void setCarStatuses(Set<String> statuses) {
+    state = state.copyWith(selectedCarStatuses: statuses);
+    _load();
+  }
+
   void applyFilters({
     required DateTime dateFrom,
     required DateTime dateTo,
     required bool fleetCarsOnly,
     required Set<String> carTypes,
     required Set<String> carIds,
+    required Set<String> carCategories,
+    required Set<String> carStatuses,
   }) {
     state = state.copyWith(
       dateFrom: dateFrom,
@@ -148,6 +170,8 @@ class CarEfficiencyNotifier extends Notifier<CarEfficiencyState> {
       fleetCarsOnly: fleetCarsOnly,
       selectedCarTypes: carTypes,
       selectedCarIds: carIds,
+      selectedCarCategories: carCategories,
+      selectedCarStatuses: carStatuses,
     );
     _load();
   }
@@ -157,6 +181,8 @@ class CarEfficiencyNotifier extends Notifier<CarEfficiencyState> {
       fleetCarsOnly: false,
       selectedCarTypes: {},
       selectedCarIds: {},
+      selectedCarCategories: {},
+      selectedCarStatuses: {},
     );
     _load();
   }

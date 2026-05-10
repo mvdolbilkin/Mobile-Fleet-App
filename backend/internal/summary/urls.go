@@ -23,6 +23,14 @@ const (
 	urlCarsTrips          = "https://fleet.yandex.ru/api/fleet/fleet-reports/v1/dashboard/widget/cars/trips"
 )
 
+// Fleet efficiency & catalog
+const (
+	urlCarsEfficiencyList      = "https://fleet.yandex.ru/api/fleet/fleet-reports/v1/summary/cars/efficiency/list"
+	urlVehicleTypesByPark      = "https://fleet.yandex.ru/api/fleet/cars-catalog/v1/vehicle-types/by-park/list"
+	urlCarCategoriesReferences = "https://fleet.yandex.ru/api/fleet/router/v1/references/list"
+	urlCarAvailableStatuses    = "https://fleet.yandex.ru/api/fleet/vehicles-manager/v1/cars/available-statuses?show_archived=true"
+)
+
 // Reports API
 const (
 	urlDriversSummaryList = "https://fleet.yandex.ru/api/reports-api/v2/summary/drivers/list"

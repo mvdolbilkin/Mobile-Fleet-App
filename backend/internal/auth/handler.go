@@ -98,7 +98,7 @@ func SaveWebViewSessionHandler(c *gin.Context) {
 		Login:      req.Login,
 		UID:        req.UID,
 		CreatedAt:  time.Now(),
-		ExpiresAt:  time.Now().Add(24 * time.Hour), // Сессия на 24 часа
+		ExpiresAt:  time.Now().Add(7 * 24 * time.Hour), // Сессия на 7 дней
 	}
 
 	// Сохраняем в store

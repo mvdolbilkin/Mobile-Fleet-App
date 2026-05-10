@@ -4,12 +4,17 @@ import 'package:mobile/features/fleet/domain/car_efficiency_model.dart';
 import 'package:mobile/features/fleet/domain/vehicle_type_model.dart';
 import 'package:mobile/features/fleet/presentation/car_efficiency/providers/car_efficiency_provider.dart';
 import 'package:mobile/app/theme.dart';
+import 'package:mobile/features/fleet/domain/car_category_model.dart';
+import 'package:mobile/features/fleet/domain/car_status_model.dart';
+import 'package:mobile/features/fleet/providers/car_category_provider.dart';
+import 'package:mobile/features/fleet/providers/car_status_provider.dart';
 import 'package:mobile/features/fleet/providers/vehicle_type_provider.dart';
 import 'package:mobile/shared/widgets/filter_chip.dart';
 import 'package:mobile/features/fleet/data/vehicles_service.dart';
 import 'package:mobile/features/fleet/domain/vehicle.dart' hide VehicleType;
 import 'package:mobile/features/fleet/presentation/vehicles/providers/vehicles_provider.dart';
 import 'package:mobile/shared/widgets/custom_date_range_picker_bottom_sheet.dart';
+import 'package:mobile/shared/widgets/custom_switch.dart';
 import 'package:mobile/shared/widgets/fading_button.dart';
 
 class CarEfficiencyScreen extends ConsumerStatefulWidget {
@@ -22,19 +27,6 @@ class CarEfficiencyScreen extends ConsumerStatefulWidget {
 
 class _CarEfficiencyScreenState extends ConsumerState<CarEfficiencyScreen> {
   final ScrollController _verticalScroll = ScrollController();
-  final ScrollController _horizontalScroll = ScrollController();
-
-  static const double _colCar = 180;
-  static const double _colDriver = 200;
-  static const double _colStatus = 170;
-  static const double _colTrips = 80;
-  static const double _colHours = 130;
-  static const double _colAcceptance = 145;
-  static const double _colCancellation = 175;
-  static const double _colCompletion = 175;
-
-  static const double _rowHeight = 64;
-  static const double _headerHeight = 44;
 
   @override
   void initState() {
@@ -45,7 +37,6 @@ class _CarEfficiencyScreenState extends ConsumerState<CarEfficiencyScreen> {
   @override
   void dispose() {
     _verticalScroll.dispose();
-    _horizontalScroll.dispose();
     super.dispose();
   }
 
@@ -148,6 +139,12 @@ class _CarEfficiencyScreenState extends ConsumerState<CarEfficiencyScreen> {
             onRemoveCarIds: () => ref
                 .read(carEfficiencyProvider.notifier)
                 .setCarIds({}),
+            onRemoveCarCategories: () => ref
+                .read(carEfficiencyProvider.notifier)
+                .setCarCategories({}),
+            onRemoveCarStatuses: () => ref
+                .read(carEfficiencyProvider.notifier)
+                .setCarStatuses({}),
             onResetAll: () => ref
                 .read(carEfficiencyProvider.notifier)
                 .resetFilters(),
@@ -163,22 +160,9 @@ class _CarEfficiencyScreenState extends ConsumerState<CarEfficiencyScreen> {
                         onRetry: () =>
                             ref.read(carEfficiencyProvider.notifier).refresh(),
                       )
-                    : _TableView(
+                    : _CardListView(
                         state: state,
-                        verticalScroll: _verticalScroll,
-                        horizontalScroll: _horizontalScroll,
-                        rowHeight: _rowHeight,
-                        headerHeight: _headerHeight,
-                        colWidths: _ColWidths(
-                          car: _colCar,
-                          driver: _colDriver,
-                          status: _colStatus,
-                          trips: _colTrips,
-                          hours: _colHours,
-                          acceptance: _colAcceptance,
-                          cancellation: _colCancellation,
-                          completion: _colCompletion,
-                        ),
+                        scrollController: _verticalScroll,
                         formatSupplyTime: _formatSupplyTime,
                         formatPercent: _formatPercent,
                         statusColor: _statusColor,
@@ -199,6 +183,8 @@ class _FiltersBar extends StatelessWidget {
   final VoidCallback onRemoveFleetCarsOnly;
   final VoidCallback onRemoveCarTypes;
   final VoidCallback onRemoveCarIds;
+  final VoidCallback onRemoveCarCategories;
+  final VoidCallback onRemoveCarStatuses;
   final VoidCallback onResetAll;
   final String Function(DateTime, DateTime) formatDateRange;
 
@@ -209,6 +195,8 @@ class _FiltersBar extends StatelessWidget {
     required this.onRemoveFleetCarsOnly,
     required this.onRemoveCarTypes,
     required this.onRemoveCarIds,
+    required this.onRemoveCarCategories,
+    required this.onRemoveCarStatuses,
     required this.onResetAll,
     required this.formatDateRange,
   });
@@ -216,6 +204,8 @@ class _FiltersBar extends StatelessWidget {
   bool get _hasFilters =>
       state.selectedCarTypes.isNotEmpty ||
       state.selectedCarIds.isNotEmpty ||
+      state.selectedCarCategories.isNotEmpty ||
+      state.selectedCarStatuses.isNotEmpty ||
       state.fleetCarsOnly;
 
   @override
@@ -299,6 +289,16 @@ class _FiltersBar extends StatelessWidget {
                       onRemoveCarIds),
                   const SizedBox(width: 8),
                 ],
+                if (state.selectedCarCategories.isNotEmpty) ...[
+                  _pill('Класс авто · ${state.selectedCarCategories.length}',
+                      onRemoveCarCategories),
+                  const SizedBox(width: 8),
+                ],
+                if (state.selectedCarStatuses.isNotEmpty) ...[
+                  _pill('Статус · ${state.selectedCarStatuses.length}',
+                      onRemoveCarStatuses),
+                  const SizedBox(width: 8),
+                ],
                 if (state.fleetCarsOnly)
                   _pill('Только парковые', onRemoveFleetCarsOnly),
               ],
@@ -352,51 +352,18 @@ class _FiltersBar extends StatelessWidget {
   }
 }
 
-// ─── Table ────────────────────────────────────────────────────────────────────
+// ─── Card list view ────────────────────────────────────────────────────────────
 
-class _ColWidths {
-  final double car;
-  final double driver;
-  final double status;
-  final double trips;
-  final double hours;
-  final double acceptance;
-  final double cancellation;
-  final double completion;
-
-  const _ColWidths({
-    required this.car,
-    required this.driver,
-    required this.status,
-    required this.trips,
-    required this.hours,
-    required this.acceptance,
-    required this.cancellation,
-    required this.completion,
-  });
-
-  double get total =>
-      car + driver + status + trips + hours + acceptance + cancellation + completion;
-}
-
-class _TableView extends StatelessWidget {
+class _CardListView extends StatelessWidget {
   final CarEfficiencyState state;
-  final ScrollController verticalScroll;
-  final ScrollController horizontalScroll;
-  final double rowHeight;
-  final double headerHeight;
-  final _ColWidths colWidths;
+  final ScrollController scrollController;
   final String Function(int) formatSupplyTime;
   final String Function(double?) formatPercent;
   final Color Function(String) statusColor;
 
-  const _TableView({
+  const _CardListView({
     required this.state,
-    required this.verticalScroll,
-    required this.horizontalScroll,
-    required this.rowHeight,
-    required this.headerHeight,
-    required this.colWidths,
+    required this.scrollController,
     required this.formatSupplyTime,
     required this.formatPercent,
     required this.statusColor,
@@ -404,145 +371,70 @@ class _TableView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      controller: verticalScroll,
-      child: SingleChildScrollView(
-        controller: horizontalScroll,
-        scrollDirection: Axis.horizontal,
-        physics: const ClampingScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header — живёт в том же горизонтальном контейнере
-            _HeaderRow(colWidths: colWidths, height: headerHeight),
-            const Divider(height: 1, color: Color(0xFFE5E5EA)),
-            // Data rows
-            ...state.items.asMap().entries.map((entry) {
-              final isLast = entry.key == state.items.length - 1;
-              return Column(
-                children: [
-                  _DataRow(
-                    item: entry.value,
-                    colWidths: colWidths,
-                    rowHeight: rowHeight,
-                    formatSupplyTime: formatSupplyTime,
-                    formatPercent: formatPercent,
-                    statusColor: statusColor,
-                  ),
-                  if (!isLast || state.isLoadingMore)
-                    const Divider(height: 1, color: Color(0xFFE5E5EA)),
-                ],
-              );
-            }),
-            if (state.isLoadingMore)
-              SizedBox(
-                width: colWidths.total,
-                height: 48,
-                child: const Center(
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-              ),
-            if (!state.isLoadingMore && !state.hasMore && state.items.isNotEmpty)
-              SizedBox(
-                width: colWidths.total,
-                height: 40,
-                child: Center(
-                  child: Text(
-                    'Всего: ${state.total}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF8E8E93),
-                      fontFamily: 'Yandex Sans Text',
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Header row ───────────────────────────────────────────────────────────────
-
-class _HeaderRow extends StatelessWidget {
-  final _ColWidths colWidths;
-  final double height;
-
-  const _HeaderRow({required this.colWidths, required this.height});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: height,
-      color: Colors.white,
-      child: Row(
-        children: [
-          _HeaderCell('ТС', colWidths.car, align: TextAlign.left),
-          _HeaderCell('Водитель', colWidths.driver, align: TextAlign.left),
-          _HeaderCell('Дней в статусе', colWidths.status),
-          _HeaderCell('Поездки', colWidths.trips),
-          _HeaderCell('Часы на линии', colWidths.hours),
-          _HeaderCell('Доля принятых\nзаказов', colWidths.acceptance),
-          _HeaderCell('Доля заказов,\nотменённых водителем', colWidths.cancellation),
-          _HeaderCell('Доля успешно\nвыполненных заказов', colWidths.completion),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeaderCell extends StatelessWidget {
-  final String label;
-  final double width;
-  final TextAlign align;
-
-  const _HeaderCell(this.label, this.width,
-      {this.align = TextAlign.right});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    if (state.items.isEmpty) {
+      return const Center(
         child: Text(
-          label,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          textAlign: align,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF8E8E93),
-            fontFamily: 'Yandex Sans Text',
-            height: 1.3,
-          ),
+          'Нет данных',
+          style: TextStyle(color: Color(0xFF8E8E93)),
         ),
-      ),
+      );
+    }
+
+    final extraCount = (state.isLoadingMore ? 1 : 0) +
+        (!state.isLoadingMore && !state.hasMore ? 1 : 0);
+
+    return ListView.separated(
+      controller: scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      itemCount: state.items.length + extraCount,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (ctx, i) {
+        if (i >= state.items.length) {
+          if (state.isLoadingMore) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            );
+          }
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Center(
+              child: Text(
+                'Всего: ${state.total}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF8E8E93),
+                ),
+              ),
+            ),
+          );
+        }
+        return _CarEfficiencyCard(
+          item: state.items[i],
+          formatSupplyTime: formatSupplyTime,
+          formatPercent: formatPercent,
+          statusColor: statusColor,
+        );
+      },
     );
   }
 }
 
-// ─── Data row ─────────────────────────────────────────────────────────────────
-
-class _DataRow extends StatelessWidget {
+class _CarEfficiencyCard extends StatelessWidget {
   final CarEfficiencyItem item;
-  final _ColWidths colWidths;
-  final double rowHeight;
   final String Function(int) formatSupplyTime;
   final String Function(double?) formatPercent;
   final Color Function(String) statusColor;
 
-  const _DataRow({
+  const _CarEfficiencyCard({
     required this.item,
-    required this.colWidths,
-    required this.rowHeight,
     required this.formatSupplyTime,
     required this.formatPercent,
     required this.statusColor,
@@ -564,233 +456,201 @@ class _DataRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final primaryStatus =
         item.dailyStatuses.isNotEmpty ? item.dailyStatuses.first : null;
-
     final visibleDriver = item.drivers.isNotEmpty ? item.drivers.first : null;
-    final extraDrivers = item.drivers.length - (visibleDriver != null ? 1 : 0);
+    final extraDrivers =
+        item.drivers.length - (visibleDriver != null ? 1 : 0);
 
     return Container(
-      height: rowHeight,
-      clipBehavior: Clip.hardEdge,
-      decoration: const BoxDecoration(color: Colors.white),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE5E5EA), width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ТС
-          SizedBox(
-            width: colWidths.car,
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '${item.car.carBrand} ${item.car.carModel}',
+          // ── Авто + статус ──────────────────────────────────────────
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${item.car.carBrand} ${item.car.carModel}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1C1C1E),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      item.car.carNumber,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF8E8E93),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (primaryStatus != null) ...[
+                const SizedBox(width: 10),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: statusColor(primaryStatus.status.id),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      '${primaryStatus.status.name} · ${primaryStatus.days} д.',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF3C3C43),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+
+          // ── Водитель ───────────────────────────────────────────────
+          if (visibleDriver != null) ...[
+            const SizedBox(height: 10),
+            const Divider(height: 1, color: Color(0xFFE5E5EA)),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.person_outline_rounded,
+                    size: 16, color: Color(0xFF8E8E93)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    visibleDriver.fullName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'Yandex Sans Text',
                       color: Color(0xFF1C1C1E),
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    item.car.carNumber,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF8E8E93),
-                      fontFamily: 'Yandex Sans Text',
+                ),
+                if (extraDrivers > 0)
+                  GestureDetector(
+                    onTap: () => _showDriversSheet(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE5E5EA),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'ещё $extraDrivers',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF3C3C43),
+                        ),
+                      ),
                     ),
                   ),
-                ],
+              ],
+            ),
+          ],
+
+          // ── Метрики ────────────────────────────────────────────────
+          const SizedBox(height: 10),
+          const Divider(height: 1, color: Color(0xFFE5E5EA)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _MetricTile(
+                label: 'Поездки',
+                value: '${item.successOrdersCount}',
               ),
-            ),
-          ),
-
-          // Водитель
-          SizedBox(
-            width: colWidths.driver,
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: item.drivers.isEmpty
-                  ? const Text(
-                      '—',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF8E8E93),
-                        fontFamily: 'Yandex Sans Text',
-                      ),
-                    )
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          visibleDriver!.fullName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontFamily: 'Yandex Sans Text',
-                            color: Color(0xFF1C1C1E),
-                          ),
-                        ),
-                        if (extraDrivers > 0)
-                          GestureDetector(
-                            onTap: () => _showDriversSheet(context),
-                            child: Container(
-                              margin: const EdgeInsets.only(top: 2),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE5E5EA),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                'Ещё $extraDrivers',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF3C3C43),
-                                  fontFamily: 'Yandex Sans Text',
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-            ),
-          ),
-
-          // Дней в статусе
-          SizedBox(
-            width: colWidths.status,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: primaryStatus == null
-                  ? const Text('—',
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF8E8E93),
-                          fontFamily: 'Yandex Sans Text'))
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: statusColor(primaryStatus.status.id),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            '${primaryStatus.status.name} ${primaryStatus.days} д.',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontFamily: 'Yandex Sans Text',
-                              color: Color(0xFF1C1C1E),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
-          ),
-
-          // Поездки
-          SizedBox(
-            width: colWidths.trips,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                '${item.successOrdersCount}',
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontFamily: 'Yandex Sans Text',
-                  color: Color(0xFF1C1C1E),
-                ),
+              const SizedBox(width: 8),
+              _MetricTile(
+                label: 'Часы на линии',
+                value: formatSupplyTime(item.supplyTimeSeconds),
               ),
-            ),
-          ),
-
-          // Часы на линии
-          SizedBox(
-            width: colWidths.hours,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                formatSupplyTime(item.supplyTimeSeconds),
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontFamily: 'Yandex Sans Text',
-                  color: Color(0xFF1C1C1E),
-                ),
+              const SizedBox(width: 8),
+              _MetricTile(
+                label: 'Принято',
+                value: formatPercent(item.acceptanceRate),
               ),
-            ),
+            ],
           ),
-
-          // Доля принятых заказов
-          SizedBox(
-            width: colWidths.acceptance,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                formatPercent(item.acceptanceRate),
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontFamily: 'Yandex Sans Text',
-                  color: Color(0xFF1C1C1E),
-                ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _MetricTile(
+                label: 'Отм. водителем',
+                value: formatPercent(item.driverCancellationRate),
               ),
-            ),
-          ),
-
-          // Доля заказов, отменённых водителями
-          SizedBox(
-            width: colWidths.cancellation,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                formatPercent(item.driverCancellationRate),
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontFamily: 'Yandex Sans Text',
-                  color: Color(0xFF1C1C1E),
-                ),
+              const SizedBox(width: 8),
+              _MetricTile(
+                label: 'Выполнено',
+                value: formatPercent(item.completionRate),
               ),
-            ),
-          ),
-
-          // Доля успешно выполненных заказов
-          SizedBox(
-            width: colWidths.completion,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                formatPercent(item.completionRate),
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontFamily: 'Yandex Sans Text',
-                  color: Color(0xFF1C1C1E),
-                ),
-              ),
-            ),
+              const SizedBox(width: 8),
+              const Expanded(child: SizedBox()),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MetricTile extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _MetricTile({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF2F2F7),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Color(0xFF8E8E93),
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1C1C1E),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -813,6 +673,8 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
   late bool _fleetCarsOnly;
   late Set<String> _selectedCarTypes;
   late Set<String> _selectedCarIds;
+  late Set<String> _selectedCarCategories;
+  late Set<String> _selectedCarStatuses;
 
   @override
   void initState() {
@@ -823,6 +685,8 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
     _fleetCarsOnly = s.fleetCarsOnly;
     _selectedCarTypes = Set.from(s.selectedCarTypes);
     _selectedCarIds = Set.from(s.selectedCarIds);
+    _selectedCarCategories = Set.from(s.selectedCarCategories);
+    _selectedCarStatuses = Set.from(s.selectedCarStatuses);
   }
 
   String _fmt(DateTime d) =>
@@ -833,6 +697,8 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
       _fleetCarsOnly = false;
       _selectedCarTypes.clear();
       _selectedCarIds.clear();
+      _selectedCarCategories.clear();
+      _selectedCarStatuses.clear();
     });
   }
 
@@ -843,6 +709,8 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
       fleetCarsOnly: _fleetCarsOnly,
       carTypes: Set.from(_selectedCarTypes),
       carIds: Set.from(_selectedCarIds),
+      carCategories: Set.from(_selectedCarCategories),
+      carStatuses: Set.from(_selectedCarStatuses),
     );
     Navigator.pop(context);
   }
@@ -851,6 +719,10 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
   Widget build(BuildContext context) {
     final vehicleTypes =
         ref.watch(vehicleTypesProvider).asData?.value ?? [];
+    final carCategories =
+        ref.watch(efficiencyCarCategoriesProvider).asData?.value ?? [];
+    final carStatuses =
+        ref.watch(efficiencyCarStatusesProvider).asData?.value ?? [];
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return DraggableScrollableSheet(
@@ -957,6 +829,66 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                               .toList(),
                         ),
                       const SizedBox(height: 20),
+                      _sectionLabel('Класс авто'),
+                      GestureDetector(
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            isScrollControlled: true,
+                            builder: (_) => _CarCategorySheet(
+                              categories: carCategories,
+                              selected: _selectedCarCategories,
+                              onApply: (ids) {
+                                setState(() =>
+                                    _selectedCarCategories = Set.from(ids));
+                              },
+                            ),
+                          );
+                        },
+                        child: _rowControl(
+                          icon: Icons.category_outlined,
+                          label: _selectedCarCategories.isEmpty
+                              ? 'Все классы'
+                              : '${_selectedCarCategories.length} класс(ов) выбрано',
+                          hasValue: _selectedCarCategories.isNotEmpty,
+                          onClear: _selectedCarCategories.isNotEmpty
+                              ? () => setState(
+                                  () => _selectedCarCategories.clear())
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      _sectionLabel('Статус'),
+                      GestureDetector(
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            isScrollControlled: true,
+                            builder: (_) => _CarStatusSheet(
+                              statuses: carStatuses,
+                              selected: _selectedCarStatuses,
+                              onApply: (ids) {
+                                setState(() =>
+                                    _selectedCarStatuses = Set.from(ids));
+                              },
+                            ),
+                          );
+                        },
+                        child: _rowControl(
+                          icon: Icons.info_outline_rounded,
+                          label: _selectedCarStatuses.isEmpty
+                              ? 'Все статусы'
+                              : '${_selectedCarStatuses.length} статус(ов) выбрано',
+                          hasValue: _selectedCarStatuses.isNotEmpty,
+                          onClear: _selectedCarStatuses.isNotEmpty
+                              ? () => setState(
+                                  () => _selectedCarStatuses.clear())
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
                       _sectionLabel('Автомобиль'),
                       GestureDetector(
                         onTap: () {
@@ -986,16 +918,18 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      _sectionLabel('Настройки'),
                       Container(
-                        padding:
-                            const EdgeInsets.fromLTRB(16, 4, 4, 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF2F2F2),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
                           children: [
+                            const Icon(Icons.garage_outlined,
+                                size: 20, color: AppTheme.textPrimary),
+                            const SizedBox(width: 12),
                             const Expanded(
                               child: Text(
                                 'Только парковые машины',
@@ -1004,11 +938,10 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                                     color: AppTheme.textPrimary),
                               ),
                             ),
-                            Switch.adaptive(
+                            CustomSwitch(
                               value: _fleetCarsOnly,
                               onChanged: (v) =>
                                   setState(() => _fleetCarsOnly = v),
-                              activeColor: const Color(0xFF34C759),
                             ),
                           ],
                         ),
@@ -1353,6 +1286,367 @@ class _VehicleTypeSheetState extends State<_VehicleTypeSheet> {
 }
 
 // ─── (old filter sheet replaced — see new _FilterSheet above) ─────────────────
+
+// ─── Car category sheet ───────────────────────────────────────────────────────
+
+class _CarCategorySheet extends StatefulWidget {
+  final List<CarCategory> categories;
+  final Set<String> selected;
+  final ValueChanged<Set<String>> onApply;
+
+  const _CarCategorySheet({
+    required this.categories,
+    required this.selected,
+    required this.onApply,
+  });
+
+  @override
+  State<_CarCategorySheet> createState() => _CarCategorySheetState();
+}
+
+class _CarCategorySheetState extends State<_CarCategorySheet> {
+  final TextEditingController _search = TextEditingController();
+  late Set<String> _selected;
+  late List<CarCategory> _filtered;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = Set.from(widget.selected);
+    _filtered = widget.categories;
+    _search.addListener(_filter);
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  void _filter() {
+    final q = _search.text.toLowerCase();
+    setState(() {
+      _filtered = q.isEmpty
+          ? widget.categories
+          : widget.categories
+              .where((c) => c.name.toLowerCase().contains(q))
+              .toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 12, bottom: 4),
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD1D1D6),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 8, 4),
+            child: Row(
+              children: [
+                const Text(
+                  'Класс авто',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1C1C1E),
+                  ),
+                ),
+                const Spacer(),
+                if (_selected.isNotEmpty)
+                  TextButton(
+                    onPressed: () {
+                      setState(() => _selected.clear());
+                      widget.onApply({});
+                    },
+                    child: const Text(
+                      'Сбросить',
+                      style: TextStyle(
+                          fontSize: 14, color: Color(0xFFFF3B30)),
+                    ),
+                  ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded,
+                      size: 20, color: Color(0xFF8E8E93)),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: TextField(
+              controller: _search,
+              decoration: InputDecoration(
+                hintText: 'Поиск',
+                hintStyle: const TextStyle(color: Color(0xFFAEAEB2)),
+                prefixIcon: const Icon(Icons.search_rounded,
+                    color: Color(0xFFAEAEB2), size: 20),
+                suffixIcon: _search.text.isNotEmpty
+                    ? GestureDetector(
+                        onTap: () {
+                          _search.clear();
+                          setState(() => _filtered = widget.categories);
+                        },
+                        child: const Icon(Icons.close_rounded,
+                            color: Color(0xFFAEAEB2), size: 18),
+                      )
+                    : null,
+                filled: true,
+                fillColor: const Color(0xFFF2F2F7),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 12),
+              ),
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xFFE5E5EA)),
+          Expanded(
+            child: widget.categories.isEmpty
+                ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+                : _filtered.isEmpty
+                    ? const Center(
+                        child: Text('Ничего не найдено',
+                            style: TextStyle(color: Color(0xFF8E8E93))))
+                    : ListView.builder(
+                        itemCount: _filtered.length,
+                        padding:
+                            EdgeInsets.only(bottom: bottomPad + 16),
+                        itemBuilder: (ctx, i) {
+                          final cat = _filtered[i];
+                          final isChecked = _selected.contains(cat.id);
+                          final isLast = i == _filtered.length - 1;
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    if (isChecked) {
+                                      _selected.remove(cat.id);
+                                    } else {
+                                      _selected.add(cat.id);
+                                    }
+                                  });
+                                  widget.onApply(Set.from(_selected));
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20, vertical: 15),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        cat.name,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: isChecked
+                                              ? FontWeight.w600
+                                              : FontWeight.normal,
+                                          color: isChecked
+                                              ? const Color(0xFF4285F4)
+                                              : const Color(0xFF1C1C1E),
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      if (isChecked)
+                                        const Icon(Icons.check_rounded,
+                                            size: 20,
+                                            color: Color(0xFF4285F4)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              if (!isLast)
+                                const Divider(
+                                    height: 1,
+                                    indent: 20,
+                                    color: Color(0xFFE5E5EA)),
+                            ],
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Car status sheet ────────────────────────────────────────────────────────
+
+class _CarStatusSheet extends StatefulWidget {
+  final List<CarStatus> statuses;
+  final Set<String> selected;
+  final ValueChanged<Set<String>> onApply;
+
+  const _CarStatusSheet({
+    required this.statuses,
+    required this.selected,
+    required this.onApply,
+  });
+
+  @override
+  State<_CarStatusSheet> createState() => _CarStatusSheetState();
+}
+
+class _CarStatusSheetState extends State<_CarStatusSheet> {
+  late Set<String> _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = Set.from(widget.selected);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.65,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 12, bottom: 4),
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD1D1D6),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 8, 8),
+            child: Row(
+              children: [
+                const Text(
+                  'Статус',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1C1C1E),
+                  ),
+                ),
+                const Spacer(),
+                if (_selected.isNotEmpty)
+                  TextButton(
+                    onPressed: () {
+                      setState(() => _selected.clear());
+                      widget.onApply({});
+                    },
+                    child: const Text(
+                      'Сбросить',
+                      style: TextStyle(
+                          fontSize: 14, color: Color(0xFFFF3B30)),
+                    ),
+                  ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded,
+                      size: 20, color: Color(0xFF8E8E93)),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xFFE5E5EA)),
+          Flexible(
+            child: widget.statuses.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: widget.statuses.length,
+                    padding: EdgeInsets.only(bottom: bottomPad + 16),
+                    itemBuilder: (ctx, i) {
+                      final status = widget.statuses[i];
+                      final isChecked = _selected.contains(status.id);
+                      final isLast = i == widget.statuses.length - 1;
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                if (isChecked) {
+                                  _selected.remove(status.id);
+                                } else {
+                                  _selected.add(status.id);
+                                }
+                              });
+                              widget.onApply(Set.from(_selected));
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 15),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    status.name,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: isChecked
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
+                                      color: isChecked
+                                          ? const Color(0xFF4285F4)
+                                          : const Color(0xFF1C1C1E),
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  if (isChecked)
+                                    const Icon(Icons.check_rounded,
+                                        size: 20,
+                                        color: Color(0xFF4285F4)),
+                                ],
+                              ),
+                            ),
+                          ),
+                          if (!isLast)
+                            const Divider(
+                                height: 1,
+                                indent: 20,
+                                color: Color(0xFFE5E5EA)),
+                        ],
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 // ─── Car list sheet ──────────────────────────────────────────────────────────
 

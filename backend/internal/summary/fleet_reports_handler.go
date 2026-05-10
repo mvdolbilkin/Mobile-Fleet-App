@@ -37,3 +37,13 @@ func (h *Handler) GetCarsAcceptanceRate(c *gin.Context) {
 func (h *Handler) GetCarsTrips(c *gin.Context) {
 	proxy.ToYandex(c, urlCarsTrips, http.MethodPost, proxy.WithJSONContentType())
 }
+
+// GetCarsEfficiencyList proxies the cars efficiency list report.
+func (h *Handler) GetCarsEfficiencyList(c *gin.Context) {
+	proxy.ToYandex(c, urlCarsEfficiencyList, http.MethodPost, proxy.WithJSONContentType())
+}
+
+// GetVehicleTypesByPark proxies the vehicle types by park catalog.
+func (h *Handler) GetVehicleTypesByPark(c *gin.Context) {
+	proxy.ToYandex(c, urlVehicleTypesByPark, http.MethodGet)
+}
