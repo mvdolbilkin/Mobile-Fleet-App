@@ -1,22 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../app/theme.dart';
 
-enum BadgeType {
-  working,
-  service,
-  noDriver,
-  preparation,
-}
+enum BadgeType { working, service, noDriver, preparation }
 
 class CustomBadge extends StatelessWidget {
   final BadgeType type;
   final String text;
 
-  const CustomBadge({
-    Key? key,
-    required this.type,
-    required this.text,
-  }) : super(key: key);
+  const CustomBadge({Key? key, required this.type, required this.text})
+    : super(key: key);
 
   Color get backgroundColor {
     switch (type) {
@@ -39,10 +31,7 @@ class CustomBadge extends StatelessWidget {
         color: backgroundColor,
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(
-        text,
-        style: AppTheme.badgeText,
-      ),
+      child: Text(text, style: AppTheme.badgeText),
     );
   }
 }

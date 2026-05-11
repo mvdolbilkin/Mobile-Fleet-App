@@ -3,15 +3,22 @@ import 'package:mobile/app/theme.dart';
 import 'package:mobile/features/fleet/domain/vehicle.dart';
 import 'package:mobile/shared/widgets/badge.dart';
 
-
 class VehicleListItem extends StatelessWidget {
   final Vehicle vehicle;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+  final bool isSelectionMode;
+  final bool isSelected;
+  final ValueChanged<bool?>? onSelect;
 
   const VehicleListItem({
     Key? key,
     required this.vehicle,
     this.onTap,
+    this.onLongPress,
+    this.isSelectionMode = false,
+    this.isSelected = false,
+    this.onSelect,
   }) : super(key: key);
 
   BadgeType _getBadgeType(VehicleStatus status) {
@@ -23,6 +30,9 @@ class VehicleListItem extends StatelessWidget {
       case VehicleStatus.noDriver:
         return BadgeType.noDriver;
       case VehicleStatus.preparation:
+        return BadgeType.preparation;
+      case VehicleStatus.other:
+      case VehicleStatus.notWorking:
         return BadgeType.preparation;
     }
   }
@@ -37,22 +47,47 @@ class VehicleListItem extends StatelessWidget {
         return 'Нет водителя';
       case VehicleStatus.preparation:
         return 'Подготовка';
+      case VehicleStatus.other:
+        return 'Другое';
+      case VehicleStatus.notWorking:
+        return 'Не работает';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: EdgeInsets.only(bottom: 12),
-        padding: EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppTheme.cardColor,
-          borderRadius: BorderRadius.circular(12),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected ? Colors.black : Colors.transparent,
+          width: 1.5,
         ),
-        child: Row(
-          children: [
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          onLongPress: isSelectionMode ? null : onLongPress,
+          child: Padding(
+            padding: isSelectionMode
+                ? const EdgeInsets.only(left: 4, top: 12, right: 12, bottom: 12)
+                : const EdgeInsets.all(12),
+            child: Row(
+            children: [
+            if (isSelectionMode)
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: Checkbox(
+                  value: isSelected,
+                  onChanged: onSelect,
+                  activeColor: AppTheme.primaryColor,
+                ),
+              ),
             // Аватар или иконка
             Container(
               width: 56,
@@ -114,10 +149,7 @@ class VehicleListItem extends StatelessWidget {
                         text: _getStatusText(vehicle.status),
                       ),
                       SizedBox(width: 8),
-                      Text(
-                        '${vehicle.mileage}',
-                        style: AppTheme.caption,
-                      ),
+                      Text('${vehicle.mileage} км', style: AppTheme.caption),
                       if (vehicle.driverName != null) ...[
                         SizedBox(width: 8),
                         Expanded(
@@ -135,11 +167,10 @@ class VehicleListItem extends StatelessWidget {
               ),
             ),
             // Стрелка
-            Icon(
-              Icons.chevron_right,
-              color: AppTheme.textSecondary,
-            ),
-          ],
+            Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+            ],
+          ),
+        ),
         ),
       ),
     );

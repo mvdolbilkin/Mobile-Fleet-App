@@ -1,8 +1,17 @@
-version: '3.8'
 
 services:
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+
   backend:
     build: ./backend
     ports:
-      - "8080:8080"
+      - "0.0.0.0:8081:8080"
     restart: always
+    environment:
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      - redis

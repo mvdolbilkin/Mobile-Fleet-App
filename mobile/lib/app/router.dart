@@ -5,25 +5,29 @@ import 'package:mobile/app/main_wrapper.dart';
 import 'package:mobile/features/fleet/fleet_screen.dart';
 import 'package:mobile/features/staff/staff_screen.dart';
 import 'package:mobile/features/map/map_screen.dart';
-import 'package:mobile/features/analytics/analytics_screen.dart';
+import 'package:mobile/features/reports/reports_screen.dart';
 import 'package:mobile/features/menu/menu_screen.dart';
+import 'package:mobile/features/summary/summary_screen.dart';
+import 'package:mobile/features/goals/goals_screen.dart';
 import 'package:mobile/features/auth/login_screen.dart';
 import 'package:mobile/features/auth/api_setup_screen.dart';
+import 'package:mobile/features/auth/yandex_webview_login_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
-  
+
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: '/login',
+    initialLocation: '/login', // Change to '/login' later remind me
     routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/api-setup',
         builder: (context, state) => const ApiSetupScreen(),
+      ),
+      GoRoute(
+        path: '/yandex-login',
+        builder: (context, state) => const YandexWebViewLoginScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -57,12 +61,12 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Ветка Аналитика
+          // Ветка Отчёты
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/analytics',
-                builder: (context, state) => const AnalyticsScreen(),
+                path: '/reports',
+                builder: (context, state) => const ReportsScreen(),
               ),
             ],
           ),
@@ -72,6 +76,16 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/menu',
                 builder: (context, state) => const MenuScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'summary',
+                    builder: (context, state) => const SummaryScreen(),
+                  ),
+                  GoRoute(
+                    path: 'goals',
+                    builder: (context, state) => const GoalsScreen(),
+                  ),
+                ],
               ),
             ],
           ),

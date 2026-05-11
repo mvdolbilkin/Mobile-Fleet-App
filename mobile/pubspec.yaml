@@ -42,10 +42,26 @@ dependencies:
   flutter_secure_storage: ^10.0.0
   modal_bottom_sheet: ^3.0.0
   flutter_svg: ^2.2.3
+  cached_network_image: ^3.4.1
+  flutter_dotenv: ^6.0.0
+  flutter_hooks: ^0.21.3+1
+  hooks_riverpod: ^3.3.1
+  flutter_inappwebview: ^6.1.5
+  uuid: ^4.4.2
+  file_picker: ^8.1.6
+  fl_chart: ^1.2.0
+  intl: ^0.20.2
+  hugeicons: ^1.1.6
+  url_launcher: ^6.2.5
+  flutter_markdown: ^0.7.7+1
+  yandex_maps_mapkit: 4.25.0-beta
+  flutter_localizations:
+    sdk: flutter
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  mocktail: ^1.0.4
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -67,17 +83,39 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
+    - .env
     - assets/images/
+    - assets/images/TariffEditSheet/
     - assets/fonts/
 
   fonts:
     - family: Yandex Sans Text
       fonts:
+        - asset: assets/fonts/YandexSansText-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/YandexSansText-Light.ttf
+          weight: 300
         - asset: assets/fonts/YandexSansText-Regular.ttf
           weight: 400
+        - asset: assets/fonts/YandexSansText-RegularItalic.ttf
+          weight: 400
+          style: italic
         - asset: assets/fonts/YandexSansText-Medium.ttf
           weight: 500
         - asset: assets/fonts/YandexSansText-Bold.ttf
+          weight: 700
+    - family: Yandex Sans Display
+      fonts:
+        - asset: assets/fonts/YandexSansDisplay-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/YandexSansDisplay-Light.ttf
+          weight: 300
+        - asset: assets/fonts/YandexSansDisplay-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/YandexSansDisplay-RegularItalic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/YandexSansDisplay-Bold.ttf
           weight: 700
 
   # An image asset can refer to one or more resolution-specific "variants", see

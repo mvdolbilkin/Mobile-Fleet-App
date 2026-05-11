@@ -3,12 +3,48 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mobile/app/theme.dart';
+import 'package:mobile/features/auth/auth_service.dart';
 
-class LoginScreen extends ConsumerWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  bool _isCheckingAuth = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuth();
+  }
+
+  Future<void> _checkAuth() async {
+    final authService = ref.read(authServiceProvider);
+    final isLoggedIn = await authService.checkAuthAndLogin();
+
+    if (mounted) {
+      if (isLoggedIn) {
+        context.go('/fleet');
+      } else {
+        setState(() {
+          _isCheckingAuth = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isCheckingAuth) {
+      return const Scaffold(
+        backgroundColor: Color.fromARGB(255, 245, 244, 242),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 245, 244, 242),
       body: SafeArea(
@@ -26,7 +62,7 @@ class LoginScreen extends ConsumerWidget {
                   height: 50,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    color: Colors.transparent, 
+                    color: Colors.transparent,
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
@@ -59,7 +95,7 @@ class LoginScreen extends ConsumerWidget {
               Center(
                 child: ElevatedButton(
                   onPressed: () {
-                     context.push('/api-setup');
+                    context.push('/yandex-login');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color.fromARGB(255, 252, 224, 0),
@@ -80,7 +116,20 @@ class LoginScreen extends ConsumerWidget {
                   child: const Text('Войти'),
                 ),
               ),
-              const SizedBox(height: 56),
+              const SizedBox(height: 16),
+              // API Setup Button (альтернативный метод)
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    context.push('/api-setup');
+                  },
+                  child: const Text(
+                    'Войти через API ключи',
+                    style: TextStyle(color: Colors.black54, fontSize: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
             ],
           ),
         ),

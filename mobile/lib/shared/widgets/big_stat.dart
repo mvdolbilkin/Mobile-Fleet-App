@@ -22,9 +22,10 @@ class BigStat extends StatelessWidget {
           value,
           style: const TextStyle(
             fontSize: 40,
-            fontWeight: FontWeight.w400,
+            fontWeight: FontWeight.w700,
             height: 1,
             fontFamily: 'Yandex Sans Text',
+            letterSpacing: -1,
           ),
         ),
         const SizedBox(width: 8),

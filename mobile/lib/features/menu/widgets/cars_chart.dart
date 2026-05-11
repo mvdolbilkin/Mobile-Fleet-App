@@ -1,85 +1,166 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/app/theme.dart';
+import 'package:mobile/features/menu/models/cars_model.dart';
+import 'dart:math' as math;
 
 class CarsChart extends StatelessWidget {
-  const CarsChart({super.key});
+  final CarsIndicator indicator;
+
+  const CarsChart({super.key, required this.indicator});
 
   @override
   Widget build(BuildContext context) {
+    // Find absolute maximum value
+    final values = [
+      indicator.working.count,
+      indicator.noDriver.count,
+      indicator.repairing.count,
+      indicator.pending.count,
+      indicator.unknown.count,
+    ];
+    final maxValue = values.reduce(math.max);
+
+    // Calculate grid step
+    int step = 1000;
+    if (maxValue < 100) {
+      step = 10;
+    } else if (maxValue < 1000) {
+      step = 100;
+    } else if (maxValue < 10000) {
+      step = 1000;
+    }
+
+    int maxGridLine = ((maxValue / step).ceil() + 1) * step;
+    if (maxGridLine - maxValue > step) maxGridLine -= step;
+    if (maxGridLine == 0) maxGridLine = step;
+
+    final int linesCount = (maxGridLine ~/ step) + 1;
+    const double chartHeight = 120.0;
+
     return SizedBox(
-      height: 180,
+      height: chartHeight,
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          // Grid lines and Labels
-          Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              _ChartLine(label: '2 тыс.'),
-              _ChartLine(label: '1 тыс.'),
-              _ChartLine(label: '0'),
-            ],
-          ),
+          // Grid lines
+          ...List.generate(linesCount, (index) {
+            final val = index * step;
+            final double bottomPos = (val / maxGridLine) * chartHeight;
+            return Positioned(
+              left: 0,
+              right: 0,
+              bottom: bottomPos - 6,
+              child: SizedBox(
+                height: 12,
+                child: Row(
+                  children: [
+                   Expanded(
+                    child: Container(
+                      height: 1,
+                      color: AppTheme.borderColor,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 40,
+                    child: Text(
+                      _formatLabel(val),
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        height: 1,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                ],
+              ),
+              ),
+            );
+          }),
           // Bars
-          Positioned(
-            bottom:
-                25, // Start from the '0' line (approx text height + padding)
-            left: 0,
-            right:
-                50, // Leave space for right-side labels
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                const SizedBox(width: 40), // Left padding
-                Container(
-                  width: 60,
-                  height: 140, // Visual approximation for > 2000
-                  decoration: const BoxDecoration(
-                    color: AppTheme.statusGreen,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-                  ),
+          if (maxValue > 0)
+            Positioned(
+              left: 40, // padding from left
+              right: 48, // space from labels
+              bottom: 0,
+              child: SizedBox(
+                height: chartHeight,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    _buildBar(
+                      value: indicator.working.count,
+                      max: maxGridLine,
+                      chartHeight: chartHeight,
+                      color: AppTheme.statusGreen,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildBar(
+                      value: indicator.noDriver.count,
+                      max: maxGridLine,
+                      chartHeight: chartHeight,
+                      color: AppTheme.statusOrange,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildBar(
+                      value: indicator.repairing.count,
+                      max: maxGridLine,
+                      chartHeight: chartHeight,
+                      color: AppTheme.statusRed,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildBar(
+                      value: indicator.pending.count,
+                      max: maxGridLine,
+                      chartHeight: chartHeight,
+                      color: AppTheme.statusBlue,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildBar(
+                      value: indicator.unknown.count,
+                      max: maxGridLine,
+                      chartHeight: chartHeight,
+                      color: Colors.grey,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  width: 60,
-                  height: 6, // Visual approximation for ~67
-                  decoration: const BoxDecoration(
-                    color: AppTheme.statusOrange,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
         ],
       ),
     );
   }
-}
 
-class _ChartLine extends StatelessWidget {
-  final String label;
-
-  const _ChartLine({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: Container(height: 1, color: AppTheme.borderColor)),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: 40, // Fixed width for labels
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Color(0xFF9E9E9E), // Colors.grey
-              fontSize: 12,
-              fontFamily: 'Yandex Sans Text',
-            ),
-            textAlign: TextAlign.right,
-          ),
+  Widget _buildBar({
+    required int value,
+    required int max,
+    required double chartHeight,
+    required Color color,
+  }) {
+    if (value == 0) {
+      return const SizedBox(width: 32);
+    }
+    return Container(
+      width: 32,
+      height: (value / max) * chartHeight,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(2),
+          topRight: Radius.circular(2),
         ),
-      ],
+      ),
     );
+  }
+
+  String _formatLabel(int val) {
+    if (val == 0) return '0';
+    if (val >= 1000) {
+      return '${(val / 1000).toStringAsFixed(0)} тыс.';
+    }
+    return val.toString();
   }
 }

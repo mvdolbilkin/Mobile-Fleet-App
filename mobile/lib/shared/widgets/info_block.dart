@@ -36,25 +36,30 @@ class InfoBlock extends StatelessWidget {
           Text(
             title,
             style: const TextStyle(
-              fontSize: 9,
+              fontSize: 11,
               fontWeight: FontWeight.w500,
               fontFamily: 'Yandex Sans Text',
-              color: Colors.black,
+              color: AppTheme.textSecondary,
+              letterSpacing: 0.1,
             ),
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  fontFamily: 'Yandex Sans Text',
-                  height: 1.2,
+              Flexible(
+                child: Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Yandex Sans Text',
+                    height: 1.2,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               if (icon != null) ...[
@@ -82,7 +87,7 @@ class InfoBlock extends StatelessWidget {
                     fontFamily: 'Yandex Sans Text',
                   ),
                 ),
-              ]
+              ],
             ],
           ),
         ],

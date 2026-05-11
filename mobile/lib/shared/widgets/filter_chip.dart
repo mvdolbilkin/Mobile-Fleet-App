@@ -1,57 +1,64 @@
 import 'package:flutter/material.dart';
-import '../../app/theme.dart';
 
 class CustomFilterChip extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
-  final bool hasNotification;
+  final Color? selectedColor;
+  final Color? selectedBorderColor;
+  final Color? unselectedColor;
+  final Color? unselectedBorderColor;
+  final Color? selectedTextColor;
+  final Color? unselectedTextColor;
+  final double borderRadius;
 
   const CustomFilterChip({
     Key? key,
     required this.label,
     required this.isSelected,
     required this.onTap,
-    this.hasNotification = false,
+    this.selectedColor,
+    this.selectedBorderColor,
+    this.unselectedColor,
+    this.unselectedBorderColor,
+    this.selectedTextColor,
+    this.unselectedTextColor,
+    this.borderRadius = 8,
   }) : super(key: key);
+
+  static const Color _defaultSelectedColor = Color(0xFFFCE000);
+  static const Color _defaultSelectedBorderColor = Color(0xFFC4A700);
+  static const Color _defaultUnselectedColor = Colors.white;
+  static const Color _defaultUnselectedBorderColor = Color(0xFFE5E5EA);
 
   @override
   Widget build(BuildContext context) {
+    final bgColor = isSelected
+        ? (selectedColor ?? _defaultSelectedColor)
+        : (unselectedColor ?? _defaultUnselectedColor);
+    final borderColor = isSelected
+        ? (selectedBorderColor ?? _defaultSelectedBorderColor)
+        : (unselectedBorderColor ?? _defaultUnselectedBorderColor);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.controlsColor : AppTheme.cardColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: AppTheme.borderColor,
-            width: 1,
-          ),
+          color: bgColor,
+          borderRadius: BorderRadius.circular(borderRadius),
+          border: Border.all(color: borderColor, width: 1),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (hasNotification) ...[
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: AppTheme.statusRed,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              SizedBox(width: 6),
-            ],
-            Text(
-              label,
-              style: AppTheme.filterChip,
-            ),
-            if (isSelected) ...[
-              SizedBox(width: 6),
-              Icon(Icons.close, size: 16, color: AppTheme.textSecondary),
-            ],
-          ],
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            fontFamily: 'Yandex Sans Text',
+            color: isSelected
+                ? (selectedTextColor ?? Colors.black)
+                : (unselectedTextColor ?? const Color(0xFF1C1C1E)),
+          ),
         ),
       ),
     );
