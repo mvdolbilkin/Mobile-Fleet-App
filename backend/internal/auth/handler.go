@@ -9,6 +9,7 @@ import (
 	"backend/internal/session"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func RegisterRoutes(r *gin.Engine) {
@@ -88,9 +89,12 @@ func SaveWebViewSessionHandler(c *gin.Context) {
 		return
 	}
 
+	// Получаем или генерируем уникальный ID для пользователя, но ключом сессии будет токен
+	appToken := uuid.New().String()
+
 	// Создаем сессию
 	userSession := &session.UserSession{
-		UserID:     req.ParkID, // Используем ParkID как UserID
+		UserID:     req.UID,    // Используем яндексовый UID, а не ParkID
 		SessionID:  req.SessionID,
 		SessionID2: req.SessionID2,
 		LoginToken: req.LoginToken,
@@ -103,7 +107,7 @@ func SaveWebViewSessionHandler(c *gin.Context) {
 
 	// Сохраняем в store
 	store := session.GetStore()
-	if err := store.Set(req.ParkID, userSession); err != nil {
+	if err := store.Set(appToken, userSession); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
 		return
 	}
@@ -111,5 +115,6 @@ func SaveWebViewSessionHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, LoginResponse{
 		Success: true,
 		Message: "WebView session saved successfully",
+		Token:   appToken,
 	})
 }

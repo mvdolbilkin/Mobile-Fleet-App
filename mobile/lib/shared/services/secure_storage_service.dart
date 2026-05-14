@@ -59,7 +59,16 @@ class SecureStorageService {
       await _storage.write(key: 'yandex_uid', value: yandexUid);
     }
   }
-  
+
+  // Сохранение токена приложения
+  Future<void> saveAppToken(String token) async {
+    await _storage.write(key: 'app_token', value: token);
+  }
+
+  Future<String?> getAppToken() async {
+    return await _storage.read(key: 'app_token');
+  }
+
   // Сохранение всех cookies как JSON строку
   Future<void> saveAllYandexCookies(String cookiesJson) async {
     await _storage.write(key: 'yandex_all_cookies', value: cookiesJson);
@@ -96,6 +105,7 @@ class SecureStorageService {
     await _storage.delete(key: 'yandex_login');
     await _storage.delete(key: 'yandex_uid');
     await _storage.delete(key: 'yandex_all_cookies');
+    await _storage.delete(key: 'app_token');
   }
 
   Future<void> clearAll() async {

@@ -333,7 +333,7 @@ class _YandexWebViewLoginScreenState
         // Отправляем сессию на backend
         try {
           final dio = ref.read(dioProvider);
-          await dio.post(
+          final response = await dio.post(
             '/api/auth/webview-session',
             data: {
               'park_id': parkId,
@@ -344,6 +344,15 @@ class _YandexWebViewLoginScreenState
               'yandex_uid': yandexUid ?? '',
             },
           );
+          
+          if (response.statusCode == 200 && response.data['success'] == true) {
+             final token = response.data['token'];
+             if (token != null) {
+               await secureStorage.saveAppToken(token);
+               ref.read(loggerProvider).i('✅ Token saved locally: $token');
+             }
+          }
+          
           ref.read(loggerProvider).i('✅ Session saved to backend');
         } catch (e) {
           ref.read(loggerProvider).e('❌ Failed to save session to backend: $e');
