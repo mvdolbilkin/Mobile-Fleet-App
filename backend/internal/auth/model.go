@@ -9,6 +9,7 @@ type LoginRequest struct {
 type LoginResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message,omitempty"`
+	Token   string `json:"token,omitempty"`
 }
 
 // WebViewSessionRequest запрос для сохранения сессии из WebView

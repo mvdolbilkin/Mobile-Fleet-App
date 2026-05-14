@@ -55,7 +55,16 @@ class AuthService {
   }
 
   Future<bool> checkAuthAndLogin() async {
-    // Сначала проверяем cookies (приоритет)
+    // 1. Сначала проверяем наш новый токен приложения (Наивысший приоритет)
+    final appToken = await _secureStorage.getAppToken();
+    if (appToken != null && appToken.isNotEmpty) {
+      // Токен есть - пускаем в приложение без обязательного запроса в сеть.
+      // Это решает проблему "нет интернета" или "медленный интернет" - 
+      // пользователь сразу зайдет, а инвалидацию сделает сам перехватчик (401 код).
+      return true;
+    }
+
+    // 2. Запасной вариант (Fallback): проверяем старые cookies
     final sessionId = await _secureStorage.getYandexSessionId();
     final sessionId2 = await _secureStorage.getYandexSessionId2();
 
@@ -67,7 +76,7 @@ class AuthService {
       return true;
     }
 
-    // Если нет cookies, проверяем API ключи
+    // 3. Если нет cookies, проверяем API ключи
     final clid = await _secureStorage.getClid();
     final apiKey = await _secureStorage.getApiKey();
     final parkId = await _secureStorage.getParkId();
